@@ -1,0 +1,15 @@
+cluster     = uBGL
+cns         = 1024
+ions        = 128
+testdir     = /p/gbtest/lustre-test/mib/restricted
+call_limit  = 512
+call_size   = 512k
+time_limit  = 30
+tasks       = 1024
+read_only   = false
+write_only  = false
+iterations  = 1
+pause       = false
+progress    = true
+profiles    = 1
+verbosity   = 1

@@ -1,0 +1,68 @@
+			       MIB
+		    MPI (POSIX) I/O BENCHMARK
+			Andrew C. Uselton
+		     Updated October 1, 2005
+
+Since the original "MIB" was written IOR has itself gone through a
+rewrite, and is now up to version 2.8.7.  In the intervening time I
+have become more familiar with the problem of benchmarking a parallel
+file system and the compromises made in IOR version 2.  In order to
+address those issues I've decided to update MIB in the same spirit as
+its original.  As before, MIB is intended to do one thing and do it
+well.  The goal of MIB is to be a precise tool for the diagnosis of
+I/O performace problems.  As such, it is expected that minor changes
+will be introduced from time to time.  The changes are not intended as
+improvements, per se, but as refinements of the target of the current
+inquiry.  Thus keeping the base code clean and clear is a priority.  
+
+MIB will continue to have the following properties:
+o MPI-based
+o POSIX system calls only
+o One file per MPI task only
+o Command line parameter controll only
+o The test runs exactly once with the given parameters
+New factors govorning its construction include:
+o Performace measure is via stonewalling
+o Data files are not deleted at the start or end
+o Auxilliary applications will precreate or remove data files
+o Verbosity levels include
+  = Aggregate data rate only
+  = Aggregate times for open, I/O, fsync, and close
+  = Individual tasks' times for open, I/O, fsync, and close
+  = Individual tasks' times for each system call (in addititon to the
+    above) 
+o Comprehensive error handling through a single API that uses MPI to
+  coordinate - only the base task ever prints.
+o All system calls are wrapped and built on the error handling module.
+o A bitmap allws for an arbitrary sub-communicator for the test
+o The write test is distinct from the read test.
+o A spec file allows for RPMs to be built.
+o Eventually, I'll want config scripts to assist with building in a
+  uniform way accross all platforms.
+
+miberr.c
+  The error handling API is fundamental to all the other functions, so
+I will begin there.  There are FOUR fundamental error conditions:
+1) FATAL - Something has happened that is so bad that processing must
+   stop immediately via MPI_Abort.  It might be the appropriate
+   response to a sigterm, in which case it should be  silent.  In
+   other cases a message might be appropriate.  This should rarely
+   happen, since any message may end up emerging from all tasks, which
+   pollutes the output stream. 
+2) ERROR - Something has happened outside of MIB's control that
+   prevents the program from continuing with normal processing.  It
+   will notify a monitor thread and pass a significant message to 
+   the base task, which reports on the error.  The monitor thread then
+   calls MPI_Abort. 
+2) WARNING - Something unexpected happened, that may alter the
+   interpretation of the results.  This is passed back to the base
+   task and is reported.
+3) ASSERT - Something happened that violates MIB's own design, this
+   is probably a bug in MIB, or a corner case not correctly anticipated
+   or handled.  A message and a call to MPI_Abort are appropriate.
+FATAL and ASSERT both cause immediate termination of MIB.  As such we
+want to avoid using them in the code as much as possible (but no
+less).  ERROR should be the usual way of reporting something like a
+bad choice of input parameters or an inability to open the target
+file.  ERROR and WARNING both communicate their distress to an
+otherwise idle monitor thread.  
