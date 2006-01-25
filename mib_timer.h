@@ -31,7 +31,7 @@ typedef enum {FALSE, TRUE} BOOL;
 
 
 
-void init_timer();
+void init_timer(int rank);
 
 double get_time();
 

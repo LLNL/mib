@@ -24,22 +24,31 @@
  *  59 Temple Place, Suite 330, Boston, MA  02111-1307  USA.
 \*****************************************************************************/
 /*
- *   The design of mib is deliberately meant to be a simple as
- * possible (but no simpler).  It is intended that the results be
- * easily interpreted on the one hand.  On the other, it is intended
- * that the code might be easily extended to particular purposes.
- * Central to the program is a test that has each task perform I/O, of
- * a fixed size per system call, to a file named in a conventional
- * way.  It is presumed, but not required, that the file is on a
- * parallel file system. It is required that the task writing a given
- * file and the task reading it both see the same file, and those
- * tasks will be distinct.  One particular purpose is already
- * implemented here, not particularly well.  It checks that sibling
- * compute nodes (all using the same I/O node) proceed through their
- * system calls uniformly, i.e. in lock step.  If they do not, the
- * fact is noted, but no other action is taken.  That one section of
- * code could be removed without loss of functionality, and others
- * could be put in its place.
+ *   Mib is intended to be as simple as possible (but no simpler).  It
+ * is intended that the results be easily interpreted on the one hand.
+ * On the other, it is intended that the code might be easily extended
+ * to particular purposes.  Central to the program is a test that has
+ * each task perform I/O, of a fixed size per system call, to a file
+ * named in a conventional way.  It is presumed, but not required,
+ * that the file is on a parallel file system. It is required that the
+ * task writing a given file and the task reading it both see the same
+ * file, and those tasks will be distinct.  Detailed timing data for
+ * all the system calls is sent to a file (one for writes on for
+ * reads) after the I/O is complete.
+ *   Stonewalling tests have all the tasks stop after the same amount
+ * of time.  Non-stonewalling tests allow all task to complete a fixed
+ * number of system calls before stopping.  Whichever citerion is 
+ * satisfied first ends I/O from a task.  It is possible for system 
+ * call limits and time limits to be chosen so that some tasks end 
+ * due to one and other tasks due to the other.  I don't see how 
+ * that could be desirable, but is allowed and no special note is made
+ * if it does happen.
+ *   One particular special purpose is already implemented here, not
+ * particularly well.  It checks that sibling compute nodes (all using
+ * the same I/O node) proceed through their system calls uniformly,
+ * i.e. in lock step.  If they do not, the fact is noted, but no other
+ * action is taken.  That one section of code could be removed without
+ * loss of functionality, and others could be put in its place.
  */
 
 
@@ -48,6 +57,8 @@
 #include <sys/stat.h>   /* open, etc */
 #include <fcntl.h>      /* open, etc */
 #include <unistd.h>     /* unlink, ssize_t */
+#include <stdlib.h>     /* free */
+#include <string.h>     /* strncpy */
 #include <errno.h>
 #include <time.h>
 #include "mib.h"
@@ -68,6 +79,8 @@ void ions(double *array, int count);
 void report(double write, double read);
 
 extern Options *opts;
+
+char *version="mib-1.6";
 
 int
 main( int argc, char *argv[] )
@@ -93,12 +106,12 @@ main( int argc, char *argv[] )
   mpi_init( &argc, &argv );
   mpi_comm_size(MPI_COMM_WORLD, &size );
   mpi_comm_rank(MPI_COMM_WORLD, &rank );
+  init_timer(rank);
   command_line(argc, argv, opt_path);
   do
     {
       opts = read_options(opt_path, rank, size);
       init_filenames();
-      init_timer();
       DEBUG("Initializations complete.\n");
       if(!opts->read_only)
 	{
@@ -120,7 +133,7 @@ main( int argc, char *argv[] )
 	}
       report(write, read);
       iteration++;
-      stop = (iteration >= opts->iterations);
+      stop = (BOOL)(iteration >= opts->iterations);
       Free_Opts();
       close_log();
     }

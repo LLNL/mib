@@ -26,7 +26,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
+#include <string.h>     /* strncpy */
 #include <ctype.h>
 #include <time.h>
 #include <unistd.h>
@@ -34,7 +34,7 @@
 #include "sys_wrap.h"
 #include "miberr.h"
 #include "options.h"
-
+#include "mpi_wrap.h"
 
 Options *Init_Opts(char *buf, int rank, int size);
 void show_keys(Options *opts);
@@ -59,8 +59,6 @@ BOOL kv_pair(char *buf, char **k, char **v);
 BOOL set_key(char *k, char *v, Options *opts);
 
 Options *opts;
-
-char *version="mib-1.6";
 
 void
 command_line(int argc, char *argv[], char *opt_path)
@@ -91,9 +89,6 @@ read_options(char *opt_path, int rank, int size)
   
   ASSERT(opt_path != NULL);
   opts = Init_Opts(opt_path, rank, size);
-  if ( (opts->rank == opts->base) && (opts->verbosity >= NORMAL) )
-    printf("\n\n%s\n\n", version);
-
   show_keys(opts);
   return(opts);
 }
@@ -301,7 +296,7 @@ show_keys(Options *opts)
       printf("read_log   = %s\n", opts->read_log);
       printf("testdir    = %s\n", opts->testdir);
       printf("call_limit = %d\n", opts->call_limit);
-      printf("call_size  = %Ld\n", opts->call_size);
+      printf("call_size  = %lld\n", opts->call_size);
       printf("time_limit = %d\n", opts->time_limit);
       printf("tasks      = %d\n", opts->tasks);
       printf("write_only = %d\n", opts->write_only);
@@ -310,7 +305,7 @@ show_keys(Options *opts)
       printf("pause      = %d\n", opts->pause);
       printf("progress   = %d\n", opts->progress);
       printf("profiles   = %d\n", opts->profiles);
-      printf("verbosity   = %d\n", opts->verbosity);
+      printf("verbosity  = %d\n", opts->verbosity);
     }
 }
 
@@ -402,7 +397,7 @@ set_call_size(char *v, Options *opts)
   int ret;
   char c;
 
-  ret = sscanf(v, "%Ld %c", &(opts->call_size), &c);
+  ret = sscanf(v, "%lld %c", &(opts->call_size), &c);
   if (ret < 1) FAIL();
   if(ret > 1)
     {

@@ -25,27 +25,43 @@
 \*****************************************************************************/
 #include <mpi.h>
 #include <stdio.h>
+#include <time.h>
+#include <string.h>     /* strncpy */
 #include "mpi_wrap.h"
 #include "options.h"
 #include "mib_timer.h"
 #include "miberr.h"
 
-extern Options *opts;
+#define MAX_BUF 100
 
 static double _zero;
 static double _skew;
 static int _initialized = 0;
 
+extern char *version;
+
 void
-init_timer()
+init_timer(int rank)
 {
   double start;
+  time_t t;
+  char time_str[MAX_BUF];
+  char *p;
 
-  mpi_barrier(opts->comm);
+  mpi_barrier(MPI_COMM_WORLD);
   start = MPI_Wtime();
-  mpi_allreduce(&start, &_zero, 1, MPI_DOUBLE, MPI_MIN, opts->comm);
+  mpi_allreduce(&start, &_zero, 1, MPI_DOUBLE, MPI_MIN, MPI_COMM_WORLD);
   _skew = start - _zero;
   _initialized = 1;
+  if ( rank == 0 )
+    {
+      t = time(NULL);
+      strncpy(time_str, ctime(&t), MAX_BUF);
+      p = time_str;
+      while( (*p != '\0') && (*p != '\n') && (p - time_str < MAX_BUF) )p++;
+      if( *p == '\n' ) *p = '\0';
+      printf("\n\n%s  %s\n\n", version, time_str);
+    }
 }
 
 double

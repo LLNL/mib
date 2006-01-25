@@ -94,9 +94,10 @@ Write(int fd, const void *buf, size_t count)
   ssize_t wrote;
   ssize_t written = 0;
   int retries = MAX_RETRIES;
+  char *bp = (char *)buf;
 
   errno = 0;
-  while ( retries-- && ((wrote = write(fd, buf + written, count - written)) < (count - written)) )
+  while ( retries-- && ((wrote = write(fd, (void *)(&(bp[written])), count - written)) < (count - written)) )
     {
       if(wrote < 0)
 	{
@@ -132,9 +133,10 @@ Read(int fd, void *buf, size_t count)
   ssize_t got;
   ssize_t gotten = 0;
   int retries = MAX_RETRIES;
+  char *bp = (char *)buf;
 
   errno = 0;
-  while ( retries-- && ((got = read(fd, buf + gotten, count - gotten)) < (count - gotten)) )
+  while ( retries-- && ((got = read(fd, (void *)(&(bp[gotten])), count - gotten)) < (count - gotten)) )
     {
       if(got < 0)
 	{
@@ -165,7 +167,8 @@ Fsync(int fd)
 
   errno = 0;
   if ( (rc = fsync(fd)) < 0 )
-    FAIL();
+    /*    FAIL()*/;
+  return(rc);
 }
 
 int
@@ -182,6 +185,7 @@ Close(int fd)
   errno = 0;
   if ( (rc = close(fd)) < 0 )
     FAIL();
+  return(rc);
 }
 
 /*

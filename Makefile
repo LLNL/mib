@@ -27,6 +27,12 @@
 # These are for BGL
 CC = mpgcc
 CCFLAGS = -g -D_LARGEFILE64_SOURCE -D_FILE_OFFSET_BITS=64
+
+# These are for Gauss
+# To find the compiler use "export PATH=/usr/local/intel/compiler90_64_023/bin:$PATH"
+#CC = mpiicc
+#CCFLAGS = -g -D_LARGEFILE64_SOURCE -D_FILE_OFFSET_BITS=64
+
 LDFLAGS =
 LIBDIRS = 
 LIBS = 

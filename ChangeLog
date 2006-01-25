@@ -29,4 +29,14 @@
 	  set
 	- Adjust defaults for operation without parameters file
 	- Reduce verbosity for default operation, summary line only
+	- Clean up "lint" detected by icc compiler, missing "returns"
+	  pointer arithmetic, missing "include" files <stdlib> and <string>
+	- init_timer() now uses MPI_COMM_WORLD and occurs outside the 
+	  iteration loop.  It also announces the program name and start 
+	  time.
+	- the fsync() seems to return errors that (probably) occurred
+	  earlier and were corrected.  Work around, investigate, fix.
+	
+
+	
 	
