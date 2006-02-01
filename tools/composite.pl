@@ -328,6 +328,7 @@ sub read_lwatch
 my @Write;
 my @LastW;
 my $write_max;
+my $write_min;
 sub read_writes
 {
     my $write_calls = "write.syscall.aves";
@@ -388,14 +389,17 @@ sub read_writes
     printf("End time = %d\n", $end);
     printf("Write rate: %f MB/s\n", ($sum*$mib_xfer*$CNs_per_ION)/(1024*1024*($end - $start)));
     
+    $write_min = $start;
     $write_max = $end;
-    printf "max time for write syscalls is %d\n", $write_max if ($verbose);
+    printf "write syscalls from %d to %d\n", $write_min, $write_max if ($verbose);
 }
 # End of read_writes
 
 
 my @Read;
 my @LastR;
+my $read_min;
+my $read_max;
 sub read_reads
 {    
     my $read_calls = "read.syscall.aves";
@@ -449,7 +453,8 @@ sub read_reads
     printf("End time = %d\n", $end);
     printf("Read rate:  %f MB/s\n", ($sum*$mib_xfer*$CNs_per_ION)/(1024*1024*($end - $start)));
 
-    my $read_max = $end;
+    $read_min = $start;
+    $read_max = $end;
     printf "max time for read syscalls is %d\n", $read_max if ($verbose);
     
     
@@ -513,6 +518,9 @@ sub find_bounds
 
 sub write_data_file
 {
+    my $write;
+    my $read;
+
     $xw_min = 0 if ($xw_min < 0);
     open(TMP, ">$tmp_file") or die "Could not open tmp file $tmp_file";
     for ($count = $xw_min; $count < $xw_max; $count++)
@@ -520,7 +528,7 @@ sub write_data_file
 	$wvals[$count] = 0 if (! defined($wvals[$count]));
 	$rvals[$count] = 0 if (! defined($rvals[$count]));
 	my $xt = ($count - $lwatch_start_write)*$scale + $syscall_start_write;
-	printf TMP "%.0f\t%f\t%f\t%f\t%f\n", $xt, $mib_write, $mib_read, $wvals[$count], $rvals[$count];
+	printf TMP "%.0f\t%f\t%f\n", $xt, $wvals[$count], $rvals[$count];
     }
     
     printf TMP "\n\n";
@@ -531,6 +539,16 @@ sub write_data_file
 	$read = $Read[$t]*($CNs_per_ION*$mib_xfer)/(1024*1024);
 	$Write[$t] = 0 if (!defined($Write[$t]));
 	$write = $Write[$t]*($CNs_per_ION*$mib_xfer)/(1024*1024);
+	printf TMP "%d\t%f\t%f\n", $t, $write, $read;
+    }
+    printf TMP "\n\n";
+    
+    for ($t = 0; $t < $syscall_end_read; $t++)
+    {
+	$read  = 0;
+	$write = 0;
+	$read = $mib_read if ( ($t > $read_min) && ($t < $read_max) );
+	$write = $mib_write if ( ($t > $write_min) && ($t < $write_max) );
 	printf TMP "%d\t%f\t%f\n", $t, $write, $read;
     }
     close(TMP);
@@ -577,7 +595,7 @@ sub write_gnuplot_file
     print GNU "set ylabel \"Data rate (MB/s)\"\n";
 #print GNU "set xrange [800:1400]\n";
     print GNU "set yrange [0:$yrange]\n";
-    print GNU "plot '$tmp_file' index 0 using 1:2 title \"mib write\" with lines,'$tmp_file' index 0 using 1:3 title \"mib read\" with lines,'$tmp_file' index 0 using 1:4 title \"lwatch write\" with lines,'$tmp_file' index 0 using 1:5 title \"lwatch read\" with lines,'$tmp_file' index 1 using 1:2 title \"syscall write\" with lines,'$tmp_file' index 1 using 1:3 title \"syscall read\" with lines\n";
+    print GNU "plot '$tmp_file' index 2 using 1:2 title \"mib write\" with lines,'$tmp_file' index 2 using 1:3 title \"mib read\" with lines,'$tmp_file' index 0 using 1:2 title \"lwatch write\" with lines,'$tmp_file' index 0 using 1:3 title \"lwatch read\" with lines,'$tmp_file' index 1 using 1:2 title \"syscall write\" with lines,'$tmp_file' index 1 using 1:3 title \"syscall read\" with lines\n";
     close(GNU);
 }
 
