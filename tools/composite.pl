@@ -88,16 +88,18 @@ sub read_options
 {
 # Given the value of $log_dir read in the needed values:
     my $options = "options";
-    my $CNs = `grep cns $options | awk '{print \$3}'`;
-    my $IONs = `grep ions $options | grep -v iterations | awk '{print \$3}'`;
+    my $CNs;
+    my $IONs;
     
-    $CNs_per_ION = $CNs/$IONs;
     $options = $log_dir . $options;
     if ( ! -f $options )
     {
 	print "I did not see the options file $options\n";
 	return;
     }
+    $CNs = `grep cns $options | awk '{print \$3}'`;
+    $IONs = `grep ions $options | grep -v iterations | awk '{print \$3}'`;
+    $CNs_per_ION = $CNs/$IONs;
     defined($CNs_per_ION) or die "Didn't find options CNs_per_ION value";
     return;
 }
@@ -579,6 +581,14 @@ sub write_gnuplot_file
     close(GNU);
 }
 
+read_options;
+read_log ;
+read_lwatch;
+read_writes;
+read_reads;
+find_bounds;
+write_data_file;
+write_gnuplot_file;
 `gnuplot -persist $gnu_file`;
 
 unlink $tmp_file if (! $keep_files);
