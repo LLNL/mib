@@ -516,8 +516,13 @@ sub find_bounds
 }
 # End of find_bounds
 
+my $mib_index;
+my $lwatch_index;
+my $write_index;
+my $read_index;
 sub write_data_file
 {
+    my $index = 0;
     my $write;
     my $read;
 
@@ -530,17 +535,25 @@ sub write_data_file
 	my $xt = ($count - $lwatch_start_write)*$scale + $syscall_start_write;
 	printf TMP "%.0f\t%f\t%f\n", $xt, $wvals[$count], $rvals[$count];
     }
+    $lwatch_index = $index++;
+    printf TMP "\n\n";
     
+    for ($t = 0; $t < $syscall_end_read; $t++)
+    {
+	$Write[$t] = 0 if (!defined($Write[$t]));
+	$write = $Write[$t]*($CNs_per_ION*$mib_xfer)/(1024*1024);
+	printf TMP "%d\t%f\n", $t, $write;
+    }
+    $write_index = $index++;
     printf TMP "\n\n";
     
     for ($t = 0; $t < $syscall_end_read; $t++)
     {
 	$Read[$t] = 0 if (!defined($Read[$t]));
 	$read = $Read[$t]*($CNs_per_ION*$mib_xfer)/(1024*1024);
-	$Write[$t] = 0 if (!defined($Write[$t]));
-	$write = $Write[$t]*($CNs_per_ION*$mib_xfer)/(1024*1024);
-	printf TMP "%d\t%f\t%f\n", $t, $write, $read;
+	printf TMP "%d\t%f\n", $t, $read;
     }
+    $read_index = $index++;
     printf TMP "\n\n";
     
     for ($t = 0; $t < $syscall_end_read; $t++)
@@ -551,15 +564,22 @@ sub write_data_file
 	$write = $mib_write if ( ($t > $write_min) && ($t < $write_max) );
 	printf TMP "%d\t%f\t%f\n", $t, $write, $read;
     }
+    $mib_index = $index;
     close(TMP);
 }
 
 sub write_gnuplot_file
 {
+    my $plot_com_mib;
+    my $plot_com_lwatch;
+    my $plot_com_write;
+    my $plot_com_read;
+
 # Sometimes the early spike in write rate make the rest of the graph 
 # disappear.  Try limiting that.
     my $yrange = 1;
     my $tmp = $mib_write;
+
     while ($tmp > 1)
     {
 	$tmp /= 2;
@@ -595,7 +615,11 @@ sub write_gnuplot_file
     print GNU "set ylabel \"Data rate (MB/s)\"\n";
 #print GNU "set xrange [800:1400]\n";
     print GNU "set yrange [0:$yrange]\n";
-    print GNU "plot '$tmp_file' index 2 using 1:2 title \"mib write\" with lines,'$tmp_file' index 2 using 1:3 title \"mib read\" with lines,'$tmp_file' index 0 using 1:2 title \"lwatch write\" with lines,'$tmp_file' index 0 using 1:3 title \"lwatch read\" with lines,'$tmp_file' index 1 using 1:2 title \"syscall write\" with lines,'$tmp_file' index 1 using 1:3 title \"syscall read\" with lines\n";
+    $plot_com_mib = "'$tmp_file' index $mib_index using 1:2 title \"mib write\" with lines,'$tmp_file' index $mib_index using 1:3 title \"mib read\" with lines";
+    $plot_com_lwatch = "'$tmp_file' index $lwatch_index using 1:2 title \"lwatch write\" with lines,'$tmp_file' index 0 using 1:3 title \"lwatch read\" with lines";
+    $plot_com_write = "'$tmp_file' index $write_index using 1:2 title \"syscall write\" with lines";
+    $plot_com_read = "'$tmp_file' index $read_index using 1:2 title \"syscall read\" with lines";
+    print GNU "plot $plot_com_mib,$plot_com_lwatch,$plot_com_write,$plot_com_read\n";
     close(GNU);
 }
 
