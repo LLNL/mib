@@ -35,6 +35,10 @@ my $keep_files = 0;
 my $r_off = 0;
 my $w_off = 0;
 my $scale = 5;
+my $plot_mib;
+my $plot_lwatch;
+my $plot_write;
+my $plot_read;
 
 sub usage
 {
@@ -118,7 +122,7 @@ sub read_log
     if ( ! -f $mib_log )
     {
 	print "I did not see the mib log file $mib_log\n";
-	return;
+	return 0;
     }
 
     open(MIB, "<$mib_log") or die "I could not open the mib log file $mib_log";    
@@ -181,7 +185,7 @@ sub read_log
     defined($mib_write) or die "Didn't find mib write rate";
     defined($mib_read) or die "Didn't find mib read rate";
     #print "$mib_read, $mib_write, $mib_xfer\n";
-    return;
+    return 1;
 }
 # End of read_log
 
@@ -203,7 +207,7 @@ sub read_lwatch
     if ( ! -f $lwatch_trace)
     {
 	print "I did not see the lwatch-lustre trace file $lwatch_trace\n";
-	return;
+	return 0;
     }
 
     open(LWATCH, "<$lwatch_trace") or die "I could not open the lwatch trace file $lwatch_trace";
@@ -320,6 +324,7 @@ sub read_lwatch
     }
     $lwatch_end_read = $end;
     printf "lwatch: count = %d, write start = %.0f, write_run = %f, end read = %.0f, read_run = %f\n", $count, $lwatch_start_write*$scale, $write_run, $lwatch_end_read*$scale, $read_run if ($verbose);
+    return 1;
 }
 # $count, $lwatch_start_write, $write_run, lwatch_end_read, $read_run
 # End of read_lwatch
@@ -337,7 +342,7 @@ sub read_writes
     if ( ! -f $write_calls ) 
     {
 	print "I did not see the write system calls file $write_calls\n";
-	return;
+	return 0;
     }
     
     open(WRITE, "<$write_calls") or die "I could not open the write system calls file $write_calls";
@@ -392,6 +397,7 @@ sub read_writes
     $write_min = $start;
     $write_max = $end;
     printf "write syscalls from %d to %d\n", $write_min, $write_max if ($verbose);
+    return 1;
 }
 # End of read_writes
 
@@ -404,7 +410,11 @@ sub read_reads
 {    
     my $read_calls = "read.syscall.aves";
     $read_calls = $log_dir . $read_calls;
-    -f $read_calls or die "I did not see the read system calls file  $read_calls";
+    if ( ! -f $read_calls)
+    {
+	print "I did not see the read system calls file  $read_calls\n";
+	return 0;
+    }
     open(READ, "<$read_calls") or die "I could not open the read system calls file $read_calls";
     
     
@@ -488,6 +498,7 @@ sub read_reads
 	    $read_run = 0;
 	}
     }
+    return 1;
 }
 # End of read_reads
 
@@ -570,10 +581,34 @@ sub write_data_file
 
 sub write_gnuplot_file
 {
-    my $plot_com_mib;
-    my $plot_com_lwatch;
-    my $plot_com_write;
-    my $plot_com_read;
+    my $plot_com_mib = "";
+    my $plot_com_lwatch = "";
+    my $plot_com_write = "";
+    my $plot_com_read = "";
+    my $need_comma = 0;
+
+    if ( $plot_mib )
+    {
+	$plot_com_mib = "'$tmp_file' index $mib_index using 1:2 title \"mib write\" with lines,'$tmp_file' index $mib_index using 1:3 title \"mib read\" with lines";
+	$need_comma = 1;
+    }
+    if ( $plot_lwatch )
+    {
+	$plot_com_lwatch = "'$tmp_file' index $lwatch_index using 1:2 title \"lwatch write\" with lines,'$tmp_file' index 0 using 1:3 title \"lwatch read\" with lines";
+	$plot_com_lwatch = ",$plot_com_lwatch" if ($need_comma);
+	$need_comma = 1;
+    }
+    if ( $plot_write )
+    {
+	$plot_com_write = "'$tmp_file' index $write_index using 1:2 title \"syscall write\" with lines";
+	$plot_com_write = ",$plot_com_write" if ($need_comma);
+	$need_comma = 1;
+    }
+    if ( $plot_read )
+    {
+	$plot_com_read = "'$tmp_file' index $read_index using 1:2 title \"syscall read\" with lines";
+	$plot_com_read = ",$plot_com_read" if ($need_comma);
+    }
 
 # Sometimes the early spike in write rate make the rest of the graph 
 # disappear.  Try limiting that.
@@ -615,19 +650,15 @@ sub write_gnuplot_file
     print GNU "set ylabel \"Data rate (MB/s)\"\n";
 #print GNU "set xrange [800:1400]\n";
     print GNU "set yrange [0:$yrange]\n";
-    $plot_com_mib = "'$tmp_file' index $mib_index using 1:2 title \"mib write\" with lines,'$tmp_file' index $mib_index using 1:3 title \"mib read\" with lines";
-    $plot_com_lwatch = "'$tmp_file' index $lwatch_index using 1:2 title \"lwatch write\" with lines,'$tmp_file' index 0 using 1:3 title \"lwatch read\" with lines";
-    $plot_com_write = "'$tmp_file' index $write_index using 1:2 title \"syscall write\" with lines";
-    $plot_com_read = "'$tmp_file' index $read_index using 1:2 title \"syscall read\" with lines";
-    print GNU "plot $plot_com_mib,$plot_com_lwatch,$plot_com_write,$plot_com_read\n";
+    print GNU "plot $plot_com_mib $plot_com_lwatch $plot_com_write $plot_com_read\n";
     close(GNU);
 }
 
 read_options;
-read_log ;
-read_lwatch;
-read_writes;
-read_reads;
+$plot_mib = read_log;
+$plot_lwatch = read_lwatch;
+$plot_write = read_writes;
+$plot_read = read_reads;
 find_bounds;
 write_data_file;
 write_gnuplot_file;
