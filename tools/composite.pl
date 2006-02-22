@@ -10,8 +10,16 @@
 use Getopt::Std;
 use Time::Local;
 
-use constant GETOPTS_ARGS => "d:hkp:s:";
+use constant GETOPTS_ARGS => "d:hkp:v";
 use vars map { '$opt_' . $_ } split(/:*/, GETOPTS_ARGS);
+my $log_dir = ".";
+my $keep_files = 0;
+my $png_file;
+if ($log_dir =~ /^(.*)\/([^\/]+)$/ )
+{
+    $png_file = $2;
+}
+my $verbose = 0;
 
 my $prog = $0;
 my $path = ".";
@@ -20,25 +28,6 @@ if ($prog =~ /^(.*)\/([^\/]+)$/ )
     $path = $1;
     $prog = $2;
 }
-
-my $verbose = 0;
-
-my $line;
-my $wval;
-my $rval;
-my $call;
-my $png_file;
-my $log_dir = "";
-my $tmp_file = "/tmp/composite.tmp.$$";
-my $gnu_file = "/tmp/composite.$$.gnuplot";
-my $keep_files = 0;
-my $r_off = 0;
-my $w_off = 0;
-my $scale = 5;
-my $plot_mib;
-my $plot_lwatch;
-my $plot_write;
-my $plot_read;
 
 sub usage
 {
@@ -77,17 +66,15 @@ $log_dir .= '/' if ( rindex($log_dir, "/") != (length($log_dir) - 1)  );
 
 $keep_files = $opt_k if ($opt_k);
 $png_file = $opt_p if ($opt_p);
-if ( $opt_p and ! ($png_file =~ /\.png$/) )
+if ( defined($png_file) and ! ($png_file =~ /\.png$/) )
 {
     $png_file = $png_file . ".png";
     print"Graph output to $png_file\n";
 }
-$r_off = $opt_r if ($opt_r);
-$w_off = $opt_w if ($opt_w);
-$scale = $opt_s if ($opt_s);
+$verbose = 1 if ($opt_v);
 
 # If we don't get an options file set the default here.
-my $CNs_per_ION = 64;
+my $CNs_per_ION;
 sub read_options
 {
 # Given the value of $log_dir read in the needed values:
@@ -99,6 +86,7 @@ sub read_options
     if ( ! -f $options )
     {
 	print "I did not see the options file $options\n";
+	$CNs_per_ION = 64;
 	return;
     }
     $CNs = `grep cns $options | awk '{print \$3}'`;
@@ -107,21 +95,24 @@ sub read_options
     defined($CNs_per_ION) or die "Didn't find options CNs_per_ION value";
     return;
 }
+# $CNs_per_ION
 
-# If we don't get a log file set the defaults here.
-my $mib_write = 0;
-my $mib_read = 0;
-my $mib_xfer = 512*1024;
+my $mib_plot;
+my $mib_write;
+my $mib_read;
+my $mib_xfer;
 sub read_log 
 {
 # Given $log_dir read the file and get the given values    
     my $call_size_string;
     my $mib_log = "log";
+    my $line;
 
     $mib_log = $log_dir . $mib_log;
     if ( ! -f $mib_log )
     {
-	print "I did not see the mib log file $mib_log\n";
+	print "No mib log file $mib_log\n";
+	$mib_xfer = 512*1024;
 	return 0;
     }
 
@@ -181,24 +172,25 @@ sub read_log
 	}
     }
     close(MIB);
-    defined($mib_xfer) or die "Didn't find mib xfer size";
-    defined($mib_write) or die "Didn't find mib write rate";
-    defined($mib_read) or die "Didn't find mib read rate";
+    return 0 if ( ! defined($mib_write) or ! defined($mib_read) ) ;
     #print "$mib_read, $mib_write, $mib_xfer\n";
     return 1;
 }
-# End of read_log
+# $mib_plot, $mib_write, $mib_read, $mib_xfer
+#End of read_log
 
-my $count = 0;
+my $lwatch_plot;
+my $lwatch_scale;
+my $lwatch_peak = 0;
+my $lwatch_start_write;
+my $lwatch_end_write;
+my $lwatch_start_read;
+my $lwatch_end_read;
+my $lwatch_max;
+my @lwatch_W;
+my @lwatch_R;
 # It's not clear that this really needs the large scope.
 # How is it being used?
-my $write_run = 0;
-my $read_run = 0;
-# These two do appear later, but not the corrsponding read, (resp. write) value
-my $lwatch_start_write = 0;
-my $lwatch_end_read;
-my @wvals;
-my @rvals;
 sub read_lwatch
 {
     my $lwatch_trace = "lwatch";
@@ -206,13 +198,15 @@ sub read_lwatch
     $lwatch_trace = $log_dir . $lwatch_trace;
     if ( ! -f $lwatch_trace)
     {
-	print "I did not see the lwatch-lustre trace file $lwatch_trace\n";
+	print "No lwatch lustre trace file $lwatch_trace\n";
+	$lwatch_start_write = 0;
+	$lwatch_end_read = 0;
+	$lwatch_scale = 0;
 	return 0;
     }
 
     open(LWATCH, "<$lwatch_trace") or die "I could not open the lwatch trace file $lwatch_trace";
     
-    my $max;
     my $check = 0;
     my $day_name;
     my $month_name;
@@ -224,6 +218,8 @@ sub read_lwatch
     my $start_time;
     my $end_time;
     my $time_stamp;
+    my $line;
+    my $index = 0;
     while( defined($line = <LWATCH>) )
     {
 	chomp($line);
@@ -244,104 +240,165 @@ sub read_lwatch
 	if( $line =~ /^\s*0\.0\s+0\.0\s*$/ )
 	{
 	    $check = 1;
-	    $rvals[$count] = 0.0;
-	    $wvals[$count] = 0.0;
-	    $count++;	
+	    $lwatch_R[$index] = 0.0;
+	    $lwatch_W[$index] = 0.0;
+	    $index++;	
 	}
 	elsif( $line =~ /^\s*0\s+0\s*$/ )
 	{
 	    $check = 1;
-	    $rvals[$count] = 0.0;
-	    $wvals[$count] = 0.0;
-	    $count++;	
+	    $lwatch_R[$index] = 0.0;
+	    $lwatch_W[$index] = 0.0;
+	    $index++;	
 	}
 	elsif( $line =~ /^\s*([\d\.]+)\s+([\d\.]+)\s*$/ )
 	{
-	    $rvals[$count] = $1;
-	    $wvals[$count] = $2;
+	    $lwatch_R[$index] = $1;
+	    $lwatch_W[$index] = $2;
 	    if ($check == 1)
 	    {
 		$check = 0;
-		if($count > 1)
+		if($index > 1)
 		{
-		    if($rvals[$count-2] != 0.0)
+		    if($lwatch_R[$index-2] != 0.0)
 		    {
-			$rvals[$count - 1] = ($rvals[$count - 2] + $rvals[$count])/2;
+			$lwatch_R[$index - 1] = ($lwatch_R[$index - 2] + $lwatch_R[$index])/2;
 		    }
-		    if($wvals[$count-2] != 0.0)
+		    if($lwatch_W[$index-2] != 0.0)
 		    {
-			$wvals[$count - 1] = ($wvals[$count - 2] + $wvals[$count])/2;
+			$lwatch_W[$index - 1] = ($lwatch_W[$index - 2] + $lwatch_W[$index])/2;
 		    }
 		}
 	    }
-	    $count++;
+	    $index++;
 	}
     }
     close(LWATCH);
-    $max = $count;
-    $scale = ($end_time - $start_time)/$max if ( ($max > 0) and defined($start_time) and defined($end_time) );
-    printf "max time for lwatch is %.0f\n", $max * $scale if ($verbose);
+    $lwatch_max = $index;
+    $lwatch_scale = ($end_time - $start_time)/$lwatch_max if ( ($lwatch_max > 0) and defined($start_time) and defined($end_time) );
+    printf "lwatch: count = %d, scale = %.0f\n", $lwatch_max, $lwatch_scale if ($verbose);
+    printf "\tmax time = %.0f\n", $lwatch_max * $lwatch_scale if ($verbose);
     
-    my $max_write_run = 0;
-    my $max_read_run = 0;
-    my $start_write = $max - 1;
-    my $start_read = $max - 1;
-    my $i;
-    for ($i = $max - 2; $i  >= 0; $i--)
+    my $run = 0;
+    my $max_run = 0;
+    my $start_write = $lwatch_max - 1;
+    for (my $index = $lwatch_max - 2; $index  >= 0; $index--)
     {
-	if($wvals[$i+1] > 0)
+	if($lwatch_W[$index+1] > 0)
 	{
-	    $write_run++;
+	    $run++;
 	}
 	else
 	{
-	    $start_write = ($max_write_run > $write_run) ? $start_write : $i + 1;
-	    $max_write_run = ($max_write_run > $write_run) ? $max_write_run : $write_run;
-	    $write_run = 0;
-	}
-	if($rvals[$i+1] > 0)
-	{
-	    $read_run++;
-	}
-	else
-	{
-	    $start_read = ($max_read_run > $read_run) ? $start_read : $i + 1;
-	    $max_read_run = ($max_read_run > $read_run) ? $max_read_run : $read_run;
-	    $read_run = 0;
+	    $start_write = ($max_run > $run) ? $start_write : $index + 1;
+	    $max_run = ($max_run > $run) ? $max_run : $run;
+	    $run = 0;
 	}
     }
-# Note that the wrtite value is used later (outside this scope), but
-# the read value is not.
-    $lwatch_start_write = ($max_write_run > $write_run) ? $start_write : 0;
-    my $lwatch_start_read = ($max_read_run > $read_run) ? $start_read : 0;
-    my $lwatch_max = $max;
+    $start_write = ($max_run > $run) ? $start_write : 1;
 
-    my $end = $lwatch_start_read;
-    while ( (defined($rvals[$end + 1]) and defined($rvals[$end + 2])) and 
-	    ! ( ($rvals[$end + 1] == 0) and ($rvals[$end + 2] == 0) ) )
+    $run = 0;
+    $max_run = 0;
+    my $start_read = $lwatch_max - 1;
+    for (my $index = $lwatch_max - 2; $index  >= 0; $index--)
+    {
+	if($lwatch_R[$index+1] > 0)
+	{
+	    $run++;
+	}
+	else
+	{
+	    $start_read = ($max_run > $run) ? $start_read : $index + 1;
+	    $max_run = ($max_run > $run) ? $max_run : $run;
+	    $run = 0;
+	}
+    }
+    $start_read = ($max_run > $run) ? $start_read : 1;
+
+# Note that the write value is used later (outside this scope), but
+# the read value is not.
+    $lwatch_start_write = $start_write;
+    $lwatch_start_read = $start_read;
+
+    my $end = $lwatch_start_write;
+    while ( (defined($lwatch_W[$end + 1]) and defined($lwatch_W[$end + 2])) and 
+	    ! ( ($lwatch_W[$end + 1] == 0) and ($lwatch_W[$end + 2] == 0) ) )
+    {
+	$end++;
+    }
+    $lwatch_end_write = $end;
+    $end = $lwatch_start_read;
+    while ( (defined($lwatch_R[$end + 1]) and defined($lwatch_R[$end + 2])) and 
+	    ! ( ($lwatch_R[$end + 1] == 0) and ($lwatch_R[$end + 2] == 0) ) )
     {
 	$end++;
     }
     $lwatch_end_read = $end;
-    printf "lwatch: count = %d, write start = %.0f, write_run = %f, end read = %.0f, read_run = %f\n", $count, $lwatch_start_write*$scale, $write_run, $lwatch_end_read*$scale, $read_run if ($verbose);
+    printf "\twrites: start = %.0f, end = %.0f\n", $lwatch_start_write, $lwatch_end_write if ($verbose);
+    printf "\treads: start = %.0f, end = %.0f\n", $lwatch_start_read, $lwatch_end_read if ($verbose);
+
+# Note the peak value in case we can't scale based on the log's report.
+# Make a stab at the aggregate write and read rates.
+    my $sum = 0;
+    $run = $lwatch_end_write - $lwatch_start_write;
+    my $period = $lwatch_scale*$run;
+    if( $period > 0 )
+    {
+	for(my $index = $lwatch_start_write; $index <= $lwatch_end_write; $index++)
+	{
+	    my $greater = ($lwatch_W[$index] > $lwatch_R[$index]) ? $lwatch_W[$index] : $lwatch_R[$index];
+	    
+	    $lwatch_peak = $greater if ( ! defined($lwatch_peak) );
+	    $lwatch_peak = ($lwatch_peak > $greater) ? $lwatch_peak : $greater;
+
+	    $sum += $lwatch_W[$index];
+	}
+	printf "\taggregate write rate = %f\n", ($sum*$lwatch_scale)/$period if ($verbose);
+    }
+    $run = $lwatch_end_read - $lwatch_start_read;
+    $period = $lwatch_scale*$run;
+    $sum = 0;
+    if( $period > 0 )
+    {
+	for(my $index = $lwatch_start_read; $index <= $lwatch_end_read; $index++)
+	{
+	    my $greater = ($lwatch_W[$index] > $lwatch_R[$index]) ? $lwatch_W[$index] : $lwatch_R[$index];
+	    
+	    $lwatch_peak = $greater if ( ! defined($lwatch_peak) );
+	    $lwatch_peak = ($lwatch_peak > $greater) ? $lwatch_peak : $greater;
+
+	    $sum += $lwatch_R[$index];
+	}
+	printf "\taggregate read rate  = %f\n", ($sum*$lwatch_scale)/$period if ($verbose);
+    }
+    return 0 if ($lwatch_peak == 0);
     return 1;
 }
-# $count, $lwatch_start_write, $write_run, lwatch_end_read, $read_run
+# $lwatch_plot, $lwatch_scale, $lwatch_start_write,  
+# $lwatch_end_read, @lwatch_R, @lwatch_W, $lwatch_peak
 # End of read_lwatch
 
 
+my $plot_write;
 my @Write;
 my @LastW;
 my $write_max;
 my $write_min;
+my $syscall_start_write;
+my $syscall_write_run;
+my $data_written = 0;
 sub read_writes
 {
     my $write_calls = "write.syscall.aves";
+    my $line;
+    my $call;
 
     $write_calls = $log_dir . $write_calls;
     if ( ! -f $write_calls ) 
     {
-	print "I did not see the write system calls file $write_calls\n";
+	print "No write system calls file $write_calls\n";
+	$syscall_write_run = 0;
+	$syscall_start_write = 0;
 	return 0;
     }
     
@@ -351,6 +408,11 @@ sub read_writes
 # The first row of values is before the first system call, so don't
 # count them in.
     $line = <WRITE>;
+    if ( ! defined($line) ) 
+    {
+	print "Empty write system calls file $write_calls\n";
+	return 0;
+    }
     chomp($line);
     @calls = split /\s/, $line;
     my $start = $calls[0];
@@ -363,12 +425,12 @@ sub read_writes
     {
 	chomp($line);
 	@calls = split /\s/, $line;
-	for ($i = 0; $i <= $max_range; $i++)
+	for (my $index = 0; $index <= $max_range; $index++)
 	{
-	    if ( defined($calls[$i]) and ($calls[$i] != 0) )
+	    if ( defined($calls[$index]) and ($calls[$index] != 0) )
 	    {
-		my $val = int($calls[$i]);
-		$LastW[$i] = $call;
+		my $val = int($calls[$index]);
+		$LastW[$index] = $call;
 		$end = ($end > $val) ? $end : $val;
 		if (!defined($Write[$val]))
 		{
@@ -384,35 +446,62 @@ sub read_writes
     }
     close(WRITE);
     $sum = 0;
-    for (my $i = 0; $i <= $max_range; $i++)
+    for (my $index = 0; $index <= $max_range; $index++)
     {
-	$sum += $LastW[$i] if (defined($LastW[$i]));
+	$sum += $LastW[$index] if (defined($LastW[$index]));
     }
-    printf("CNs_per_ION = %d\n", $CNs_per_ION);
-    printf("Aggregate number of write system calls = %d\n", $sum);
-    printf("Start time = %d\n", $start);
-    printf("End time = %d\n", $end);
-    printf("Write rate: %f MB/s\n", ($sum*$mib_xfer*$CNs_per_ION)/(1024*1024*($end - $start)));
+    $data_written = $sum*$mib_xfer*$CNs_per_ION/(1024*1024);
+    printf("CNs_per_ION = %d\n", $CNs_per_ION) if ($verbose);
+    printf("Aggregate number of write system calls = %d\n", $sum) if ($verbose);
+    printf("Start time = %d\n", $start) if ($verbose);
+    printf("End time = %d\n", $end) if ($verbose);
+    printf("Write rate: %f MB/s\n", ($sum*$mib_xfer*$CNs_per_ION)/(1024*1024*($end - $start))) if ($verbose);
     
     $write_min = $start;
     $write_max = $end;
     printf "write syscalls from %d to %d\n", $write_min, $write_max if ($verbose);
+    $max = $write_max;
+    my $max_write_run = 0;
+    my $write_run = 0;
+    my $start_write = $max - 1;
+    for (my $index = $max - 2; $index >= 0; $index--)
+    {
+	$Write[$index+1] = 0 if(! defined($Write[$index+1]));
+	if($Write[$index+1] > 0)
+	{
+	    $write_run++;
+	}
+	else
+	{
+	    $start_write = ($max_write_run > $write_run) ? $start_write : $index + 1;
+	    $max_write_run = ($max_write_run > $write_run) ? $max_write_run : $write_run;
+	    $write_run = 0;
+	}
+    }
+    $syscall_start_write = ($max_write_run > $write_run) ? $start_write : 1;
+    $syscall_write_run = ($max_write_run > $write_run) ? $max_write_run : $write_run;
     return 1;
 }
+# $syscall_write_run, $syscall_start_write
 # End of read_writes
 
 
+my $plot_read;
 my @Read;
 my @LastR;
 my $read_min;
 my $read_max;
+my $syscall_start_read;
+my $syscall_read_run;
 sub read_reads
 {    
     my $read_calls = "read.syscall.aves";
+    my $line;
+    my $call;
     $read_calls = $log_dir . $read_calls;
     if ( ! -f $read_calls)
     {
-	print "I did not see the read system calls file  $read_calls\n";
+	print "No read system calls file  $read_calls\n";
 	return 0;
     }
     open(READ, "<$read_calls") or die "I could not open the read system calls file $read_calls";
@@ -421,6 +510,11 @@ sub read_reads
 # The first row of values is before the first system call, so don't
 # count them in.
     $line = <READ>;
+    if ( ! defined($line) )
+    {
+	print "Empty read system calls file  $read_calls\n";
+	return 0;
+    }	
     chomp($line);
     @calls = split /\s/, $line;
     $start = $calls[0];
@@ -433,12 +527,12 @@ sub read_reads
     {
 	chomp($line);
 	@calls = split /\s/, $line;
-	for ($i = 0; $i <= $max_range; $i++)
+	for (my $index = 0; $index <= $max_range; $index++)
 	{
-	    if ( defined($calls[$i]) and ($calls[$i] != 0) )
+	    if ( defined($calls[$index]) and ($calls[$index] != 0) )
 	    {
-		my $val = int($calls[$i]);
-		$LastR[$i] = $call;
+		my $val = int($calls[$index]);
+		$LastR[$index] = $call;
 		$end = ($end > $val) ? $end : $val;
 		if (!defined($Read[$val]))
 		{
@@ -454,14 +548,14 @@ sub read_reads
     }
     close(READ);
     my $sum = 0;
-    for (my $i = 0; $i <= $max_range; $i++)
+    for (my $index = 0; $index <= $max_range; $index++)
     {
-	$sum += $LastR[$i] if (defined($LastR[$i]));
+	$sum += $LastR[$index] if (defined($LastR[$index]));
     }
-    printf("Aggregate number of read system calls = %d\n", $sum);
-    printf("Start time = %d\n", $start);
-    printf("End time = %d\n", $end);
-    printf("Read rate:  %f MB/s\n", ($sum*$mib_xfer*$CNs_per_ION)/(1024*1024*($end - $start)));
+    printf("Aggregate number of read system calls = %d\n", $sum) if ($verbose);
+    printf("Start time = %d\n", $start) if ($verbose);
+    printf("End time = %d\n", $end) if ($verbose);
+    printf("Read rate:  %f MB/s\n", ($sum*$mib_xfer*$CNs_per_ION)/(1024*1024*($end - $start))) if ($verbose);
 
     $read_min = $start;
     $read_max = $end;
@@ -469,68 +563,58 @@ sub read_reads
     
     
     $max = ($read_max > $write_max) ? $read_max : $write_max;
-    $max_write_run = 0;
-    $max_read_run = 0;
-    $start_write = $max - 1;
-    $start_read = $max - 1;
-    for ($i = $max - 2; $i >= 0; $i--)
+    my $max_read_run = 0;
+    my $start_read = $max - 1;
+    my $read_run = 0;
+    for (my $index = $max - 2; $index >= 0; $index--)
     {
-	$Write[$i+1] = 0 if(! defined($Write[$i+1]));
-	if($Write[$i+1] > 0)
-	{
-	    $write_run++;
-	}
-	else
-	{
-	    $start_write = ($max_write_run > $write_run) ? $start_write : $i + 1;
-	    $max_write_run = ($max_write_run > $write_run) ? $max_write_run : $write_run;
-	    $write_run = 0;
-	}
-	$Read[$i+1] = 0 if(! defined($Read[$i+1]));
-	if($Read[$i+1] > 0)
+	$Read[$index+1] = 0 if(! defined($Read[$index+1]));
+	if($Read[$index+1] > 0)
 	{
 	    $read_run++;
 	}
 	else
 	{
-	    $start_read = ($max_read_run > $read_run) ? $start_read : $i + 1;
+	    $start_read = ($max_read_run > $read_run) ? $start_read : $index + 1;
 	    $max_read_run = ($max_read_run > $read_run) ? $max_read_run : $read_run;
 	    $read_run = 0;
 	}
     }
+    $syscall_start_read = ($max_read_run > $read_run) ? $start_read : 1;
+    $syscall_read_run = ($max_read_run > $read_run) ? $max_read_run : $read_run;
     return 1;
 }
+# $syscall_write_run
 # End of read_reads
 
-my $syscall_start_write;
 my $syscall_end_read;
 my $xw_min = 0;
 my $xw_max = 0;
 sub find_bounds
 {
-    $syscall_start_write = ($max_write_run > $write_run) ? $start_write : 0;
-    my $syscall_start_read = ($max_read_run > $read_run) ? $start_read : 0;
-    
-    $end = $syscall_start_read;
-    while ( (defined($Read[$end + 1]) and defined($Read[$end + 2])) and 
-	    ! ( ($Read[$end + 1] == 0) and ($Read[$end + 2] == 0) ) )
+    my $syscall_xw_read_end = int(($lwatch_end_read - $lwatch_start_write)*$lwatch_scale + $syscall_start_write);
+    if ( $plot_read)
     {
-	$end++;
-    }
-    $syscall_end_read = $end;
-    printf "syscall: write start = %d, read start = %d, read end = %d\n", $syscall_start_write, $syscall_start_read, $syscall_end_read if ($verbose);
-    
-    if(defined($lwatch_end_read))
-    {
-	my $syscall_xw_read_end = int(($lwatch_end_read - $lwatch_start_write)*$scale + $syscall_start_write);
-	$max = ($syscall_end_read > $syscall_xw_read_end) ? $syscall_end_read : $syscall_xw_read_end;
+	$end = $syscall_start_read;
+	while ( (defined($Read[$end + 1]) and defined($Read[$end + 2])) and 
+		! ( ($Read[$end + 1] == 0) and ($Read[$end + 2] == 0) ) )
+	{
+	    $end++;
+	}
+	$syscall_end_read = $end;
     }
     else
     {
-	$max = $syscall_end_read;
+	$syscall_start_read = $syscall_xw_read_end;
+	$syscall_end_read = $syscall_xw_read_end;
     }
-    $xw_min = int($lwatch_start_write - ($syscall_start_write/$scale));
-    $xw_max = int(($max - $syscall_start_write)/$scale + $lwatch_start_write);
+    printf "syscall: write start = %d, read start = %d, read end = %d\n", $syscall_start_write, $syscall_start_read, $syscall_end_read if ($verbose);
+    
+# This does not fairly produce bounds when only lwatch data is available
+    $max = ($syscall_end_read > $syscall_xw_read_end) ? $syscall_end_read : $syscall_xw_read_end;
+    $xw_min = int($lwatch_start_write - ($syscall_start_write/$lwatch_scale));
+    $xw_max = int(($max - $syscall_start_write)/$lwatch_scale + $lwatch_start_write);
+    printf "lwatch bounds: min = %d, max = %d\n", $xw_min, $xw_max if ($verbose);
 }
 # End of find_bounds
 
@@ -538,20 +622,25 @@ my $mib_index;
 my $lwatch_index;
 my $write_index;
 my $read_index;
+my $tmp_file = "/tmp/composite.tmp.$$";
 sub write_data_file
 {
     my $index = 0;
     my $write;
     my $read;
+    my $xw_index;
+    my $write_min = $syscall_start_write;
+    my $write_max = $syscall_start_write;
+    $write_max += $data_written/$mib_write if (defined($mib_write));
 
     $xw_min = 0 if ($xw_min < 0);
     open(TMP, ">$tmp_file") or die "Could not open tmp file $tmp_file";
-    for ($count = $xw_min; $count < $xw_max; $count++)
+    for ($xw_index = $xw_min; $xw_index < $xw_max; $xw_index++)
     {
-	$wvals[$count] = 0 if (! defined($wvals[$count]));
-	$rvals[$count] = 0 if (! defined($rvals[$count]));
-	my $xt = ($count - $lwatch_start_write)*$scale + $syscall_start_write;
-	printf TMP "%.0f\t%f\t%f\n", $xt, $wvals[$count], $rvals[$count];
+	$lwatch_W[$xw_index] = 0 if (! defined($lwatch_W[$xw_index]));
+	$lwatch_R[$xw_index] = 0 if (! defined($lwatch_R[$xw_index]));
+	my $xt = ($xw_index - $lwatch_start_write)*$lwatch_scale + $syscall_start_write;
+	printf TMP "%.0f\t%f\t%f\n", $xt, $lwatch_W[$xw_index], $lwatch_R[$xw_index];
     }
     $lwatch_index = $index++;
     printf TMP "\n\n";
@@ -577,15 +666,17 @@ sub write_data_file
     for ($t = 0; $t < $syscall_end_read; $t++)
     {
 	$read  = 0;
+	$read = $mib_read if ( defined($mib_read) && ($t > $read_min) && ($t < $read_max) );
 	$write = 0;
-	$read = $mib_read if ( ($t > $read_min) && ($t < $read_max) );
-	$write = $mib_write if ( ($t > $write_min) && ($t < $write_max) );
+	$write = $mib_write if ( defined($mib_write) && ($t > $write_min) && ($t < $write_max) );
 	printf TMP "%d\t%f\t%f\n", $t, $write, $read;
     }
     $mib_index = $index;
     close(TMP);
 }
 
+my $gnu_file = "/tmp/composite.$$.gnuplot";
+my $do_plot = 0;
 sub write_gnuplot_file
 {
     my $plot_com_mib = "";
@@ -594,41 +685,61 @@ sub write_gnuplot_file
     my $plot_com_read = "";
     my $need_comma = 0;
 
-    if ( $plot_mib )
+    if ( $mib_plot )
     {
 	$plot_com_mib = "'$tmp_file' index $mib_index using 1:2 title \"mib write\" with lines,'$tmp_file' index $mib_index using 1:3 title \"mib read\" with lines";
 	$need_comma = 1;
+	$do_plot = 1;
+	print "Will plot mib data.\n" if ($verbose);
     }
-    if ( $plot_lwatch )
+    if ( $lwatch_plot )
     {
 	$plot_com_lwatch = "'$tmp_file' index $lwatch_index using 1:2 title \"lwatch write\" with lines,'$tmp_file' index 0 using 1:3 title \"lwatch read\" with lines";
 	$plot_com_lwatch = ",$plot_com_lwatch" if ($need_comma);
 	$need_comma = 1;
+	$do_plot = 1;
+	print "Will print lwatch data.\n" if ($verbose);
     }
     if ( $plot_write )
     {
 	$plot_com_write = "'$tmp_file' index $write_index using 1:2 title \"syscall write\" with lines";
 	$plot_com_write = ",$plot_com_write" if ($need_comma);
 	$need_comma = 1;
+	$do_plot = 1;
+	print "Will plot write syscall data\n" if ($verbose);
     }
     if ( $plot_read )
     {
 	$plot_com_read = "'$tmp_file' index $read_index using 1:2 title \"syscall read\" with lines";
 	$plot_com_read = ",$plot_com_read" if ($need_comma);
+	$do_plot = 1;
+	print "Will plot read syscall data\n" if ($verbose);
     }
+    return 0 if ( ! $do_plot);
 
 # Sometimes the early spike in write rate make the rest of the graph 
 # disappear.  Try limiting that.
     my $yrange = 1;
-    my $tmp = $mib_write;
-
-    while ($tmp > 1)
+    my $tmp;
+    if ( defined($mib_write) )
     {
-	$tmp /= 2;
+	$tmp = $mib_write;
+    }
+    else
+    {
+	$tmp = $lwatch_peak;
+    }
+
+    if (defined ($tmp))
+    {
+	while ($tmp > 1)
+	{
+	    $tmp /= 2;
+	    $yrange *= 2;
+	}
 	$yrange *= 2;
     }
-    $yrange *= 2;
-    
+
 # Now produce a gnuplot script to show the data in the TMP file.
     open (GNU, ">$gnu_file") or die "Could not open gnuplot script file $gnu_file for output";
 # eps output
@@ -656,20 +767,21 @@ sub write_gnuplot_file
     print GNU "set xlabel \"Approximate time in seconds\"\n";
     print GNU "set ylabel \"Data rate (MB/s)\"\n";
 #print GNU "set xrange [800:1400]\n";
-    print GNU "set yrange [0:$yrange]\n";
+    print GNU "set yrange [0:$yrange]\n" if (defined($yrange));
     print GNU "plot $plot_com_mib $plot_com_lwatch $plot_com_write $plot_com_read\n";
     close(GNU);
+    return 1;
 }
 
 read_options;
-$plot_mib = read_log;
-$plot_lwatch = read_lwatch;
+$mib_plot = read_log;
+$lwatch_plot = read_lwatch;
 $plot_write = read_writes;
 $plot_read = read_reads;
 find_bounds;
 write_data_file;
-write_gnuplot_file;
-`gnuplot -persist $gnu_file`;
+$do_plot = write_gnuplot_file;
+`gnuplot -persist $gnu_file` if ($do_plot);
 
 unlink $tmp_file if (! $keep_files);
 unlink $gnu_file if (! $keep_files);
