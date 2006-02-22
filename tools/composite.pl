@@ -195,7 +195,7 @@ my $count = 0;
 my $write_run = 0;
 my $read_run = 0;
 # These two do appear later, but not the corrsponding read, (resp. write) value
-my $lwatch_start_write;
+my $lwatch_start_write = 0;
 my $lwatch_end_read;
 my @wvals;
 my @rvals;
@@ -520,8 +520,15 @@ sub find_bounds
     $syscall_end_read = $end;
     printf "syscall: write start = %d, read start = %d, read end = %d\n", $syscall_start_write, $syscall_start_read, $syscall_end_read if ($verbose);
     
-    my $syscall_xw_read_end = int(($lwatch_end_read - $lwatch_start_write)*$scale + $syscall_start_write);
-    $max = ($syscall_end_read > $syscall_xw_read_end) ? $syscall_end_read : $syscall_xw_read_end;
+    if(defined($lwatch_end_read))
+    {
+	my $syscall_xw_read_end = int(($lwatch_end_read - $lwatch_start_write)*$scale + $syscall_start_write);
+	$max = ($syscall_end_read > $syscall_xw_read_end) ? $syscall_end_read : $syscall_xw_read_end;
+    }
+    else
+    {
+	$max = $syscall_end_read;
+    }
     $xw_min = int($lwatch_start_write - ($syscall_start_write/$scale));
     $xw_max = int(($max - $syscall_start_write)/$scale + $lwatch_start_write);
 }

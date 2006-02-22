@@ -24,14 +24,21 @@
 #*  59 Temple Place, Suite 330, Boston, MA  02111-1307  USA.
 #*****************************************************************************/
 
+MAKE=    /usr/bin/make
+
 # These are for BGL
-CC = mpgcc
-CCFLAGS = -g -D_LARGEFILE64_SOURCE -D_FILE_OFFSET_BITS=64
+#CC = mpgcc
+#CCFLAGS = -g -D_LARGEFILE64_SOURCE -D_FILE_OFFSET_BITS=64
 
 # These are for Gauss
 # To find the compiler use "export PATH=/usr/local/intel/compiler90_64_023/bin:$PATH"
 #CC = mpiicc
 #CCFLAGS = -g -D_LARGEFILE64_SOURCE -D_FILE_OFFSET_BITS=64
+
+# These are for ALC
+# To find the compiler use "export PATH=/usr/local/intel/compiler90_031/bin:$PATH"
+CC = mpicc
+CCFLAGS = -g -D_LARGEFILE64_SOURCE -D_FILE_OFFSET_BITS=64
 
 LDFLAGS =
 LIBDIRS = 
@@ -46,6 +53,7 @@ SOURCES = mib.c mpi_wrap.c sys_wrap.c miberr.c options.c mib_timer.c
 OBJECTS = $(SOURCES:.c=.o)
 
 all: mib 
+	$(MAKE) -C tools
 
 mib: $(OBJECTS) $(HEADERS)
 	$(CC) $(OBJECTS) $(DEBUG) -o $@ $(LIBDIRS) $(LIBS)
@@ -54,4 +62,5 @@ mib: $(OBJECTS) $(HEADERS)
 	$(CC) $(CCFLAGS) $(DEBUG) -c $<  $(INCDIR)
 
 clean: 
+	$(MAKE) -C tools clean
 	rm -f *.o mib *~

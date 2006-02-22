@@ -14,36 +14,50 @@
 #      /g/g0/auselton/mibtools/file-layout.sh <dir>
 #
 
-LSTRIPE=/bgl/ion/usr/bin/lstripe
-DD=/bgl/ion/bin/dd
 
 #BGL, VN mode
+#LSTRIPE=/bgl/ion/usr/bin/lstripe
+#DD=/bgl/ion/bin/dd
 #OSTs="448"
 #CNs_per_ION=128
 
 #half BLC, VN mode
-OSTs="224"
-CNs_per_ION=128
-NUM_DDNS=28
-LUNS_per_DDN=16
-
+#OSTs="224"
+#CNs_per_ION=128
+#NUM_DDNS=28
+#LUNS_per_DDN=16
+#
 #uBGL
 #OSTs="28"
 #CNs_per_ION=16
 
+# ALC
+LSTRIPE=/usr/bin/lstripe
+DD=/bin/dd
+UNLINK=/bin/unlink
+TOUCH=/bin/touch
+LFIND=/usr/bin/lfind
+# ga2
+OSTs=32
+# ga1
+#OSTs=64
+ 
 DIR=$1
 [ X"$DIR" != X ] || { echo "The DIR parameter is required"; exit 1; }
 
 HOST=`hostname`
-HOST=${HOST##bglio}
-START=$(( ($HOST - 1)*$CNs_per_ION ))
-END=$(( $START + $CNs_per_ION - 1 ))
+HOST=${HOST##alc}
+START=$SLURM_PROCID
+END=$START
+#HOST=${HOST##bglio}
+#START=$(( ($HOST - 1)*$CNs_per_ION ))
+#END=$(( $START + $CNs_per_ION - 1 ))
 
-#mkdir -p $DIR
+mkdir -p $DIR
 #$LSTRIPE $DIR 0 -1 1
 #[ -d $DIR ] || { echo "Did not create directory $DIR"; exit 1; }
 
-for index in `seq $START $END`
+for index in `seq 0 799`
 do
 # Regular round-robin relation
   OST=$(( $index % $OSTs ))
@@ -53,7 +67,10 @@ do
 #  OST=$(( $DDN*2*$LUNS_per_DDN + $DDN_OFF ))
 
   TARGET=`printf "%s/mibData.%08d" $DIR $index`
-  $LSTRIPE $TARGET 0 $OST 1
-  $DD if=/dev/zero of=$TARGET bs=1048576 count=128 >/dev/null 2>&1
-  [ X"$OST" == X"0" ] && echo $TARGET
+#  $UNLINK $TARGET
+  $TOUCH $TARGET
+#  echo "$LSTRIPE $TARGET 0 $OST 1"
+#  $LSTRIPE $TARGET 0 $OST 1
+#  $DD if=/dev/zero of=$TARGET bs=1048576 count=2048 >/dev/null 2>&1
+#  [ X"$OST" == X"0" ] && echo $TARGET
 done

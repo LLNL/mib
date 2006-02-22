@@ -204,6 +204,8 @@ Fopen(const char *path, const char *mode)
    */
   FILE *fp;
 
+  /*  printf("Fopen %s\n", path);
+  fflush(stdout); */
   if ( (fp = fopen(path, mode)) == NULL )
     {
       FAIL();

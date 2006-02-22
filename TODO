@@ -45,3 +45,97 @@ o  Progress should track time and space
 
 o  Have the MPI_wrap.c interface handle setting and using rank, size, and
    base.  Also have rank==base test be a BOOL function or macro.
+
+o  There are interfaces for BGL- and other SLURM- based clusters for
+   determining the membership of a node in its I/O set, the size of an
+   I/O set, and a tasks unique rank within an I/O set.  In SLURM those
+   values are:
+In the launching shell:
+srun -N4 -A
+SLURM_DISTRIBUTION=cyclic
+SLURM_JOBID=236371
+SLURM_NNODES=4
+SLURM_NODELIST='alc[554-557]'
+SLURM_TASKS_PER_NODE='1(x4)'
+or 
+srun -N2 -n4 -A
+SLURM_JOBID=236373
+SLURM_NNODES=2
+SLURM_NODELIST='alc[554-555]'
+SLURM_NPROCS=4
+SLURM_TASKS_PER_NODE='2(x2)'
+
+In the target node(s):
+srun -N4 bash -c set
+SLURM_CPUS_ON_NODE=2
+SLURM_CPUS_PER_TASK=1
+SLURM_DISTRIBUTION=cyclic
+SLURM_JOBID=236383
+SLURM_LAUNCH_NODE_IPADDR=192.168.51.241
+SLURM_LOCALID=0
+SLURM_NNODES=4
+SLURM_NODEID=0
+SLURM_NODELIST='alc[554-557]'
+SLURM_NPROCS=4
+SLURM_PROCID=0
+SLURM_STEPID=0
+SLURM_TASKS_PER_NODE='1(x4)'
+SLURM_UMASK=0022
+or
+srun -N2 -n4 bash -c set
+
+SLURM_CPUS_ON_NODE=2
+SLURM_CPUS_PER_TASK=1
+SLURM_JOBID=236384
+SLURM_LAUNCH_NODE_IPADDR=192.168.51.241
+SLURM_LOCALID=1
+SLURM_NNODES=2
+SLURM_NODEID=1
+SLURM_NODELIST='alc[550-551]'
+SLURM_NPROCS=4
+SLURM_PROCID=3
+SLURM_STEPID=0
+SLURM_TASKS_PER_NODE='2(x2)'
+SLURM_UMASK=0022
+
+So the values we need to extract are:
+ion         = strtoi(getenv("SLURM_NODEID"));
+cns_per_ion = strtoi(getenv("SLURM_CPUS_ON_NODE"));
+              (or parse "SLURM_TASKS_PER_NODE")
+cn          = strtoi(getenv("SLURM_LOCALID"));
+
+Similarly, on BGL these are available through the "bglpersonality.h"
+header:
+/** \brief return the pset number for this node */
+static inline unsigned BGLPersonality_psetNum(const BGLPersonality *p)
+{
+    return fixEndian16(p->psetNum);
+}
+/** \brief return the number of compute nodes within this node's pset. */
+static inline unsigned BGLPersonality_numNodesInPset(const BGLPersonality *p)
+{
+    return p->xPsetSize * p->yPsetSize * p->zPsetSize;
+}
+/** \brief return a "rank" within the pset for this node.
+ * The rank will be a number from 0..numNodesInPset-1 which is only valid
+ * for compute nodes.  This is computed similar to an MPI rank (in the default
+ * mapping) but within a pset.
+ *
+ * The rank is computed as
+ *	r = zYX + yX + x
+ * where x, y and z are the pset-relative coords of the node and X, Y and Z
+ * are the pset size in those dimensions.
+ */
+static inline unsigned BGLPersonality_rankInPset(const BGLPersonality *p)
+{
+    return BGLPersonality_zPsetCoord(p) * BGLPersonality_xPsetSize(p) * BGLPersonality_yPsetSize(p)
+      + BGLPersonality_yPsetCoord(p) * BGLPersonality_xPsetSize(p)
+      + BGLPersonality_xPsetCoord(p);
+}
+
+#include <bglpersonality.h>
+BGLPersonality p;
+rts_get_personality(&p, sizeof(p));
+ion         = BGLPersonality_psetNum(&p);
+cns_per_ion = BGLPersonality_numNodesInPset(&p);
+cn          = BGLPersonality_rankInPset(&p);

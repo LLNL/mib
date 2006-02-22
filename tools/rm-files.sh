@@ -15,27 +15,37 @@
 # It looks like there is no "munlink" 
 # but Andreas thinks the regular "unlink" should work
 #UNLINK=/bgl/ion/usr/bin/munlink
-LSTRIPE=/bgl/ion/usr/bin/lstripe
-UNLINK=/bgl/ion/bin/unlink
 # The following semed to work sometimes when I couldn't find "munlink"
 # It may not have always worked, though
 #UNLINK=/bgl/ion/bin/rm
 
-# BLC
-OSTs="448"
-
+HOST=`hostname`
 DIR=$1
+# BLC
+#LSTRIPE=/bgl/ion/usr/bin/lstripe
+#UNLINK=/bgl/ion/bin/unlink
+#OSTs="448"
+#CNs_per_ION=128
+#HOST=${HOST##bglio}
+#OFFSET=1
+
+# ALC
+UNLINK=/bin/unlink
+OSTs="32"
+#HOST=${HOST##alc}
+CNs_per_ION=2
+OFFSET=69
+
+START=$(( ($HOST - 1)*$CNs_per_ION - $OFFSET ))
+END=$(( $START + $CNs_per_ION - 1 - $OFFSET))
+
 [ X"$DIR" != X ] || { echo "The DIR parameter is required"; exit 1; }
 [ -d $DIR ] || { echo "Did not see directory $DIR"; exit 1; }
 
-HOST=`hostname`
-HOST=${HOST##bglio}
-START=$(( ($HOST - 1)*128 ))
-END=$(( $START + 127 ))
 
 for index in `seq $START $END`
 do
-  OST=$(( $index % $OSTs ))
+#  OST=$(( $index % $OSTs ))
   TARGET=`printf "%s/mibData.%08d" $DIR $index`
   $UNLINK $TARGET >/dev/null 2>&1
 #  TARGET=`printf "%s/iorData.%08d.hist.0" $DIR $index`

@@ -77,6 +77,7 @@ double read_test();
 Results *reduce_results(Results *res);
 void ions(double *array, int count);
 void report(double write, double read);
+void show_env();
 
 extern Options *opts;
 
@@ -108,6 +109,7 @@ main( int argc, char *argv[] )
   mpi_comm_rank(MPI_COMM_WORLD, &rank );
   init_timer(rank);
   command_line(argc, argv, opt_path);
+  if (rank == 0 )show_env();
   do
     {
       opts = read_options(opt_path, rank, size);
@@ -750,4 +752,14 @@ report(double write, double read)
       }
     printf("%s %6d %4d%c %5d %5d %10.2f %10.2f\n", time_str, opts->tasks, xfer, range_ch, opts->call_limit, opts->time_limit, write, read);
   }
+}
+
+
+void
+show_env()
+{
+  printf("%s:%s\n", "SLURM_NODEID", getenv("SLURM_NODEID"));
+  printf("%s:%s\n", "SLURM_CPUS_ON_NODE", getenv("SLURM_CPUS_ON_NODE"));
+  printf("%s:%s\n", "SLURM_TASKS_PER_NODE", getenv("SLURM_TASKS_PER_NODE"));
+  printf("%s:%s\n", "SLURM_LOCALID", getenv("SLURM_LOCALID"));
 }
