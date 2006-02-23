@@ -44,6 +44,8 @@ typedef enum {FALSE, TRUE} BOOL;
 
 typedef struct Options_Struct {
   char cluster[MAX_BUF];
+  int new;
+  int remove;
   int cns;
   int ions;
   char log_dir[MAX_BUF];      /* = /home/auselton/testing/<date> */

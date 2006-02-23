@@ -40,6 +40,8 @@ Options *Init_Opts(char *buf, int rank, int size);
 void show_keys(Options *opts);
 
 BOOL set_cluster(char *v, Options *opts);
+BOOL set_new(char *v, Options *opts);
+BOOL set_remove(char *v, Options *opts);
 BOOL set_cns(char *v, Options *opts);
 BOOL set_ions(char *v, Options *opts);
 BOOL set_testdir(char *v, Options *opts);
@@ -119,10 +121,15 @@ Init_Opts(char *opt_path, int rank, int size)
   int ret;
   int len = 0;
   int send;
+  MPI_Comm subcomm;
+  MPI_Group world_group, group;
+  int group_spec[3];
 
   ASSERT(opt_path != NULL);
   opts = (Options *)Malloc(sizeof(Options));
   opts->cluster[0] = '\0';
+  opts->new = 0;
+  opts->remove = 0;
   opts->cns = size;
   opts->ions = 1024;
   opts->log_dir[0] = '\0';
@@ -180,8 +187,11 @@ Init_Opts(char *opt_path, int rank, int size)
 	  strncpy(opts->testdir, ".", MAX_BUF);
 	}
       while(opts->testdir[len++]);
+      if( opts->base + opts->tasks > opts->size) FAIL();
     }
 
+  mpi_bcast(&(opts->new), 1, MPI_INT, opts->base, opts->comm);
+  mpi_bcast(&(opts->remove), 1, MPI_INT, opts->base, opts->comm);
   mpi_bcast(&(opts->cns), 1, MPI_INT, opts->base, opts->comm);
   mpi_bcast(&(opts->ions), 1, MPI_INT, opts->base, opts->comm);
   mpi_bcast(&(len), 1, MPI_INT, opts->base, opts->comm);
@@ -199,6 +209,15 @@ Init_Opts(char *opt_path, int rank, int size)
   mpi_bcast(&(opts->profiles), 1, MPI_INT, opts->base, opts->comm);
   mpi_bcast(&(opts->verbosity), 1, MPI_INT, opts->base, opts->comm);
   
+  if(opts->tasks < opts->size)
+    {
+      MPI_Comm_group(MPI_COMM_WORLD, &world_group);
+      group_spec[0] = opts->base;
+      group_spec[1] = opts->tasks + opts->base - 1;
+      group_spec[3] = 1;
+      MPI_Group_range_incl(world_group, 1, &group_spec, &group);
+      MPI_Comm_create(MPI_COMM_WORLD, group, &(opts->comm));
+    }
   return(opts);
 }
 
@@ -252,6 +271,10 @@ set_key(char *k, char *v, Options *opts)
 {
   if(strncmp(k, "cluster", MAX_BUF) == 0)
     return(set_cluster(v, opts));
+  if(strncmp(k, "new", MAX_BUF) == 0)
+    return(set_new(v, opts));
+  if(strncmp(k, "remove", MAX_BUF) == 0)
+    return(set_remove(v, opts));
   if(strncmp(k, "cns", MAX_BUF) == 0)
     return(set_cns(v, opts));
   if(strncmp(k, "ions", MAX_BUF) == 0)
@@ -357,6 +380,20 @@ set_cluster(char *v, Options *opts)
 
   if ( (ret = snprintf(opts->cluster, MAX_BUF, "%s", v)) < 0)
     FAIL();
+  return(TRUE);
+}
+
+BOOL
+set_new(char *v, Options *opts)
+{
+  opts->new = atoi(v);
+  return(TRUE);
+}
+
+BOOL
+set_remove(char *v, Options *opts)
+{
+  opts->remove = atoi(v);
   return(TRUE);
 }
 

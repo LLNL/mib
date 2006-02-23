@@ -37,6 +37,8 @@
 	- the fsync() seems to return errors that (probably) occurred
 	  earlier and were corrected.  Work around, investigate, fix.
 	
-
+	1.7
+	- Introduce "new" and "remove" options to allow for managing files.
+	
 	
 	

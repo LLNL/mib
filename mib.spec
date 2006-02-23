@@ -36,7 +36,7 @@
 
 Summary: An MPI-based I/O test for beowulf-style clusters
 Name: mib
-Version: 1.5
+Version: 1.7
 Release: chaos
 Copyright: GPL
 Group: Applications/System

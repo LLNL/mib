@@ -78,6 +78,41 @@ Open(char *name, int flags)
   return (fd);
 }
 
+void
+Unlink(char *name)
+{
+  /*
+   *   This is called once per task if the "new" flag is set.
+   *   If we can't unlink the file then ignore the error.  Any
+   * other error should probably be a FAIL.
+   *   Here are the relevant errno codes:
+   *  EACCESS
+   *  EPERM
+   *  EISDIR
+   *  EBUSY
+   *  EFAULT
+   *  ENAMETOOLONG
+   *  ENOENT
+   *  ENOTDIR
+   *  ENOMEM
+   *  EROFS
+   *  ELOOP
+   *  EIO
+   *  Since nothing actually fatal has happened this might ought to 
+   * MPI_reduce the cause to the base task for error reporting.  Only
+   * ENOENT can rightly be ignored.
+   */
+  int ret;
+
+  errno = 0;
+  if( ((ret = unlink(name)) < 0) && (ret != ENONET) )
+    {
+        printf("failed to unlink %s: %d\n", name, errno);
+	fflush(stdout);
+	FAIL();
+    }
+}
+
 ssize_t
 Write(int fd, const void *buf, size_t count)
 {
@@ -204,8 +239,6 @@ Fopen(const char *path, const char *mode)
    */
   FILE *fp;
 
-  /*  printf("Fopen %s\n", path);
-  fflush(stdout); */
   if ( (fp = fopen(path, mode)) == NULL )
     {
       FAIL();

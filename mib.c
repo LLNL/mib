@@ -77,11 +77,10 @@ double read_test();
 Results *reduce_results(Results *res);
 void ions(double *array, int count);
 void report(double write, double read);
-void show_env();
 
 extern Options *opts;
 
-char *version="mib-1.6";
+char *version="mib-1.7";
 
 int
 main( int argc, char *argv[] )
@@ -109,35 +108,44 @@ main( int argc, char *argv[] )
   mpi_comm_rank(MPI_COMM_WORLD, &rank );
   init_timer(rank);
   command_line(argc, argv, opt_path);
-  if (rank == 0 )show_env();
   do
     {
       opts = read_options(opt_path, rank, size);
-      init_filenames();
-      DEBUG("Initializations complete.\n");
-      if(!opts->read_only)
+      if( opts->comm == MPI_COMM_NULL )
 	{
-	  write = write_test();
-	  if(opts->verbosity >= VERBOSE)
-	    {
-	      printf("Aggregate write rate = %10.2f\n", write);
-	      fflush(stdout);
-	    }
+	  mpi_barrier(MPI_COMM_WORLD);
 	}
-      if(!opts->write_only)
+      else
 	{
-	  read = read_test();
-	  if(opts->verbosity >= VERBOSE)
+	  init_filenames();
+	  DEBUG("Initializations complete.\n");
+	  if(!opts->read_only)
 	    {
-	      printf("Aggregate read rate = %10.2f\n", write);
-	      fflush(stdout);
+	      write = write_test();
+	      if(opts->verbosity >= VERBOSE)
+		{
+		  printf("Aggregate write rate = %10.2f\n", write);
+		  fflush(stdout);
+		}
 	    }
+	  if(!opts->write_only)
+	    {
+	      read = read_test();
+	      if(opts->verbosity >= VERBOSE)
+		{
+		  printf("Aggregate read rate = %10.2f\n", write);
+		  fflush(stdout);
+		}
+	    }
+	  report(write, read);
+	  iteration++;
+	  stop = (BOOL)(iteration >= opts->iterations);
+	  Free_Opts();
+	  close_log();
+	  if( opts->comm != MPI_COMM_WORLD)
+	    mpi_comm_free(&(opts->comm));
+	  mpi_barrier(MPI_COMM_WORLD);
 	}
-      report(write, read);
-      iteration++;
-      stop = (BOOL)(iteration >= opts->iterations);
-      Free_Opts();
-      close_log();
     }
   while(! stop);
   mpi_finalize();
@@ -155,7 +163,7 @@ init_filenames()
    * data from the write. 
    */
 
-  int read_rank = (opts->rank + (opts->size/2)) % opts->size;
+  int read_rank = (opts->rank + (opts->tasks/2)) % opts->tasks;
 
   snprintf(opts->write_target, MAX_BUF, "%s/mibData.%08d", opts->testdir, opts->rank);
   snprintf(opts->read_target, MAX_BUF, "%s/mibData.%08d", opts->testdir, read_rank);
@@ -177,6 +185,7 @@ write_test()
   int last_call;
   char *buf;          /* what gets sent in the system call */
   int wf;             /* the file handle for the writes */
+  int flag = O_WRONLY;/* the flag value for the open */
   double time_limit;
   double time;
   double rate = 0;
@@ -196,7 +205,12 @@ write_test()
    */
   mpi_barrier(opts->comm);
   res->start_open = get_time();
-  wf = Open(opts->write_target, O_WRONLY);
+  if( opts->new) 
+    {
+      Unlink(opts->write_target);
+      flag |= O_CREAT;
+    }
+  wf = Open(opts->write_target, flag);
   res->end_open = get_time();
   mpi_barrier(opts->comm);
 
@@ -513,6 +527,10 @@ read_test()
   mpi_barrier(opts->comm);
   res->start_close = get_time();
   Close(rf);
+  if( opts->remove) 
+    {
+      Unlink(opts->read_target);
+    }
   res->end_close = get_time();
   mpi_barrier(opts->comm);
   res->end_test = get_time();
@@ -752,14 +770,4 @@ report(double write, double read)
       }
     printf("%s %6d %4d%c %5d %5d %10.2f %10.2f\n", time_str, opts->tasks, xfer, range_ch, opts->call_limit, opts->time_limit, write, read);
   }
-}
-
-
-void
-show_env()
-{
-  printf("%s:%s\n", "SLURM_NODEID", getenv("SLURM_NODEID"));
-  printf("%s:%s\n", "SLURM_CPUS_ON_NODE", getenv("SLURM_CPUS_ON_NODE"));
-  printf("%s:%s\n", "SLURM_TASKS_PER_NODE", getenv("SLURM_TASKS_PER_NODE"));
-  printf("%s:%s\n", "SLURM_LOCALID", getenv("SLURM_LOCALID"));
 }

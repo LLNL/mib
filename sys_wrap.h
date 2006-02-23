@@ -33,6 +33,8 @@ typedef enum {FALSE, TRUE} BOOL;
 
 int Open(char *name, int flags);
 
+void Unlink(char *name);
+
 ssize_t Write(int fd, const void *buf, size_t count);
 
 ssize_t Read(int fd, void *buf, size_t count);
