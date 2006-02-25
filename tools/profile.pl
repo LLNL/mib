@@ -53,6 +53,7 @@ sub read_data
     my $line;
 
     my $call = 0;
+    my $aggregate = 0;
     while( defined($line = <>) )
     {
 	chomp($line);
@@ -70,6 +71,7 @@ sub read_data
 		$min = ($min < $calls[$index]) ? $min : $calls[$index];
 		$max = $calls[$index] if ( ! defined($max) );
 		$max = ($max > $calls[$index]) ? $max : $calls[$index];
+		$aggregate++ if ( $call > 0 );
 	    }
 	}
 	if ( ! ( defined($min) && defined($max) ) )
@@ -81,8 +83,13 @@ sub read_data
 	{
 	    printf TMP "%d\t%d\t%d\n", $call, $min, $max;
 	}
+	$first = $min if ( ! defined($first));
+	$first = ($first < $min) ? $first : $min;
+	$last = $max if ( ! defined($last) );
+	$last = ($last > $max) ? $last : $max;
 	$call++;
     }
+    printf "%d aggregate system calls in %d seconds\n", $aggregate, $last - $first;
     close(TMP);
 }
 # $syscall_run, $syscall_start
