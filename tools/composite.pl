@@ -81,7 +81,8 @@ sub read_options
     my $options = "options";
     my $CNs;
     my $IONs;
-    
+    my $use_ion_aves;
+
     $options = $log_dir . $options;
     if ( ! -f $options )
     {
@@ -89,9 +90,17 @@ sub read_options
 	$CNs_per_ION = 64;
 	return;
     }
-    $CNs = `grep cns $options | awk '{print \$3}'`;
-    $IONs = `grep ions $options | grep -v iterations | awk '{print \$3}'`;
-    $CNs_per_ION = $CNs/$IONs;
+    $use_ion_aves = `grep use_ion_aves $options | grep -v iterations | awk '{print \$3}'`;
+    if ( !defined($use_ion_aves) || ($use_ion_aves eq "true") )
+    {
+	$CNs = `grep cns $options | awk '{print \$3}'`;
+	$IONs = `grep ions $options | grep -v iterations | awk '{print \$3}'`;
+	$CNs_per_ION = $CNs/$IONs;
+    }
+    else
+    {
+	$CNs_per_ION = 1;
+    }
     defined($CNs_per_ION) or die "Didn't find options CNs_per_ION value";
     return;
 }
@@ -631,6 +640,7 @@ sub write_data_file
     my $xw_index;
     my $write_min = $syscall_start_write;
     my $write_max = $syscall_start_write;
+    my $xt;
     $write_max += $data_written/$mib_write if (defined($mib_write));
 
     $xw_min = 0 if ($xw_min < 0);
@@ -639,9 +649,11 @@ sub write_data_file
     {
 	$lwatch_W[$xw_index] = 0 if (! defined($lwatch_W[$xw_index]));
 	$lwatch_R[$xw_index] = 0 if (! defined($lwatch_R[$xw_index]));
-	my $xt = ($xw_index - $lwatch_start_write)*$lwatch_scale + $syscall_start_write;
+	$xt = ($xw_index - $lwatch_start_write)*$lwatch_scale + $syscall_start_write;
 	printf TMP "%.0f\t%f\t%f\n", $xt, $lwatch_W[$xw_index], $lwatch_R[$xw_index];
     }
+    $xt = ($xw_max - $lwatch_start_write)*$lwatch_scale + $syscall_start_write;
+    printf TMP "%.0f\t%f\t%f\n", $xt, 0, 0;
     $lwatch_index = $index++;
     printf TMP "\n\n";
     
@@ -651,6 +663,7 @@ sub write_data_file
 	$write = $Write[$t]*($CNs_per_ION*$mib_xfer)/(1024*1024);
 	printf TMP "%d\t%f\n", $t, $write;
     }
+    printf TMP "%d\t%f\n", $syscall_end_read, 0;
     $write_index = $index++;
     printf TMP "\n\n";
     
@@ -660,6 +673,7 @@ sub write_data_file
 	$read = $Read[$t]*($CNs_per_ION*$mib_xfer)/(1024*1024);
 	printf TMP "%d\t%f\n", $t, $read;
     }
+    printf TMP "%d\t%f\n", $syscall_end_read, 0;
     $read_index = $index++;
     printf TMP "\n\n";
     
@@ -671,6 +685,7 @@ sub write_data_file
 	$write = $mib_write if ( defined($mib_write) && ($t > $write_min) && ($t < $write_max) );
 	printf TMP "%d\t%f\t%f\n", $t, $write, $read;
     }
+    printf TMP "%d\t%f\t%f\n", $syscall_end_read, 0, 0;
     $mib_index = $index;
     close(TMP);
 }

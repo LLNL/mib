@@ -39,6 +39,12 @@
 	
 	1.7
 	- Introduce "new" and "remove" options to allow for managing files.
-	
+	- Introduce "use_ion_aves" option to suppress (by default) calculating
+	  averages accross IONs the way BGL does.
+	- Fixed the "no averages" code path so it rightly preserves
+	  the whole profile from a run.  
+	- Promoted the res->transferred field to a double because as a
+	  32 bit quantity it could overflow for really fast or long 
+	  accumulations of transfers.
 	
 	

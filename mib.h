@@ -37,7 +37,8 @@ typedef struct Results_Struct {
   double *timings;
   int     num;
   double  end;
-  ssize_t transferred;
+  double  transferred;
+  int     short_transfers;
   double  finish_fsync;  /* Only used for writes */
   double  start_close;
   double  end_close;

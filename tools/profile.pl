@@ -50,18 +50,40 @@ my $tmp_file = "/tmp/composite.tmp.$$";
 open(TMP, ">$tmp_file") or die "Could not open tmp file $tmp_file";
 sub read_data
 {
-    my $line;
-
     my $call = 0;
     my $aggregate = 0;
+    my $line = <>;
+    my $first;
+    my $last;
+    # The first line is before the first system call
+    if( ! defined($line) )
+    {
+	printf "No data found\n";
+	exit(1);
+    }
+    my @calls = split /\s/, $line;
+    my $num_nodes = @calls - 1;
+    for (my $index = 0; $index <= $num_nodes; $index++)
+    {
+	if ( defined($calls[$index]) and ($calls[$index] != 0) )
+	{
+	    $first = $calls[$index] if ( ! defined($first));
+	    $first = ($first < $calls[$index]) ? $first : $calls[$index];
+	}
+    }
+    if ( ! defined($first) )
+    {
+	printf "No data found in call number %d\n", $call;
+	exit(1);
+    }
+    $call++;
     while( defined($line = <>) )
     {
-	chomp($line);
-
-	my @calls = split /\s/, $line;
-	my $num_nodes = @calls - 1;
 	my $min;
 	my $max;
+	chomp($line);
+
+	@calls = split /\s/, $line;
 
 	for (my $index = 0; $index <= $num_nodes; $index++)
 	{
@@ -74,7 +96,8 @@ sub read_data
 		$aggregate++ if ( $call > 0 );
 	    }
 	}
-	if ( ! ( defined($min) && defined($max) ) )
+	# $min and $max are either both defined or neither defined
+	if ( ! (defined($min) && defined($max)) )
 	{
 	    printf "No data found in call number %d\n", $call;
 	    exit(1);
@@ -83,9 +106,8 @@ sub read_data
 	{
 	    printf TMP "%d\t%d\t%d\n", $call, $min, $max;
 	}
-	$first = $min if ( ! defined($first));
-	$first = ($first < $min) ? $first : $min;
-	$last = $max if ( ! defined($last) );
+	# At this point both $min and $max are defined
+	$last = $max if (! defined($last));
 	$last = ($last > $max) ? $last : $max;
 	$call++;
     }

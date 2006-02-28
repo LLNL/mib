@@ -55,6 +55,7 @@ BOOL set_iterations(char *v, Options *opts);
 BOOL set_pause(char *v, Options *opts);
 BOOL set_progress(char *v, Options *opts);
 BOOL set_profiles(char *v, Options *opts);
+BOOL set_use_ion_aves(char *v, Options *opts);
 BOOL set_verbosity(char *v, Options *opts);
 void lowercase(char *v);
 BOOL kv_pair(char *buf, char **k, char **v);
@@ -63,7 +64,7 @@ BOOL set_key(char *k, char *v, Options *opts);
 Options *opts;
 
 void
-command_line(int argc, char *argv[], char *opt_path)
+command_line(int argc, char *argv[], char *opt_path, int rank)
 {
   int opt;
   char *opt_str = "d:h";
@@ -77,7 +78,7 @@ command_line(int argc, char *argv[], char *opt_path)
 	  snprintf(opt_path, MAX_BUF, "%s", optarg); 
 	  break;
 	case 'h' :  
-	default : usage(); break;
+	default : if (rank == 0) usage(); break;
 	}
     }
 }
@@ -98,13 +99,10 @@ read_options(char *opt_path, int rank, int size)
 void
 usage( void )
 {
-  if (opts->rank == opts->base)
-    {
-      printf("usage: mib {options}\n");
-      printf("       -d <log_dir>        :  parameters file should be in this dir\n");
-      printf("       -f <tasks per node> :  Ratio of tasks to I/O nodes\n");
-      printf("       -h                  :  This message\n");
-    }
+  printf("usage: mib {options}\n");
+  printf("       -d <log_dir>        :  parameters file should be in this dir\n");
+  printf("       -f <tasks per node> :  Ratio of tasks to I/O nodes\n");
+  printf("       -h                  :  This message\n");
   exit(0);
 }
 
@@ -189,7 +187,7 @@ Init_Opts(char *opt_path, int rank, int size)
       while(opts->testdir[len++]);
       if( opts->base + opts->tasks > opts->size) FAIL();
     }
-
+  if( opts->cns == opts->ions ) opts->use_ion_aves = 0;
   mpi_bcast(&(opts->new), 1, MPI_INT, opts->base, opts->comm);
   mpi_bcast(&(opts->remove), 1, MPI_INT, opts->base, opts->comm);
   mpi_bcast(&(opts->cns), 1, MPI_INT, opts->base, opts->comm);
@@ -207,6 +205,7 @@ Init_Opts(char *opt_path, int rank, int size)
   /* Not sure if I really need these */
   mpi_bcast(&(opts->progress), 1, MPI_INT, opts->base, opts->comm);
   mpi_bcast(&(opts->profiles), 1, MPI_INT, opts->base, opts->comm);
+  mpi_bcast(&(opts->use_ion_aves), 1, MPI_INT, opts->base, opts->comm);
   mpi_bcast(&(opts->verbosity), 1, MPI_INT, opts->base, opts->comm);
   
   if(opts->tasks < opts->size)
@@ -301,6 +300,8 @@ set_key(char *k, char *v, Options *opts)
     return(set_progress(v, opts));
   if(strncmp(k, "profiles", MAX_BUF) == 0)
     return(set_profiles(v, opts));
+  if(strncmp(k, "use_ion_aves", MAX_BUF) == 0)
+    return(set_use_ion_aves(v, opts));
   if(strncmp(k, "verbosity", MAX_BUF) == 0)
     return(set_verbosity(v, opts));
   return(FALSE);
@@ -312,23 +313,26 @@ show_keys(Options *opts)
   ASSERT(opts != NULL);
   if ( (opts->rank == opts->base) && (opts->verbosity >= NORMAL) )
     {
-      printf("cluster    = %s\n", opts->cluster);      
-      printf("cns        = %d\n", opts->cns);
-      printf("ions       = %d\n", opts->ions);
-      printf("write_log  = %s\n", opts->write_log);
-      printf("read_log   = %s\n", opts->read_log);
-      printf("testdir    = %s\n", opts->testdir);
-      printf("call_limit = %d\n", opts->call_limit);
-      printf("call_size  = %lld\n", opts->call_size);
-      printf("time_limit = %d\n", opts->time_limit);
-      printf("tasks      = %d\n", opts->tasks);
-      printf("write_only = %d\n", opts->write_only);
-      printf("read_only  = %d\n", opts->read_only);
-      printf("iterations = %d\n", opts->iterations);
-      printf("pause      = %d\n", opts->pause);
-      printf("progress   = %d\n", opts->progress);
-      printf("profiles   = %d\n", opts->profiles);
-      printf("verbosity  = %d\n", opts->verbosity);
+      printf("cluster      = %s\n", opts->cluster);      
+      printf("new          = %d\n", opts->new);
+      printf("remove       = %d\n", opts->remove);
+      printf("cns          = %d\n", opts->cns);
+      printf("ions         = %d\n", opts->ions);
+      printf("write_log    = %s\n", opts->write_log);
+      printf("read_log     = %s\n", opts->read_log);
+      printf("testdir      = %s\n", opts->testdir);
+      printf("call_limit   = %d\n", opts->call_limit);
+      printf("call_size    = %lld\n", opts->call_size);
+      printf("time_limit   = %d\n", opts->time_limit);
+      printf("tasks        = %d\n", opts->tasks);
+      printf("write_only   = %d\n", opts->write_only);
+      printf("read_only    = %d\n", opts->read_only);
+      printf("iterations   = %d\n", opts->iterations);
+      printf("pause        = %d\n", opts->pause);
+      printf("progress     = %d\n", opts->progress);
+      printf("profiles     = %d\n", opts->profiles);
+      printf("use_ion_aves = %d\n", opts->use_ion_aves);
+      printf("verbosity    = %d\n", opts->verbosity);
     }
 }
 
@@ -525,6 +529,17 @@ set_profiles(char *v, Options *opts)
     opts->profiles = 0;
   else
     opts->profiles = 1;
+  return(TRUE);
+}
+
+BOOL
+set_use_ion_aves(char *v, Options *opts)
+{
+  lowercase(v);
+  if(strncmp(v, "true", MAX_BUF) == 0)
+    opts->use_ion_aves = 1;
+  else
+    opts->use_ion_aves = 0;
   return(TRUE);
 }
 

@@ -105,7 +105,7 @@ Unlink(char *name)
   int ret;
 
   errno = 0;
-  if( ((ret = unlink(name)) < 0) && (ret != ENONET) )
+  if( ((ret = unlink(name)) < 0) && (errno != ENONET) )
     {
         printf("failed to unlink %s: %d\n", name, errno);
 	fflush(stdout);
@@ -137,7 +137,6 @@ Write(int fd, const void *buf, size_t count)
       if(wrote < 0)
 	{
 	  FAIL();
-	  return(wrote);
 	}
       if(wrote > 0)
 	{
@@ -145,8 +144,8 @@ Write(int fd, const void *buf, size_t count)
 	  retries = MAX_RETRIES;
 	}
     }
-  wrote += written;
-  return(wrote);
+  written += wrote;
+  return(written);
 }
 
 ssize_t
@@ -176,7 +175,6 @@ Read(int fd, void *buf, size_t count)
       if(got < 0)
 	{
 	  FAIL();
-	  return(got);
 	}
       if(got > 0)
 	{
@@ -184,8 +182,8 @@ Read(int fd, void *buf, size_t count)
 	  retries = MAX_RETRIES;
 	}
     }
-  got += gotten;
-  return(got);
+  gotten += got;
+  return(gotten);
 }
 
 int

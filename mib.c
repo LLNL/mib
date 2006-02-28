@@ -33,19 +33,19 @@
  * that the file is on a parallel file system. It is required that the
  * task writing a given file and the task reading it both see the same
  * file, and those tasks will be distinct.  Detailed timing data for
- * all the system calls is sent to a file (one for writes on for
+ * all the system calls is sent to a file (one for writes and one for
  * reads) after the I/O is complete.
  *   Stonewalling tests have all the tasks stop after the same amount
  * of time.  Non-stonewalling tests allow all task to complete a fixed
  * number of system calls before stopping.  Whichever citerion is 
  * satisfied first ends I/O from a task.  It is possible for system 
- * call limits and time limits to be chosen so that some tasks end 
+ * call limits and time limits to be chosen so that some tasks finish
  * due to one and other tasks due to the other.  I don't see how 
  * that could be desirable, but is allowed and no special note is made
  * if it does happen.
  *   One particular special purpose is already implemented here, not
- * particularly well.  It checks that sibling compute nodes (all using
- * the same I/O node) proceed through their system calls uniformly,
+ * particularly well.  It checks that sibling tasks (all performing I/O
+ * from the same node) proceed through their system calls uniformly,
  * i.e. in lock step.  If they do not, the fact is noted, but no other
  * action is taken.  That one section of code could be removed without
  * loss of functionality, and others could be put in its place.
@@ -75,7 +75,7 @@ void init_status(char *str);
 void status(int calls, double time);
 double read_test();
 Results *reduce_results(Results *res);
-void ions(double *array, int count);
+void profiles(double *array, int count);
 void report(double write, double read);
 
 extern Options *opts;
@@ -107,7 +107,7 @@ main( int argc, char *argv[] )
   mpi_comm_size(MPI_COMM_WORLD, &size );
   mpi_comm_rank(MPI_COMM_WORLD, &rank );
   init_timer(rank);
-  command_line(argc, argv, opt_path);
+  command_line(argc, argv, opt_path, rank);
   do
     {
       opts = read_options(opt_path, rank, size);
@@ -122,7 +122,7 @@ main( int argc, char *argv[] )
 	  if(!opts->read_only)
 	    {
 	      write = write_test();
-	      if(opts->verbosity >= VERBOSE)
+	      if ( ( opts->rank == opts->base) && (opts->verbosity >= VERBOSE) )
 		{
 		  printf("Aggregate write rate = %10.2f\n", write);
 		  fflush(stdout);
@@ -131,9 +131,9 @@ main( int argc, char *argv[] )
 	  if(!opts->write_only)
 	    {
 	      read = read_test();
-	      if(opts->verbosity >= VERBOSE)
+	      if ( ( opts->rank == opts->base) && (opts->verbosity >= VERBOSE) )
 		{
-		  printf("Aggregate read rate = %10.2f\n", write);
+		  printf("Aggregate read rate = %10.2f\n", read);
 		  fflush(stdout);
 		}
 	    }
@@ -189,6 +189,7 @@ write_test()
   double time_limit;
   double time;
   double rate = 0;
+  ssize_t xfer;
   Results *res;
   Results *red;       /* individual results are reduced into this struct */
 
@@ -218,6 +219,7 @@ write_test()
    *   This just intializes a few things for the loop
    */
   res->transferred = 0;
+  res->short_transfers = 0;
   init_status("write phase");
   res->start = res->timings[call] = get_time();
   time_limit = res->timings[call] + opts->time_limit;
@@ -231,7 +233,10 @@ write_test()
   do
     {
       call++;
-      res->transferred += Write(wf, buf, opts->call_size);
+      xfer = Write(wf, buf, opts->call_size);
+      if (xfer < 0) printf("call %d wrote %d\n",call, xfer);
+      res->transferred += xfer;
+      if (xfer < opts->call_size) res->short_transfers++; 
       res->timings[call] = get_time();
       status(call, res->timings[call] - res->timings[0]);
     }
@@ -278,6 +283,10 @@ write_test()
    */
   last_call = call;
   mpi_allreduce(&(last_call), &(opts->last_write_call), 1, MPI_INT, MPI_MAX, opts->comm);
+  if ( (opts->rank == opts->base) && (opts->verbosity >= VERBOSE) )
+    {
+      printf("Call %d was the last write recorded\n", opts->last_write_call);
+    }
   while(call < opts->last_write_call)
     {
       call++;
@@ -300,7 +309,13 @@ write_test()
     {
       time = red->finish_fsync - red->start;
       if(time != 0)
-	rate = ((double)red->transferred)/time;
+	rate = red->transferred/time;
+      if ( opts->verbosity >= VERBOSE )
+	{
+	  printf("%f MB written in %f seconds\n", red->transferred, time);
+	  if ( red->short_transfers != 0 )
+	    printf("%d short writes\n", red->short_transfers);
+	}
     }
   free(red);
 
@@ -315,7 +330,7 @@ write_test()
        */
       DEBUG("Write table:\n");
       write_log();
-      ions(res->timings, opts->last_write_call + 1);
+      profiles(res->timings, opts->last_write_call + 1);
     }
 
   free(res->timings);
@@ -343,7 +358,7 @@ reduce_results(Results *res)
    * rank == base node.
    *  I can stuff all the easy ones into another Results struct.  I'll
    * have to do something different for the ION arrays.  I'll fob that 
-   * off to the ions() routine.
+   * off to the profiles() routine.
    */
   Results *red;
 
@@ -356,7 +371,9 @@ reduce_results(Results *res)
 	     MPI_MAX, opts->base, opts->comm);
   mpi_reduce(&(res->start), &(red->start), 1, MPI_DOUBLE, 
 	     MPI_MIN, opts->base, opts->comm);
-  mpi_reduce(&(res->transferred), &(red->transferred), 1, MPI_INT, 
+  mpi_reduce(&(res->transferred), &(red->transferred), 1, MPI_DOUBLE, 
+	     MPI_SUM, opts->base, opts->comm);
+  mpi_reduce(&(res->short_transfers), &(red->short_transfers), 1, MPI_INT, 
 	     MPI_SUM, opts->base, opts->comm);
   mpi_reduce(&(res->end), &(red->end), 1, MPI_DOUBLE, 
 	     MPI_MAX, opts->base, opts->comm);
@@ -468,6 +485,7 @@ read_test()
   int last_call;
   char *buf;
   int rf;
+  ssize_t xfer;
   double time_limit;
   double time;
   double rate = 0;
@@ -492,6 +510,7 @@ read_test()
    *   Initialize some loop control variables.
    */
   res->transferred = 0;
+  res->short_transfers = 0;
   init_status("read phase");
   res->start = res->timings[call] = get_time();
   time_limit = res->timings[call] + opts->time_limit;
@@ -503,7 +522,10 @@ read_test()
   do
     {
       call++;
-      res->transferred += Read(rf, buf, opts->call_size);
+      xfer = Read(rf, buf, opts->call_size);
+      res->transferred += xfer;
+      if( xfer < opts->call_size )
+	res->short_transfers++;
       res->timings[call] = get_time();
       status(call, res->timings[call] - res->timings[0]);
     }
@@ -547,6 +569,10 @@ read_test()
    */
   last_call = call;
   mpi_allreduce(&(last_call), &(opts->last_read_call), 1, MPI_INT, MPI_MAX, opts->comm);
+  if ( (opts->rank == opts->base) && (opts->verbosity >= VERBOSE) )
+    {
+      printf("Call %d was the last read recorded\n", opts->last_read_call);
+    }
   while(call < opts->last_read_call)
     {
       call++;
@@ -569,7 +595,13 @@ read_test()
     {
       time = red->end - red->start;
       if(time != 0)
-	rate = ((double)red->transferred)/time;
+	rate = red->transferred/time;
+      if ( opts->verbosity >= VERBOSE )
+	{
+	  printf("%f MB read in %f seconds\n", red->transferred, time);
+	  if ( red->short_transfers != 0 )
+	    printf("%d short reads\n", red->short_transfers);
+	}
     }
   free(red);
 
@@ -584,7 +616,7 @@ read_test()
        */
       DEBUG("Read table:\n");
       read_log();
-      ions(res->timings,  opts->last_read_call + 1);
+      profiles(res->timings,  opts->last_read_call + 1);
       DEBUG("Reductions complete.\n");
     }
 
@@ -595,7 +627,7 @@ read_test()
 }
 
 void
-ions(double *array,   int count)
+profiles(double *array,   int count)
 {
   /*
    *   Create subcommunicators for every group of <cns_per_ions> 
@@ -617,8 +649,14 @@ ions(double *array,   int count)
   int ion_group = 0;
   int call, gap, max_gap, min_gap, ave_gap;
   double *table;
-  char *ionbuf;
-  int BUF_LIMIT = 20*opts->ions;
+  char *buffer;
+      /*
+       *   BUF_LIMIT is a hack.  I want enough space so that each
+       * ION can print one double.  I do this rather than having
+       * <num_ions> separate print statements.  That would be very 
+       * slow.
+       */
+  int BUF_LIMIT;
   char *ip;
   double *ion_min, *ion_max, *ion_ave;
   int ion_size, ion_rank;
@@ -627,114 +665,141 @@ ions(double *array,   int count)
   int cns_per_ion = opts->cns/opts->ions;
 
   /*
-   *   BUF_LIMIT is a hack.  I want enough space so that each
-   * ION can print one double.  I do this rather than having
-   * <num_ions> separate print statements.  That would be very 
-   * slow.
-   */
-  ionbuf = Malloc(BUF_LIMIT);
-
-  /*
    *   The <ion, cn> pair is unique to each task.  The mpi spli
    * creates a subcommunicator corresponding to the sibling CNs 
    * associated with each ION.  The cn = 0 task in each 
    * subcommunicator is the base to which the others send their data.
    */
-  ion = opts->rank/cns_per_ion;
-  cn = opts->rank % cns_per_ion;
-  DEBUG("About to execute the first split.\n");
-  mpi_comm_split(opts->comm, ion, cn, &ion_comm);
-
-  /*
-   *   The primary goal of this exercise is to get the avearge
-   * behavior accross each ION and send that array of averages 
-   * to the MPI_WORLD base task for output to NFS.
-   *   Prior to send the averages this code makes a quick check
-   * to see that, within the set of sibling CNs, the timings are
-   * in lock step, or close to it.
-   */
-  ion_min = (double *) Malloc(count*sizeof(double));
-  ion_max = (double *) Malloc(count*sizeof(double));
-  ion_ave = (double *) Malloc(count*sizeof(double));
-  DEBUG("About to reduce the sum, max, and min of the call values.\n");
-  /* Get the IONs' min, max, and ave at each step */
-  for(call = 0; call < count; call++)
+  if ( ! opts->use_ion_aves )
     {
-      mpi_reduce(&(array[call]), &(ion_min[call]), 1, MPI_DOUBLE, MPI_MIN, ion_base, ion_comm);
-      mpi_reduce(&(array[call]), &(ion_max[call]), 1, MPI_DOUBLE, MPI_MAX, ion_base, ion_comm);
-      mpi_reduce(&(array[call]), &(ion_ave[call]), 1, MPI_DOUBLE, MPI_SUM, ion_base, ion_comm);
-    }
-  if(cn == ion_base)
-    {
-      gap = 0;
-      for(call = count - 1; call >= 0; call--)
-	{
-	  /* 
-	   *   We want two things here.  1)   The largest gap on the ION 
-	   * where one CN has completed n syscalls and a sibling has 
-	   * completed no more then n - gap.
-	   *   2)  If some CNs never got to call n then don't record any
-	   * average value for that step on that ION (i.e., set it to 0).
-	   */
-	  while( (ion_min[call] > 0) &&((call - gap) > 1) && 
-		 (ion_max[call - gap - 1] > ion_min[call]) ) gap++;
-	  if(ion_min[call] == 0)
-	    ion_ave[call] = 0;
-	  else
-	    ion_ave[call] /= cns_per_ion;
-	}
-    }
-  free(ion_min);
-  free(ion_max);
-  mpi_comm_free(&ion_comm);
-
-  DEBUG("Have the ION averages, now about the table...\n");
-  /*
-   *    Now we've got the average per call, and gap values for each
-   * ION on its base node.  We'll want to make a communicator of base
-   * nodes and gather in all that data.
-   */
-
-  DEBUG("Done with first subcommunicator.  About to create the second.\n");
-  mpi_comm_split(opts->comm, cn, ion, &ion_comm);
-  mpi_comm_size(ion_comm, &ion_size );
-  mpi_comm_rank(ion_comm, &ion_rank );
-  table = (double *)Malloc(opts->ions*sizeof(double));
-  if( cn == ion_group )
-    {
+      ion = opts->rank;
+      cn = opts->rank;
+      BUF_LIMIT = 20*opts->cns;
+      buffer = Malloc(BUF_LIMIT);
       DEBUG("Table\n");
+      if ( (opts->base == opts->rank) && (opts->verbosity >= VERBOSE) )
+	printf("Table of %d tasks with up to %d system calls\n", opts->cns, count);
+      table = (double *)Malloc(opts->cns*sizeof(double));
       for(call = 0; call < count; call++)
 	{
-	  mpi_gather(&(ion_ave[call]), 1, MPI_DOUBLE, table, 1, MPI_DOUBLE, ion_base, ion_comm);
-	  if( ion_rank == ion_base )
+	  mpi_gather(&(array[call]), 1, MPI_DOUBLE, table, 1, MPI_DOUBLE, opts->base, opts->comm);
+	  if( opts->rank == opts->base )
 	    {
-      	      ip = ionbuf;
-	      for(i = 0; i < opts->ions; i++)
+	      ip = buffer;
+	      for(i = 0; i < opts->cns; i++)
 		{
 		  /* N.B.  the following can only have one double,
-		   since varargs doesn't work.  */
-		  ret = Snprintf(ip, BUF_LIMIT - (ip - ionbuf), "%f\t", table[i]);
+		     since varargs doesn't work.  */
+		  ret = Snprintf(ip, BUF_LIMIT - (ip - buffer), "%f\t", table[i]);
 		  ip += ret;
 		  *ip = '\0';
 		}
-	      log_it("%s\n", ionbuf);
+	      log_it("%s\n", buffer);
 	    }
 	}
-      DEBUG("\n\nAbout to reduce the gap values.\n");
-      mpi_reduce(&gap, &max_gap, 1, MPI_INT, MPI_MAX, ion_base, ion_comm);
-      mpi_reduce(&gap, &min_gap, 1, MPI_INT, MPI_MIN, ion_base, ion_comm);
-      mpi_reduce(&gap, &ave_gap, 1, MPI_INT, MPI_SUM, ion_base, ion_comm);
-      if(ion == ion_base) ave_gap /= opts->ions;
     }
-  free(ion_ave);
-  free(table);
-  free(ionbuf);
-  mpi_comm_free(&ion_comm);
-  if ( (opts->rank == opts->base) && (opts->verbosity >= VERBOSE) )
+  else
     {
-      printf("\tIONs' syscalls gaps (i.e dispersion or unevenness)\n");
-      printf("\t\taverage\tmin\tmax\n");
-      printf("\t\t%d\t%d\t%d\n", ave_gap, min_gap, max_gap);
+      ion = opts->rank/cns_per_ion;
+      cn = opts->rank % cns_per_ion;
+
+      BUF_LIMIT = 20*opts->ions;
+      buffer = Malloc(BUF_LIMIT);
+      DEBUG("About to execute the first split.\n");
+      mpi_comm_split(opts->comm, ion, cn, &ion_comm);
+      
+      /*
+       *   The primary goal of this exercise is to get the avearge
+       * behavior accross each ION and send that array of averages 
+       * to the MPI_WORLD base task for output to NFS.
+       *   Prior to send the averages this code makes a quick check
+       * to see that, within the set of sibling CNs, the timings are
+       * in lock step, or close to it.
+       */
+      ion_min = (double *) Malloc(count*sizeof(double));
+      ion_max = (double *) Malloc(count*sizeof(double));
+      ion_ave = (double *) Malloc(count*sizeof(double));
+      DEBUG("About to reduce the sum, max, and min of the call values.\n");
+      /* Get the IONs' min, max, and ave at each step */
+      for(call = 0; call < count; call++)
+	{
+	  mpi_reduce(&(array[call]), &(ion_min[call]), 1, MPI_DOUBLE, MPI_MIN, ion_base, ion_comm);
+	  mpi_reduce(&(array[call]), &(ion_max[call]), 1, MPI_DOUBLE, MPI_MAX, ion_base, ion_comm);
+	  mpi_reduce(&(array[call]), &(ion_ave[call]), 1, MPI_DOUBLE, MPI_SUM, ion_base, ion_comm);
+	}
+      if(cn == ion_base)
+	{
+	  gap = 0;
+	  for(call = count - 1; call >= 0; call--)
+	    {
+	      /* 
+	       *   We want two things here.  1)   The largest gap on the ION 
+	       * where one CN has completed n syscalls and a sibling has 
+	       * completed no more then n - gap.
+	       *   2)  If some CNs never got to call n then don't record any
+	       * average value for that step on that ION (i.e., set it to 0).
+	       */
+	      while( (ion_min[call] > 0) &&((call - gap) > 1) && 
+		     (ion_max[call - gap - 1] > ion_min[call]) ) gap++;
+	      if(ion_min[call] == 0)
+		ion_ave[call] = 0;
+	      else
+		ion_ave[call] /= cns_per_ion;
+	    }
+	}
+      free(ion_min);
+      free(ion_max);
+      mpi_comm_free(&ion_comm);
+
+      DEBUG("Have the ION averages, now about the table...\n");
+
+      /*
+       *    Now we've got the average per call, and gap values for each
+       * ION on its base node.  We'll want to make a communicator of base
+       * nodes and gather in all that data.
+       */
+      
+      DEBUG("Done with first subcommunicator.  About to create the second.\n");
+      mpi_comm_split(opts->comm, cn, ion, &ion_comm);
+      mpi_comm_size(ion_comm, &ion_size );
+      mpi_comm_rank(ion_comm, &ion_rank );
+      table = (double *)Malloc(opts->ions*sizeof(double));
+      if( cn == ion_group )
+	{
+	  DEBUG("Table\n");
+	  for(call = 0; call < count; call++)
+	    {
+	      mpi_gather(&(ion_ave[call]), 1, MPI_DOUBLE, table, 1, MPI_DOUBLE, ion_base, ion_comm);
+	      if( ion_rank == ion_base )
+		{
+		  ip = buffer;
+		  for(i = 0; i < opts->ions; i++)
+		    {
+		      /* N.B.  the following can only have one double,
+			 since varargs doesn't work.  */
+		      ret = Snprintf(ip, BUF_LIMIT - (ip - buffer), "%f\t", table[i]);
+		      ip += ret;
+		      *ip = '\0';
+		    }
+		  log_it("%s\n", buffer);
+		}
+	    }
+	  DEBUG("\n\nAbout to reduce the gap values.\n");
+	  mpi_reduce(&gap, &max_gap, 1, MPI_INT, MPI_MAX, ion_base, ion_comm);
+	  mpi_reduce(&gap, &min_gap, 1, MPI_INT, MPI_MIN, ion_base, ion_comm);
+	  mpi_reduce(&gap, &ave_gap, 1, MPI_INT, MPI_SUM, ion_base, ion_comm);
+	  if(ion == ion_base) ave_gap /= opts->ions;
+	}
+      free(ion_ave);
+      free(table);
+      free(buffer);
+      mpi_comm_free(&ion_comm);
+      if ( (opts->rank == opts->base) && (opts->verbosity >= VERBOSE) )
+	{
+	  printf("\tIONs' syscalls gaps (i.e dispersion or unevenness)\n");
+	  printf("\t\taverage\tmin\tmax\n");
+	  printf("\t\t%d\t%d\t%d\n", ave_gap, min_gap, max_gap);
+	}
     }
 }
 
@@ -771,3 +836,4 @@ report(double write, double read)
     printf("%s %6d %4d%c %5d %5d %10.2f %10.2f\n", time_str, opts->tasks, xfer, range_ch, opts->call_limit, opts->time_limit, write, read);
   }
 }
+

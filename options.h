@@ -71,6 +71,7 @@ typedef struct Options_Struct {
   int pause;
   int progress;
   int profiles;
+  int use_ion_aves;
   int verbosity;
 }Options;
 
@@ -78,7 +79,7 @@ typedef struct Options_Struct {
 #define NORMAL  1
 #define VERBOSE 2
 
-void command_line(int argc, char *argv[], char *opt_path);
+void command_line(int argc, char *argv[], char *opt_path, int rank);
 Options *read_options(char *opt_path, int rank, int size);
 void write_log();
 void read_log();
