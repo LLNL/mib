@@ -56,7 +56,6 @@ void init_status(char *str);
 void status(double time);
 void read_test(Results *results);
 Results *data_reduction(Results *results);
-void ions(double *array, int count);
 void report(Results *results);
 
 extern Options *opts;

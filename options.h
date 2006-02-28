@@ -46,8 +46,8 @@ typedef struct Options_Struct {
   char cluster[MAX_BUF];
   int new;
   int remove;
-  int cns;
-  int ions;
+  int tasks;
+  int nodes;
   char log_dir[MAX_BUF];      /* = /home/auselton/testing/<date> */
   char write_log[MAX_BUF];    /* = /home/auselton/testing/<date>/write.syscalls.ave */
   char read_log[MAX_BUF];     /* = /home/auselton/testing/<date>/read.syscalls.date */
@@ -56,7 +56,6 @@ typedef struct Options_Struct {
   int call_limit;       /* = 8 */
   long long call_size;  /* = 1m */
   int time_limit;     /* = 400 */
-  int tasks;        /* = 512 */
   int rank;
   int size;
   int base;
@@ -71,7 +70,7 @@ typedef struct Options_Struct {
   int pause;
   int progress;
   int profiles;
-  int use_ion_aves;
+  int use_node_aves;
   int verbosity;
 }Options;
 

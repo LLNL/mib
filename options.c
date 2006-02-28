@@ -42,8 +42,7 @@ void show_keys(Options *opts);
 BOOL set_cluster(char *v, Options *opts);
 BOOL set_new(char *v, Options *opts);
 BOOL set_remove(char *v, Options *opts);
-BOOL set_cns(char *v, Options *opts);
-BOOL set_ions(char *v, Options *opts);
+BOOL set_nodes(char *v, Options *opts);
 BOOL set_testdir(char *v, Options *opts);
 BOOL set_call_limit(char *v, Options *opts);
 BOOL set_call_size(char *v, Options *opts);
@@ -55,7 +54,7 @@ BOOL set_iterations(char *v, Options *opts);
 BOOL set_pause(char *v, Options *opts);
 BOOL set_progress(char *v, Options *opts);
 BOOL set_profiles(char *v, Options *opts);
-BOOL set_use_ion_aves(char *v, Options *opts);
+BOOL set_use_node_aves(char *v, Options *opts);
 BOOL set_verbosity(char *v, Options *opts);
 void lowercase(char *v);
 BOOL kv_pair(char *buf, char **k, char **v);
@@ -128,8 +127,7 @@ Init_Opts(char *opt_path, int rank, int size)
   opts->cluster[0] = '\0';
   opts->new = 0;
   opts->remove = 0;
-  opts->cns = size;
-  opts->ions = 1024;
+  opts->nodes = 1024;
   opts->log_dir[0] = '\0';
   opts->write_log[0] = '\0';
   opts->read_log[0] = '\0';
@@ -187,11 +185,10 @@ Init_Opts(char *opt_path, int rank, int size)
       while(opts->testdir[len++]);
       if( opts->base + opts->tasks > opts->size) FAIL();
     }
-  if( opts->cns == opts->ions ) opts->use_ion_aves = 0;
+  if( opts->tasks == opts->nodes ) opts->use_node_aves = 0;
   mpi_bcast(&(opts->new), 1, MPI_INT, opts->base, opts->comm);
   mpi_bcast(&(opts->remove), 1, MPI_INT, opts->base, opts->comm);
-  mpi_bcast(&(opts->cns), 1, MPI_INT, opts->base, opts->comm);
-  mpi_bcast(&(opts->ions), 1, MPI_INT, opts->base, opts->comm);
+  mpi_bcast(&(opts->nodes), 1, MPI_INT, opts->base, opts->comm);
   mpi_bcast(&(len), 1, MPI_INT, opts->base, opts->comm);
   mpi_bcast(opts->testdir, len, MPI_CHAR, opts->base, opts->comm);
   mpi_bcast(&(opts->call_limit), 1, MPI_INT, opts->base, opts->comm);
@@ -205,7 +202,7 @@ Init_Opts(char *opt_path, int rank, int size)
   /* Not sure if I really need these */
   mpi_bcast(&(opts->progress), 1, MPI_INT, opts->base, opts->comm);
   mpi_bcast(&(opts->profiles), 1, MPI_INT, opts->base, opts->comm);
-  mpi_bcast(&(opts->use_ion_aves), 1, MPI_INT, opts->base, opts->comm);
+  mpi_bcast(&(opts->use_node_aves), 1, MPI_INT, opts->base, opts->comm);
   mpi_bcast(&(opts->verbosity), 1, MPI_INT, opts->base, opts->comm);
   
   if(opts->tasks < opts->size)
@@ -274,10 +271,8 @@ set_key(char *k, char *v, Options *opts)
     return(set_new(v, opts));
   if(strncmp(k, "remove", MAX_BUF) == 0)
     return(set_remove(v, opts));
-  if(strncmp(k, "cns", MAX_BUF) == 0)
-    return(set_cns(v, opts));
-  if(strncmp(k, "ions", MAX_BUF) == 0)
-    return(set_ions(v, opts));
+  if(strncmp(k, "nodes", MAX_BUF) == 0)
+    return(set_nodes(v, opts));
   if(strncmp(k, "testdir", MAX_BUF) == 0)
     return(set_testdir(v, opts));
   if(strncmp(k, "call_limit", MAX_BUF) == 0)
@@ -300,8 +295,8 @@ set_key(char *k, char *v, Options *opts)
     return(set_progress(v, opts));
   if(strncmp(k, "profiles", MAX_BUF) == 0)
     return(set_profiles(v, opts));
-  if(strncmp(k, "use_ion_aves", MAX_BUF) == 0)
-    return(set_use_ion_aves(v, opts));
+  if(strncmp(k, "use_node_aves", MAX_BUF) == 0)
+    return(set_use_node_aves(v, opts));
   if(strncmp(k, "verbosity", MAX_BUF) == 0)
     return(set_verbosity(v, opts));
   return(FALSE);
@@ -313,26 +308,25 @@ show_keys(Options *opts)
   ASSERT(opts != NULL);
   if ( (opts->rank == opts->base) && (opts->verbosity >= NORMAL) )
     {
-      printf("cluster      = %s\n", opts->cluster);      
-      printf("new          = %d\n", opts->new);
-      printf("remove       = %d\n", opts->remove);
-      printf("cns          = %d\n", opts->cns);
-      printf("ions         = %d\n", opts->ions);
-      printf("write_log    = %s\n", opts->write_log);
-      printf("read_log     = %s\n", opts->read_log);
-      printf("testdir      = %s\n", opts->testdir);
-      printf("call_limit   = %d\n", opts->call_limit);
-      printf("call_size    = %lld\n", opts->call_size);
-      printf("time_limit   = %d\n", opts->time_limit);
-      printf("tasks        = %d\n", opts->tasks);
-      printf("write_only   = %d\n", opts->write_only);
-      printf("read_only    = %d\n", opts->read_only);
-      printf("iterations   = %d\n", opts->iterations);
-      printf("pause        = %d\n", opts->pause);
-      printf("progress     = %d\n", opts->progress);
-      printf("profiles     = %d\n", opts->profiles);
-      printf("use_ion_aves = %d\n", opts->use_ion_aves);
-      printf("verbosity    = %d\n", opts->verbosity);
+      printf("cluster       = %s\n", opts->cluster);      
+      printf("new           = %d\n", opts->new);
+      printf("remove        = %d\n", opts->remove);
+      printf("nodes         = %d\n", opts->nodes);
+      printf("write_log     = %s\n", opts->write_log);
+      printf("read_log      = %s\n", opts->read_log);
+      printf("testdir       = %s\n", opts->testdir);
+      printf("call_limit    = %d\n", opts->call_limit);
+      printf("call_size     = %lld\n", opts->call_size);
+      printf("time_limit    = %d\n", opts->time_limit);
+      printf("tasks         = %d\n", opts->tasks);
+      printf("write_only    = %d\n", opts->write_only);
+      printf("read_only     = %d\n", opts->read_only);
+      printf("iterations    = %d\n", opts->iterations);
+      printf("pause         = %d\n", opts->pause);
+      printf("progress      = %d\n", opts->progress);
+      printf("profiles      = %d\n", opts->profiles);
+      printf("use_node_aves = %d\n", opts->use_node_aves);
+      printf("verbosity     = %d\n", opts->verbosity);
     }
 }
 
@@ -402,16 +396,9 @@ set_remove(char *v, Options *opts)
 }
 
 BOOL
-set_cns(char *v, Options *opts)
+set_nodes(char *v, Options *opts)
 {
-  opts->cns = atoi(v);
-  return(TRUE);
-}
-
-BOOL
-set_ions(char *v, Options *opts)
-{
-  opts->ions = atoi(v);
+  opts->nodes = atoi(v);
   return(TRUE);
 }
 
@@ -533,13 +520,13 @@ set_profiles(char *v, Options *opts)
 }
 
 BOOL
-set_use_ion_aves(char *v, Options *opts)
+set_use_node_aves(char *v, Options *opts)
 {
   lowercase(v);
   if(strncmp(v, "true", MAX_BUF) == 0)
-    opts->use_ion_aves = 1;
+    opts->use_node_aves = 1;
   else
-    opts->use_ion_aves = 0;
+    opts->use_node_aves = 0;
   return(TRUE);
 }
 

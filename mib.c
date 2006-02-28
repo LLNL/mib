@@ -80,7 +80,7 @@ void report(double write, double read);
 
 extern Options *opts;
 
-char *version="mib-1.7";
+char *version="mib-1.8";
 
 int
 main( int argc, char *argv[] )
@@ -254,7 +254,7 @@ write_test()
   res->end = res->timings[call];
   /*
    *   I don't really consider this fsync optional, but it is important to
-   * isolate its effect.  As far as the CNs are concerned the test is
+   * isolate its effect.  As far as the tasks are concerned the test is
    * over, but the file system is still chewing.
    */
   Fsync(wf);
@@ -347,17 +347,17 @@ reduce_results(Results *res)
    * Min_{n} start_open
    * Max_{n} end_open
    * Min_{n} start
-   * timings_{ION, call}
+   * timings_{node, call}
    * Sum_{n} transferred
    * Max_{n} finish_fsync
    * Min_{n} start_close
    * Max_{n} end_close
    * All but the arrays can be brought to rank == base.
-   * The arrays will need individual ION subcommunicators, and then
-   * a fancy subcommunicator to bring all the ION arrays to the 
+   * The arrays will need individual node subcommunicators, and then
+   * a fancy subcommunicator to bring all the node arrays to the 
    * rank == base node.
    *  I can stuff all the easy ones into another Results struct.  I'll
-   * have to do something different for the ION arrays.  I'll fob that 
+   * have to do something different for the node arrays.  I'll fob that 
    * off to the profiles() routine.
    */
   Results *red;
@@ -630,63 +630,63 @@ void
 profiles(double *array,   int count)
 {
   /*
-   *   Create subcommunicators for every group of <cns_per_ions> 
-   * sibling CNs.  Then each can do a reduction to get averages
-   * for the ION.  Release those subcommunicators.
+   *   Create subcommunicators for every group of 
+   * sibling tasks.  Then each can do a reduction to get averages
+   * for the node.  Release those subcommunicators.
    *   Create a subcommunicator out of the <base> from each of
    * the previous subcommunicators.  Send all the data to the 
    * base of this new subcommunicator (also the base of MPI_WORLD),
    * so that it can be sent to the NFS target directory.
-   *   Keep in mind that this function requires the "opts->ions"
+   *   Keep in mind that this function requires the "opts->nodes"
    * configuration parameter to be set correctly.  If it is not 
    * then the computations are not going to be valid, and there 
    * may even be stability issues.  In particular, default operation
    * should insure that profiling is OFF.
    */
-  int ion, cn;
-  MPI_Comm ion_comm;
-  int ion_base = 0;
-  int ion_group = 0;
+  int node, task;
+  MPI_Comm node_comm;
+  int node_base = 0;
+  int node_group = 0;
   int call, gap, max_gap, min_gap, ave_gap;
   double *table;
   char *buffer;
       /*
        *   BUF_LIMIT is a hack.  I want enough space so that each
-       * ION can print one double.  I do this rather than having
-       * <num_ions> separate print statements.  That would be very 
+       * NODE can print one double.  I do this rather than having
+       * <num_nodes> separate print statements.  That would be very 
        * slow.
        */
   int BUF_LIMIT;
   char *ip;
-  double *ion_min, *ion_max, *ion_ave;
-  int ion_size, ion_rank;
+  double *node_min, *node_max, *node_ave;
+  int node_size, node_rank;
   int ret;
   int i;
-  int cns_per_ion = opts->cns/opts->ions;
+  int tasks_per_node = opts->tasks/opts->nodes;
 
   /*
-   *   The <ion, cn> pair is unique to each task.  The mpi spli
-   * creates a subcommunicator corresponding to the sibling CNs 
-   * associated with each ION.  The cn = 0 task in each 
+   *   The <node, task> pair is unique to each task.  The mpi spli
+   * creates a subcommunicator corresponding to the sibling tasks 
+   * associated with each NODE.  The task = 0 task in each 
    * subcommunicator is the base to which the others send their data.
    */
-  if ( ! opts->use_ion_aves )
+  if ( ! opts->use_node_aves )
     {
-      ion = opts->rank;
-      cn = opts->rank;
-      BUF_LIMIT = 20*opts->cns;
+      node = opts->rank;
+      task = opts->rank;
+      BUF_LIMIT = 20*opts->tasks;
       buffer = Malloc(BUF_LIMIT);
       DEBUG("Table\n");
       if ( (opts->base == opts->rank) && (opts->verbosity >= VERBOSE) )
-	printf("Table of %d tasks with up to %d system calls\n", opts->cns, count);
-      table = (double *)Malloc(opts->cns*sizeof(double));
+	printf("Table of %d tasks with up to %d system calls\n", opts->tasks, count);
+      table = (double *)Malloc(opts->tasks*sizeof(double));
       for(call = 0; call < count; call++)
 	{
 	  mpi_gather(&(array[call]), 1, MPI_DOUBLE, table, 1, MPI_DOUBLE, opts->base, opts->comm);
 	  if( opts->rank == opts->base )
 	    {
 	      ip = buffer;
-	      for(i = 0; i < opts->cns; i++)
+	      for(i = 0; i < opts->tasks; i++)
 		{
 		  /* N.B.  the following can only have one double,
 		     since varargs doesn't work.  */
@@ -700,80 +700,80 @@ profiles(double *array,   int count)
     }
   else
     {
-      ion = opts->rank/cns_per_ion;
-      cn = opts->rank % cns_per_ion;
+      node = opts->rank/tasks_per_node;
+      task = opts->rank % tasks_per_node;
 
-      BUF_LIMIT = 20*opts->ions;
+      BUF_LIMIT = 20*opts->nodes;
       buffer = Malloc(BUF_LIMIT);
       DEBUG("About to execute the first split.\n");
-      mpi_comm_split(opts->comm, ion, cn, &ion_comm);
+      mpi_comm_split(opts->comm, node, task, &node_comm);
       
       /*
        *   The primary goal of this exercise is to get the avearge
-       * behavior accross each ION and send that array of averages 
+       * behavior accross each NODE and send that array of averages 
        * to the MPI_WORLD base task for output to NFS.
        *   Prior to send the averages this code makes a quick check
-       * to see that, within the set of sibling CNs, the timings are
+       * to see that, within the set of sibling tasks, the timings are
        * in lock step, or close to it.
        */
-      ion_min = (double *) Malloc(count*sizeof(double));
-      ion_max = (double *) Malloc(count*sizeof(double));
-      ion_ave = (double *) Malloc(count*sizeof(double));
+      node_min = (double *) Malloc(count*sizeof(double));
+      node_max = (double *) Malloc(count*sizeof(double));
+      node_ave = (double *) Malloc(count*sizeof(double));
       DEBUG("About to reduce the sum, max, and min of the call values.\n");
-      /* Get the IONs' min, max, and ave at each step */
+      /* Get the NODEs' min, max, and ave at each step */
       for(call = 0; call < count; call++)
 	{
-	  mpi_reduce(&(array[call]), &(ion_min[call]), 1, MPI_DOUBLE, MPI_MIN, ion_base, ion_comm);
-	  mpi_reduce(&(array[call]), &(ion_max[call]), 1, MPI_DOUBLE, MPI_MAX, ion_base, ion_comm);
-	  mpi_reduce(&(array[call]), &(ion_ave[call]), 1, MPI_DOUBLE, MPI_SUM, ion_base, ion_comm);
+	  mpi_reduce(&(array[call]), &(node_min[call]), 1, MPI_DOUBLE, MPI_MIN, node_base, node_comm);
+	  mpi_reduce(&(array[call]), &(node_max[call]), 1, MPI_DOUBLE, MPI_MAX, node_base, node_comm);
+	  mpi_reduce(&(array[call]), &(node_ave[call]), 1, MPI_DOUBLE, MPI_SUM, node_base, node_comm);
 	}
-      if(cn == ion_base)
+      if(task == node_base)
 	{
 	  gap = 0;
 	  for(call = count - 1; call >= 0; call--)
 	    {
 	      /* 
-	       *   We want two things here.  1)   The largest gap on the ION 
-	       * where one CN has completed n syscalls and a sibling has 
+	       *   We want two things here.  1)   The largest gap on the NODE 
+	       * where one task has completed n syscalls and a sibling has 
 	       * completed no more then n - gap.
-	       *   2)  If some CNs never got to call n then don't record any
-	       * average value for that step on that ION (i.e., set it to 0).
+	       *   2)  If some tasks never got to call n then don't record any
+	       * average value for that step on that NODE (i.e., set it to 0).
 	       */
-	      while( (ion_min[call] > 0) &&((call - gap) > 1) && 
-		     (ion_max[call - gap - 1] > ion_min[call]) ) gap++;
-	      if(ion_min[call] == 0)
-		ion_ave[call] = 0;
+	      while( (node_min[call] > 0) &&((call - gap) > 1) && 
+		     (node_max[call - gap - 1] > node_min[call]) ) gap++;
+	      if(node_min[call] == 0)
+		node_ave[call] = 0;
 	      else
-		ion_ave[call] /= cns_per_ion;
+		node_ave[call] /= tasks_per_node;
 	    }
 	}
-      free(ion_min);
-      free(ion_max);
-      mpi_comm_free(&ion_comm);
+      free(node_min);
+      free(node_max);
+      mpi_comm_free(&node_comm);
 
-      DEBUG("Have the ION averages, now about the table...\n");
+      DEBUG("Have the NODE averages, now about the table...\n");
 
       /*
        *    Now we've got the average per call, and gap values for each
-       * ION on its base node.  We'll want to make a communicator of base
+       * NODE on its base node.  We'll want to make a communicator of base
        * nodes and gather in all that data.
        */
       
       DEBUG("Done with first subcommunicator.  About to create the second.\n");
-      mpi_comm_split(opts->comm, cn, ion, &ion_comm);
-      mpi_comm_size(ion_comm, &ion_size );
-      mpi_comm_rank(ion_comm, &ion_rank );
-      table = (double *)Malloc(opts->ions*sizeof(double));
-      if( cn == ion_group )
+      mpi_comm_split(opts->comm, task, node, &node_comm);
+      mpi_comm_size(node_comm, &node_size );
+      mpi_comm_rank(node_comm, &node_rank );
+      table = (double *)Malloc(opts->nodes*sizeof(double));
+      if( task == node_group )
 	{
 	  DEBUG("Table\n");
 	  for(call = 0; call < count; call++)
 	    {
-	      mpi_gather(&(ion_ave[call]), 1, MPI_DOUBLE, table, 1, MPI_DOUBLE, ion_base, ion_comm);
-	      if( ion_rank == ion_base )
+	      mpi_gather(&(node_ave[call]), 1, MPI_DOUBLE, table, 1, MPI_DOUBLE, node_base, node_comm);
+	      if( node_rank == node_base )
 		{
 		  ip = buffer;
-		  for(i = 0; i < opts->ions; i++)
+		  for(i = 0; i < opts->nodes; i++)
 		    {
 		      /* N.B.  the following can only have one double,
 			 since varargs doesn't work.  */
@@ -785,18 +785,18 @@ profiles(double *array,   int count)
 		}
 	    }
 	  DEBUG("\n\nAbout to reduce the gap values.\n");
-	  mpi_reduce(&gap, &max_gap, 1, MPI_INT, MPI_MAX, ion_base, ion_comm);
-	  mpi_reduce(&gap, &min_gap, 1, MPI_INT, MPI_MIN, ion_base, ion_comm);
-	  mpi_reduce(&gap, &ave_gap, 1, MPI_INT, MPI_SUM, ion_base, ion_comm);
-	  if(ion == ion_base) ave_gap /= opts->ions;
+	  mpi_reduce(&gap, &max_gap, 1, MPI_INT, MPI_MAX, node_base, node_comm);
+	  mpi_reduce(&gap, &min_gap, 1, MPI_INT, MPI_MIN, node_base, node_comm);
+	  mpi_reduce(&gap, &ave_gap, 1, MPI_INT, MPI_SUM, node_base, node_comm);
+	  if(node == node_base) ave_gap /= opts->nodes;
 	}
-      free(ion_ave);
+      free(node_ave);
       free(table);
       free(buffer);
-      mpi_comm_free(&ion_comm);
+      mpi_comm_free(&node_comm);
       if ( (opts->rank == opts->base) && (opts->verbosity >= VERBOSE) )
 	{
-	  printf("\tIONs' syscalls gaps (i.e dispersion or unevenness)\n");
+	  printf("\tNODEs' syscalls gaps (i.e dispersion or unevenness)\n");
 	  printf("\t\taverage\tmin\tmax\n");
 	  printf("\t\t%d\t%d\t%d\n", ave_gap, min_gap, max_gap);
 	}
