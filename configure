@@ -6,7 +6,8 @@
 
 PROG=$(basename $0)
 
-[ ! `/usr/bin/which nodefoo >/dev/null 2>&1` ] && { echo "This script expects a cluster with the Genders \"nodeattr\" function installed"; exit 1; } 
+NODEATTR=`/usr/bin/which nodeattr 2>/dev/null`
+[ X"$NODEATTR" == X ] && { echo "This script expects a cluster with the Genders \"nodeattr\" function installed"; exit 1; } 
 CLUSTER=`nodeattr -v cluster`
 [ X"$CLUSTER" == X ] && { echo "\"nodeattr -v cluster\" failed to determine the cluster were on, if any"; exit 1; }
 
@@ -18,7 +19,7 @@ usage ()
 	echo "Print an error message otherwise"
 	echo "This scrip establishes the compiler to use the makefile based on the"
 	echo "cluster as returned by \"nodeattr -v cluster\", and sets the version,"
-	echo "based on the value of VERSION in the \"META|" file, in the source at"
+	echo "based on the value of VERSION in the \"META\" file, in the source at"
 	echo "\"mib.c\" and the spec file \"mib.spec\"."
 	exit 0
 }
@@ -42,23 +43,23 @@ esac
 
 MAKEFILE="Makefile"
 [ -f $MAKEFILE.in ] || usage "There is no file $MAKEFILE.in here"
-MIB_C="mib.c"
-[ -f $MIB_C.in ] || usage "There is no file $MIB_C.in here"
+VERSION_H="version.h"
+[ -f $VERSION_H.in ] || || usage "There is no file $VERSION_H.in here"
 MIB_SPEC="mib.spec"
 [ -f $MIB_SPEC.in ] || usage "There is no file $MIB_SPEC.in here"
 [ -f META ] || usage "There is no file META here"
 
-VERSION=`grep VERSION META | awk '{print $3}'
+VERSION=`grep VERSION META | cut -d':' -f2`
 [ X"$VERSION" != X ] ||  usage "The META file did not yield a version"
 
 rm -f $MAKEFILE >/dev/null 2>&1
-cat $MAKEFILE.in  | sed s/%CC%/$CC/ > $MAKEFILE
+cat $MAKEFILE.in  | sed "s/%CC%/$CC/" | sed "s/%CLUSTER%/$CLUSTER/" | sed "s/%VERSION%/$VERSION/" > $MAKEFILE
 
-rm -f $MIB_C >/dev/null 2>&1
-cat $MIB_C.in  | sed s/%VERSION%/$VERSION/ > $MIB_C
+rm -f $VERSION_H >/dev/null 2>&1
+cat $VERSION_H.in  | sed "s/%VERSION%/$VERSION/" > $VERSION_H
 
 rm -f $MIB_SPEC >/dev/null 2>&1
-cat $MIB_SPEC.in  | sed s/%VERSION%/$VERSION/ > $MIB_SPEC
+cat $MIB_SPEC.in  | sed "s/%VERSION%/$VERSION/" > $MIB_SPEC
 
 
  

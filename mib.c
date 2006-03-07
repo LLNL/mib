@@ -61,12 +61,15 @@
 #include <string.h>     /* strncpy */
 #include <errno.h>
 #include <time.h>
+#include <stdarg.h>    /* varargs */
 #include "mib.h"
+#include "miberr.h"
 #include "mpi_wrap.h"
 #include "options.h"
 #include "mib_timer.h"
 #include "sys_wrap.h"
 #include "mib_timer.h"
+#include "version.h"
 
 void init_filenames();
 double write_test();
@@ -75,12 +78,14 @@ void init_status(char *str);
 void status(int calls, double time);
 double read_test();
 Results *reduce_results(Results *res);
-void profiles(double *array, int count);
+void profiles(double *array, int count, char *profile_log_name);
 void report(double write, double read);
+void base_report(int verb, char *fmt, ...);
 
 extern Options *opts;
+extern Mib     *mib;
 
-char *version="mib-1.8";
+char *version=MIB_VERSION;
 
 int
 main( int argc, char *argv[] )
@@ -97,57 +102,42 @@ main( int argc, char *argv[] )
    */
   int size;
   int rank;
-  char opt_path[MAX_BUF];
+  char signon[MAX_BUF];
   int iteration = 0;
-  BOOL stop;
   double read = 0;
   double write = 0;
 
   mpi_init( &argc, &argv );
   mpi_comm_size(MPI_COMM_WORLD, &size );
   mpi_comm_rank(MPI_COMM_WORLD, &rank );
-  init_timer(rank);
-  command_line(argc, argv, opt_path, rank);
-  do
+  init_timer(rank, signon);
+  command_line(argc, argv, rank);
+  opts = read_options(rank, size);
+  base_report(SHOW_SIGNON, "%s", signon);
+  if( mib->comm == MPI_COMM_NULL )
     {
-      opts = read_options(opt_path, rank, size);
-      if( opts->comm == MPI_COMM_NULL )
-	{
-	  mpi_barrier(MPI_COMM_WORLD);
-	}
-      else
-	{
-	  init_filenames();
-	  DEBUG("Initializations complete.\n");
-	  if(!opts->read_only)
-	    {
-	      write = write_test();
-	      if ( ( opts->rank == opts->base) && (opts->verbosity >= VERBOSE) )
-		{
-		  printf("Aggregate write rate = %10.2f\n", write);
-		  fflush(stdout);
-		}
-	    }
-	  if(!opts->write_only)
-	    {
-	      read = read_test();
-	      if ( ( opts->rank == opts->base) && (opts->verbosity >= VERBOSE) )
-		{
-		  printf("Aggregate read rate = %10.2f\n", read);
-		  fflush(stdout);
-		}
-	    }
-	  report(write, read);
-	  iteration++;
-	  stop = (BOOL)(iteration >= opts->iterations);
-	  Free_Opts();
-	  close_log();
-	  if( opts->comm != MPI_COMM_WORLD)
-	    mpi_comm_free(&(opts->comm));
-	  mpi_barrier(MPI_COMM_WORLD);
-	}
+      mpi_barrier(MPI_COMM_WORLD);
     }
-  while(! stop);
+  else
+    {
+      init_filenames();
+      DEBUG("Initializations complete.\n");
+      if(! check_flags(READ_ONLY) )
+	{
+	  write = write_test();
+	  base_report(SHOW_INTERMEDIATE_VALUES, "Aggregate write rate = %10.2f\n", write);
+	}
+      if(! check_flags(WRITE_ONLY) )
+	{
+	  read = read_test();
+	  base_report(SHOW_INTERMEDIATE_VALUES, "Aggregate read rate = %10.2f\n", read);
+	}
+      report(write, read);
+      Free_Opts();
+      if( mib->comm != MPI_COMM_WORLD)
+	mpi_comm_free(&(mib->comm));
+      mpi_barrier(MPI_COMM_WORLD);
+    }
   mpi_finalize();
 }
 
@@ -163,10 +153,6 @@ init_filenames()
    * data from the write. 
    */
 
-  int read_rank = (opts->rank + (opts->tasks/2)) % opts->tasks;
-
-  snprintf(opts->write_target, MAX_BUF, "%s/mibData.%08d", opts->testdir, opts->rank);
-  snprintf(opts->read_target, MAX_BUF, "%s/mibData.%08d", opts->testdir, read_rank);
 }
 
 double
@@ -192,11 +178,15 @@ write_test()
   ssize_t xfer;
   Results *res;
   Results *red;       /* individual results are reduced into this struct */
+  int ret;
+  char write_target[MAX_BUF];
+  int last_write_call;
 
   DEBUG("Starting write test.\n");
   res = (Results *)Malloc(sizeof(Results));
   res->timings = (double *)Malloc(opts->call_limit*opts->time_limit*sizeof(double));
   buf = fill_buff();
+  snprintf(write_target, MAX_BUF, "%s/mibData.%08d", opts->testdir, mib->rank);
   /*
    *  This motif is repeated several times.  You get a barrier then an
    * action, or an action then a barrier, or both.  Timestamps are
@@ -204,16 +194,16 @@ write_test()
    * already be there or mib will fail.  Us the "file-layout.sh"
    * utility.
    */
-  mpi_barrier(opts->comm);
+  mpi_barrier(mib->comm);
   res->start_open = get_time();
-  if( opts->new) 
+  if( check_flags(NEW) ) 
     {
-      Unlink(opts->write_target);
+      Unlink(write_target);
       flag |= O_CREAT;
     }
-  wf = Open(opts->write_target, flag);
+  wf = Open(write_target, flag);
   res->end_open = get_time();
-  mpi_barrier(opts->comm);
+  mpi_barrier(mib->comm);
 
   /*
    *   This just intializes a few things for the loop
@@ -241,11 +231,7 @@ write_test()
       status(call, res->timings[call] - res->timings[0]);
     }
   while( (call < opts->call_limit) && (res->timings[call] < time_limit) );
-  if( (opts->base == opts->rank) && (opts->progress) )
-    {
-      printf("\n");
-      fflush(stdout);
-    }
+  base_report(SHOW_PROGRESS, "\n");
 
   /*
    *   Some final data points after the loop.
@@ -259,7 +245,7 @@ write_test()
    */
   Fsync(wf);
   res->finish_fsync = get_time();
-  mpi_barrier(opts->comm);
+  mpi_barrier(mib->comm);
 
   /*
    *   Now to close the files.  This version does not report anything
@@ -269,7 +255,7 @@ write_test()
   res->start_close = get_time();
   Close(wf);
   res->end_close = get_time();
-  mpi_barrier(opts->comm);
+  mpi_barrier(mib->comm);
   res->end_test = get_time();
   free(buf);
   /*
@@ -282,12 +268,9 @@ write_test()
    *  zeros as necessary.
    */
   last_call = call;
-  mpi_allreduce(&(last_call), &(opts->last_write_call), 1, MPI_INT, MPI_MAX, opts->comm);
-  if ( (opts->rank == opts->base) && (opts->verbosity >= VERBOSE) )
-    {
-      printf("Call %d was the last write recorded\n", opts->last_write_call);
-    }
-  while(call < opts->last_write_call)
+  mpi_allreduce(&(last_call), &(last_write_call), 1, MPI_INT, MPI_MAX, mib->comm);
+  base_report(SHOW_INTERMEDIATE_VALUES, "Call %d was the last write recorded\n", last_write_call);
+  while(call < last_write_call)
     {
       call++;
       res->timings[call] = 0;
@@ -296,8 +279,9 @@ write_test()
    *   Subsequent reports will be in MB rather than bytes.
    */
   res->transferred /= (1024*1024);
-  if ( (opts->base == opts->rank) && (opts->verbosity >= NORMAL) )
-    printf("\nAfter %d calls and %f seconds\n", opts->last_write_call, res->end_test - res->start_open);
+  base_report(SHOW_INTERMEDIATE_VALUES, 
+	      "\nAfter %d calls and %f seconds\n", 
+	      last_write_call, res->end_test - res->start_open);
 
   /*
    *   Red will end up with the aggregate amout of data transfered and the
@@ -305,21 +289,18 @@ write_test()
    * is a simple calculation to get the aggregate data rate.
    */
   red = reduce_results(res);
-  if(opts->rank == opts->base)
+  if(mib->rank == mib->base)
     {
       time = red->finish_fsync - red->start;
       if(time != 0)
 	rate = red->transferred/time;
-      if ( opts->verbosity >= VERBOSE )
-	{
-	  printf("%f MB written in %f seconds\n", red->transferred, time);
-	  if ( red->short_transfers != 0 )
-	    printf("%d short writes\n", red->short_transfers);
-	}
     }
+  base_report(SHOW_INTERMEDIATE_VALUES, "%f MB written in %f seconds\n", red->transferred, time);
+  if ( red->short_transfers != 0 )
+    base_report(SHOW_INTERMEDIATE_VALUES, "%d short writes\n", red->short_transfers);
   free(red);
 
-  if(opts->profiles)
+  if( check_flags(PROFILES) )
     {
       /*
        *   The job of reporting out details of the system call timings is
@@ -329,8 +310,7 @@ write_test()
        *   stdout.
        */
       DEBUG("Write table:\n");
-      write_log();
-      profiles(res->timings, opts->last_write_call + 1);
+      profiles(res->timings, last_write_call + 1, "write");
     }
 
   free(res->timings);
@@ -366,25 +346,25 @@ reduce_results(Results *res)
   red->timings = NULL;
 
   mpi_reduce(&(res->start_open), &(red->start_open), 1, MPI_DOUBLE, 
-	     MPI_MIN, opts->base, opts->comm);
+	     MPI_MIN, mib->base, mib->comm);
   mpi_reduce(&(res->end_open), &(red->end_open), 1, MPI_DOUBLE, 
-	     MPI_MAX, opts->base, opts->comm);
+	     MPI_MAX, mib->base, mib->comm);
   mpi_reduce(&(res->start), &(red->start), 1, MPI_DOUBLE, 
-	     MPI_MIN, opts->base, opts->comm);
+	     MPI_MIN, mib->base, mib->comm);
   mpi_reduce(&(res->transferred), &(red->transferred), 1, MPI_DOUBLE, 
-	     MPI_SUM, opts->base, opts->comm);
+	     MPI_SUM, mib->base, mib->comm);
   mpi_reduce(&(res->short_transfers), &(red->short_transfers), 1, MPI_INT, 
-	     MPI_SUM, opts->base, opts->comm);
+	     MPI_SUM, mib->base, mib->comm);
   mpi_reduce(&(res->end), &(red->end), 1, MPI_DOUBLE, 
-	     MPI_MAX, opts->base, opts->comm);
+	     MPI_MAX, mib->base, mib->comm);
   mpi_reduce(&(res->finish_fsync), &(red->finish_fsync), 1, MPI_DOUBLE, 
-	     MPI_MAX, opts->base, opts->comm);
+	     MPI_MAX, mib->base, mib->comm);
   mpi_reduce(&(res->start_close), &(red->start_close), 1, MPI_DOUBLE, 
-	     MPI_MIN, opts->base, opts->comm);
+	     MPI_MIN, mib->base, mib->comm);
   mpi_reduce(&(res->end_close), &(red->end_close), 1, MPI_DOUBLE, 
-	     MPI_MAX, opts->base, opts->comm);
+	     MPI_MAX, mib->base, mib->comm);
   mpi_reduce(&(res->end_test), &(red->end_test), 1, MPI_DOUBLE, 
-	     MPI_MAX, opts->base, opts->comm);
+	     MPI_MAX, mib->base, mib->comm);
   return(red);
 }
 
@@ -409,7 +389,7 @@ fill_buff()
   buffer = (char *)Malloc(opts->call_size);
   buf  = (unsigned long long *)buffer;
   lomask = -1ULL >> (sizeof(unsigned long long)*8 - LOWER_BITS);
-  hi = opts->rank;
+  hi = mib->rank;
   hi = hi << LOWER_BITS;
   for (count = 0; count < opts->call_size / sizeof(unsigned long long); count++) {
     lo = (count * sizeof(unsigned long long)) & lomask;
@@ -436,11 +416,7 @@ init_status(char *str)
   for(i = 0; i < EXPECTATION - 1; i++)
     pbuf[i] = '*';
   pbuf[EXPECTATION - 1] = '\0';
-  if( (opts->base == opts->rank) && (opts->progress) )
-    {
-      printf("\n%s\nshould last about this long---------------------->\n", str);
-      fflush(stdout);
-    }
+  base_report(SHOW_PROGRESS, "\n%s\nshould last about this long---------------------->\n", str);
 }
 
 
@@ -462,11 +438,8 @@ status(int calls, double time)
   if( (current > progress) && (current < EXPECTATION - 1) )
     {
       pbuf[current-progress] = '\0';
-      if( (opts->base == opts->rank) && (opts->progress) )
-	{
-	  printf(pbuf);
-	  fflush(stdout);
-	}
+
+      base_report(SHOW_PROGRESS, pbuf);
       pbuf[current-progress] = '*';
       progress = current;
     }
@@ -491,20 +464,25 @@ read_test()
   double rate = 0;
   Results *red = NULL;
   Results *res = NULL;
+  int ret;
+  char read_target[MAX_BUF];
+  int read_rank = (mib->rank + (mib->tasks/2)) % mib->tasks;
+  int last_read_call;
 
   DEBUG("Starting read.\n");
   res = (Results *)Malloc(sizeof(Results));
   res->timings = (double *)Malloc(opts->call_limit*opts->time_limit*sizeof(double));
   buf = (char *)Malloc(opts->call_size);
+  snprintf(read_target, MAX_BUF, "%s/mibData.%08d", opts->testdir, read_rank);
 
   /*
    *   Open the target file.  
    */
-  mpi_barrier(opts->comm);
+  mpi_barrier(mib->comm);
   res->start_open = get_time();
-  rf = Open(opts->read_target, O_RDONLY);
+  rf = Open(read_target, O_RDONLY);
   res->end_open = get_time();
-  mpi_barrier(opts->comm);
+  mpi_barrier(mib->comm);
 
   /*
    *   Initialize some loop control variables.
@@ -530,11 +508,7 @@ read_test()
       status(call, res->timings[call] - res->timings[0]);
     }
   while( (call < opts->call_limit) && (res->timings[call] < time_limit) );
-  if( (opts->base == opts->rank) && (opts->progress) )
-    {
-      printf("\n");
-      fflush(stdout);
-    }
+  base_report(SHOW_PROGRESS, "\n");
 
   /* 
    *   Note the time when done.
@@ -546,15 +520,15 @@ read_test()
   /*
    *   Close the file.
    */
-  mpi_barrier(opts->comm);
+  mpi_barrier(mib->comm);
   res->start_close = get_time();
   Close(rf);
-  if( opts->remove) 
+  if( check_flags(REMOVE) ) 
     {
-      Unlink(opts->read_target);
+      Unlink(read_target);
     }
   res->end_close = get_time();
-  mpi_barrier(opts->comm);
+  mpi_barrier(mib->comm);
   res->end_test = get_time();
   free(buf);
 
@@ -568,12 +542,9 @@ read_test()
    *  zeros as necessary.
    */
   last_call = call;
-  mpi_allreduce(&(last_call), &(opts->last_read_call), 1, MPI_INT, MPI_MAX, opts->comm);
-  if ( (opts->rank == opts->base) && (opts->verbosity >= VERBOSE) )
-    {
-      printf("Call %d was the last read recorded\n", opts->last_read_call);
-    }
-  while(call < opts->last_read_call)
+  mpi_allreduce(&(last_call), &(last_read_call), 1, MPI_INT, MPI_MAX, mib->comm);
+  base_report(SHOW_INTERMEDIATE_VALUES, "Call %d was the last read recorded\n", last_read_call);
+  while(call < last_read_call)
     {
       call++;
       res->timings[call] = 0;
@@ -582,8 +553,9 @@ read_test()
    *   Subsequent reports will be in MB rather than bytes.
    */
   res->transferred /= (1024*1024);
-  if ( (opts->base == opts->rank) && (opts->verbosity >= NORMAL) )
-    printf("\nAfter %d calls and %f seconds\n", opts->last_read_call, res->end_test - res->start_open);
+  base_report(SHOW_INTERMEDIATE_VALUES, 
+	      "\nAfter %d calls and %f seconds\n", 
+	      last_read_call, res->end_test - res->start_open);
 
   /*
    *   Red will end up with the aggregate amout of data transfered and the
@@ -591,21 +563,19 @@ read_test()
    * is a simple calculation to get the aggregate data rate.
    */
   red = reduce_results(res);
-  if(opts->rank == opts->base)
+  if(mib->rank == mib->base)
     {
       time = red->end - red->start;
       if(time != 0)
 	rate = red->transferred/time;
-      if ( opts->verbosity >= VERBOSE )
-	{
-	  printf("%f MB read in %f seconds\n", red->transferred, time);
-	  if ( red->short_transfers != 0 )
-	    printf("%d short reads\n", red->short_transfers);
-	}
     }
+  base_report(SHOW_INTERMEDIATE_VALUES, 
+	      "%f MB read in %f seconds\n", red->transferred, time);
+  if ( red->short_transfers != 0 )
+    base_report(SHOW_INTERMEDIATE_VALUES, "%d short reads\n", red->short_transfers);
   free(red);
 
-  if(opts->profiles)
+  if( check_flags(PROFILES) )
     {
       /*
        *   The job of reporting out details of the system call timings is
@@ -615,8 +585,7 @@ read_test()
        *   stdout.
        */
       DEBUG("Read table:\n");
-      read_log();
-      profiles(res->timings,  opts->last_read_call + 1);
+      profiles(res->timings,  last_read_call + 1, "read");
       DEBUG("Reductions complete.\n");
     }
 
@@ -627,7 +596,7 @@ read_test()
 }
 
 void
-profiles(double *array,   int count)
+profiles(double *array,   int count, char *io_direction)
 {
   /*
    *   Create subcommunicators for every group of 
@@ -637,7 +606,7 @@ profiles(double *array,   int count)
    * the previous subcommunicators.  Send all the data to the 
    * base of this new subcommunicator (also the base of MPI_WORLD),
    * so that it can be sent to the NFS target directory.
-   *   Keep in mind that this function requires the "opts->nodes"
+   *   Keep in mind that this function requires the "mib->nodes"
    * configuration parameter to be set correctly.  If it is not 
    * then the computations are not going to be valid, and there 
    * may even be stability issues.  In particular, default operation
@@ -662,7 +631,16 @@ profiles(double *array,   int count)
   int node_size, node_rank;
   int ret;
   int i;
-  int tasks_per_node = opts->tasks/opts->nodes;
+  int tasks_per_node = mib->tasks/mib->nodes;
+  FILE *lfd;
+  char profile_log_name[MAX_BUF];
+
+  if(mib->rank == mib->base)
+    {
+      if ( (ret = snprintf(profile_log_name, MAX_BUF, "%s/%s.syscall.aves", opts->log_dir, io_direction)) < 0)
+	FAIL();
+      lfd = Fopen(profile_log_name, "w");
+    }
 
   /*
    *   The <node, task> pair is unique to each task.  The mpi spli
@@ -670,23 +648,23 @@ profiles(double *array,   int count)
    * associated with each NODE.  The task = 0 task in each 
    * subcommunicator is the base to which the others send their data.
    */
-  if ( ! opts->use_node_aves )
+  if ( ! check_flags(USE_NODE_AVES) )
     {
-      node = opts->rank;
-      task = opts->rank;
-      BUF_LIMIT = 20*opts->tasks;
+      node = mib->rank;
+      task = mib->rank;
+      BUF_LIMIT = 20*mib->tasks;
       buffer = Malloc(BUF_LIMIT);
       DEBUG("Table\n");
-      if ( (opts->base == opts->rank) && (opts->verbosity >= VERBOSE) )
-	printf("Table of %d tasks with up to %d system calls\n", opts->tasks, count);
-      table = (double *)Malloc(opts->tasks*sizeof(double));
+      base_report(SHOW_INTERMEDIATE_VALUES, 
+		  "Table of %d tasks with up to %d system calls\n", mib->tasks, count);
+      table = (double *)Malloc(mib->tasks*sizeof(double));
       for(call = 0; call < count; call++)
 	{
-	  mpi_gather(&(array[call]), 1, MPI_DOUBLE, table, 1, MPI_DOUBLE, opts->base, opts->comm);
-	  if( opts->rank == opts->base )
+	  mpi_gather(&(array[call]), 1, MPI_DOUBLE, table, 1, MPI_DOUBLE, mib->base, mib->comm);
+	  if( mib->rank == mib->base )
 	    {
 	      ip = buffer;
-	      for(i = 0; i < opts->tasks; i++)
+	      for(i = 0; i < mib->tasks; i++)
 		{
 		  /* N.B.  the following can only have one double,
 		     since varargs doesn't work.  */
@@ -694,19 +672,19 @@ profiles(double *array,   int count)
 		  ip += ret;
 		  *ip = '\0';
 		}
-	      log_it("%s\n", buffer);
+	      Fprintf(lfd, "%s\n", buffer);
 	    }
 	}
     }
   else
     {
-      node = opts->rank/tasks_per_node;
-      task = opts->rank % tasks_per_node;
+      node = mib->rank/tasks_per_node;
+      task = mib->rank % tasks_per_node;
 
-      BUF_LIMIT = 20*opts->nodes;
+      BUF_LIMIT = 20*mib->nodes;
       buffer = Malloc(BUF_LIMIT);
       DEBUG("About to execute the first split.\n");
-      mpi_comm_split(opts->comm, node, task, &node_comm);
+      mpi_comm_split(mib->comm, node, task, &node_comm);
       
       /*
        *   The primary goal of this exercise is to get the avearge
@@ -760,10 +738,10 @@ profiles(double *array,   int count)
        */
       
       DEBUG("Done with first subcommunicator.  About to create the second.\n");
-      mpi_comm_split(opts->comm, task, node, &node_comm);
+      mpi_comm_split(mib->comm, task, node, &node_comm);
       mpi_comm_size(node_comm, &node_size );
       mpi_comm_rank(node_comm, &node_rank );
-      table = (double *)Malloc(opts->nodes*sizeof(double));
+      table = (double *)Malloc(mib->nodes*sizeof(double));
       if( task == node_group )
 	{
 	  DEBUG("Table\n");
@@ -773,7 +751,7 @@ profiles(double *array,   int count)
 	      if( node_rank == node_base )
 		{
 		  ip = buffer;
-		  for(i = 0; i < opts->nodes; i++)
+		  for(i = 0; i < mib->nodes; i++)
 		    {
 		      /* N.B.  the following can only have one double,
 			 since varargs doesn't work.  */
@@ -781,26 +759,26 @@ profiles(double *array,   int count)
 		      ip += ret;
 		      *ip = '\0';
 		    }
-		  log_it("%s\n", buffer);
+		  Fprintf(lfd, "%s\n", buffer);
 		}
 	    }
 	  DEBUG("\n\nAbout to reduce the gap values.\n");
 	  mpi_reduce(&gap, &max_gap, 1, MPI_INT, MPI_MAX, node_base, node_comm);
 	  mpi_reduce(&gap, &min_gap, 1, MPI_INT, MPI_MIN, node_base, node_comm);
 	  mpi_reduce(&gap, &ave_gap, 1, MPI_INT, MPI_SUM, node_base, node_comm);
-	  if(node == node_base) ave_gap /= opts->nodes;
+	  if(node == node_base) ave_gap /= mib->nodes;
 	}
       free(node_ave);
       free(table);
       free(buffer);
       mpi_comm_free(&node_comm);
-      if ( (opts->rank == opts->base) && (opts->verbosity >= VERBOSE) )
-	{
-	  printf("\tNODEs' syscalls gaps (i.e dispersion or unevenness)\n");
-	  printf("\t\taverage\tmin\tmax\n");
-	  printf("\t\t%d\t%d\t%d\n", ave_gap, min_gap, max_gap);
-	}
+      base_report(SHOW_INTERMEDIATE_VALUES, "%s%s\t\t%d\t%d\t%d\n", 
+			    "\tNODEs' syscalls gaps (i.e dispersion or unevenness)\n",
+			    "\t\taverage\tmin\tmax\n",
+			    ave_gap, min_gap, max_gap);
     }
+  if(mib->rank == mib->base)
+    fclose(lfd);
 }
 
 void
@@ -825,15 +803,26 @@ report(double write, double read)
     }
   xfer = opts->call_size/range;
   
-  if(opts->rank == opts->base)
-  {
-    if  (opts->verbosity >= NORMAL) 
-      {
-	printf("%24s %6s %5s %5s %5s %10s %10s\n", "date", "tasks", "xfer", "call", "time", "write", "read");
-	printf("%24s %6s %5s %5s %5s %10s %10s\n", " ", " ", " ", "limit", "limit", "MB/s", "MB/s");
-	printf("%24s %6s %5s %5s %5s %10s %10s\n", "------------------------", "------", "-----", "-----", "-----", "----------", "----------");
-      }
-    printf("%s %6d %4d%c %5d %5d %10.2f %10.2f\n", time_str, opts->tasks, xfer, range_ch, opts->call_limit, opts->time_limit, write, read);
-  }
+  base_report(SHOW_HEADERS, 
+	      "%14s           %6s %5s %5s %5s %10s %10s\n", "date", "tasks", "xfer", "call", "time", "write", "read");
+  base_report(SHOW_HEADERS, 
+	      "%24s %6s %5s %5s %5s %10s %10s\n", " ", " ", " ", "limit", "limit", "MB/s", "MB/s");
+  base_report(SHOW_HEADERS, 
+	      "%24s %6s %5s %5s %5s %10s %10s\n", "------------------------", "------", "-----", "-----", "-----", "----------", "----------");
+  base_report(SHOW_ALL, 
+	      "%s %6d %4d%c %5d %5d %10.2f %10.2f\n", time_str, mib->tasks, xfer, range_ch, opts->call_limit, opts->time_limit, write, read);
 }
 
+void
+base_report(int verb, char *fmt, ...)
+{
+  va_list args;
+  
+  if( (mib->rank == mib->base) && verbosity(verb) )
+    {
+      va_start(args, fmt);
+      vprintf(fmt, args);
+      fflush(stdout);
+     va_end(args);
+    }
+}

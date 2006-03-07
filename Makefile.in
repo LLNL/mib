@@ -24,6 +24,9 @@
 #*  59 Temple Place, Suite 330, Boston, MA  02111-1307  USA.
 #*****************************************************************************/
 
+CLUSTER=%CLUSTER%
+VERSION=%VERSION%
+
 MAKE=    /usr/bin/make
 
 CC = %CC%
@@ -38,6 +41,8 @@ DEBUG = # Put 'DEBUG="-DDEBUG_CODE=1"' on the command line if you want
 	# and always have the debugging on.  N.B. I don't think it even
 	# works right now.
 
+BIN=/g/g0/auselton/$(CLUSTER)
+
 HEADERS = miberr.h mpi_wrap.h sys_wrap.h options.h mib_timer.h
 SOURCES = mib.c mpi_wrap.c sys_wrap.c miberr.c options.c mib_timer.c
 OBJECTS = $(SOURCES:.c=.o)
@@ -48,9 +53,14 @@ all: mib
 mib: $(OBJECTS) $(HEADERS)
 	$(CC) $(OBJECTS) $(DEBUG) -o $@ $(LIBDIRS) $(LIBS)
 
+install: mib
+	mv mib $(BIN)/mib-$(VERSION)
 .c.o:
 	$(CC) $(CCFLAGS) $(DEBUG) -c $<  $(INCDIR)
 
 clean: 
 	$(MAKE) -C tools clean
 	rm -f *.o mib *~
+
+distclean: clean
+	rm Makefile version.h mib.spec

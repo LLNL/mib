@@ -244,7 +244,6 @@ Init_Opts()
 	{
 	  strncpy(opts->log_dir, cl_opts->log_dir, MAX_BUF);
 	  snprintf(options, MAX_BUF, "%s/options", opts->log_dir);
-	  printf("Reading options from log dir %s\n", options);
 	  fflush(stdout);
 	  if( (ofp = fopen(options, "r")) != NULL)
 	    { 
