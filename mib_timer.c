@@ -41,11 +41,11 @@ static int _initialized = 0;
 extern char *version;
 
 void
-init_timer(int rank)
+init_timer(int rank, char *signon)
 {
   double start;
-  time_t t;
   char time_str[MAX_BUF];
+  time_t t;
   char *p;
 
   mpi_barrier(MPI_COMM_WORLD);
@@ -60,7 +60,7 @@ init_timer(int rank)
       p = time_str;
       while( (*p != '\0') && (*p != '\n') && (p - time_str < MAX_BUF) )p++;
       if( *p == '\n' ) *p = '\0';
-      printf("\n\n%s  %s\n\n", version, time_str);
+      sprintf(signon, "\n\n%s  %s\n\n", version, time_str);
     }
 }
 

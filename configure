@@ -1,0 +1,64 @@
+#!/bin/bash
+# configure
+# This is not an autotest generated file.  It's just an intermediary hack to
+# notice if I need to use the BGL cross compilers.  Once I sort out real 
+# autoconf stuff we'll get rid of this.
+
+PROG=$(basename $0)
+
+[ ! `/usr/bin/which nodefoo >/dev/null 2>&1` ] && { echo "This script expects a cluster with the Genders \"nodeattr\" function installed"; exit 1; } 
+CLUSTER=`nodeattr -v cluster`
+[ X"$CLUSTER" == X ] && { echo "\"nodeattr -v cluster\" failed to determine the cluster were on, if any"; exit 1; }
+
+usage ()
+{
+	[ X"$1" == X ] || { echo "$1"; echo; } 
+	echo "$PROG"
+	echo "Set up for a compile if possible"
+	echo "Print an error message otherwise"
+	echo "This scrip establishes the compiler to use the makefile based on the"
+	echo "cluster as returned by \"nodeattr -v cluster\", and sets the version,"
+	echo "based on the value of VERSION in the \"META|" file, in the source at"
+	echo "\"mib.c\" and the spec file \"mib.spec\"."
+	exit 0
+}
+
+[ X"$1" != X"-h" ] || usage
+ 
+case $CLUSTER in
+	adev) CC=mpicc
+	  ;;
+	alc) CC=mpicc
+	  ;;
+	bgl) CC=mpgcc
+	  ;;
+	gauss) CC=mpiicc
+	  ;;
+	tdev) CC=mpicc
+	  ;;
+	*) usage "This script needs to know what compiler to use for luster $CLUSTER"
+	  ;;
+esac 
+
+MAKEFILE="Makefile"
+[ -f $MAKEFILE.in ] || usage "There is no file $MAKEFILE.in here"
+MIB_C="mib.c"
+[ -f $MIB_C.in ] || usage "There is no file $MIB_C.in here"
+MIB_SPEC="mib.spec"
+[ -f $MIB_SPEC.in ] || usage "There is no file $MIB_SPEC.in here"
+[ -f META ] || usage "There is no file META here"
+
+VERSION=`grep VERSION META | awk '{print $3}'
+[ X"$VERSION" != X ] ||  usage "The META file did not yield a version"
+
+rm -f $MAKEFILE >/dev/null 2>&1
+cat $MAKEFILE.in  | sed s/%CC%/$CC/ > $MAKEFILE
+
+rm -f $MIB_C >/dev/null 2>&1
+cat $MIB_C.in  | sed s/%VERSION%/$VERSION/ > $MIB_C
+
+rm -f $MIB_SPEC >/dev/null 2>&1
+cat $MIB_SPEC.in  | sed s/%VERSION%/$VERSION/ > $MIB_SPEC
+
+
+ 

@@ -32,45 +32,40 @@
 #CNs_per_ION=16
 
 # ALC
+CLUSTER=`nodeattr -v cluster`
+[ X"$CLUSTER" == X ] && fail "Didn't get CLUSTER: $CLUSTER"
+CLUSTER_BIN=$HOME/$CLUSTER
 LSTRIPE=/usr/bin/lstripe
 DD=/bin/dd
 UNLINK=/bin/unlink
 TOUCH=/bin/touch
 LFIND=/usr/bin/lfind
 # ga2
-OSTs=32
+#OSTs=32
 # ga1
 #OSTs=64
+# ti1
+OSTs="4"
+TASKS="32"
+MB_per_FILE="2048"
+FIRST_CLIENT="7"
  
 DIR=$1
 [ X"$DIR" != X ] || { echo "The DIR parameter is required"; exit 1; }
 
 HOST=`hostname`
-HOST=${HOST##alc}
-START=$SLURM_PROCID
-END=$START
-#HOST=${HOST##bglio}
-#START=$(( ($HOST - 1)*$CNs_per_ION ))
-#END=$(( $START + $CNs_per_ION - 1 ))
+HOST=${HOST##$CLUSTER}
+START=$(( $HOST - $FIRST_CLIENT ))
+#END=$TASKS
+END="5"
 
-mkdir -p $DIR
-#$LSTRIPE $DIR 0 -1 1
-#[ -d $DIR ] || { echo "Did not create directory $DIR"; exit 1; }
-
-for index in `seq 0 799`
+for index in `seq $START $OSTs $END`
 do
-# Regular round-robin relation
-  OST=$(( $index % $OSTs ))
-# Fancy half-file-system layout, uses all the LUNs on every other DDN
-#  DDN=$(( ($index / $LUNS_per_DDN) % ($NUM_DDNS/2) ))
-#  DDN_OFF=$(( $index % $LUNS_per_DDN ))
-#  OST=$(( $DDN*2*$LUNS_per_DDN + $DDN_OFF ))
-
+  OST=$(( $HOST - $FIRST_CLIENT ))
   TARGET=`printf "%s/mibData.%08d" $DIR $index`
+  echo "$LSTRIPE $TARGET 0 $OST 1"
 #  $UNLINK $TARGET
-  $TOUCH $TARGET
-#  echo "$LSTRIPE $TARGET 0 $OST 1"
-#  $LSTRIPE $TARGET 0 $OST 1
-#  $DD if=/dev/zero of=$TARGET bs=1048576 count=2048 >/dev/null 2>&1
-#  [ X"$OST" == X"0" ] && echo $TARGET
+#  $TOUCH $TARGET
+  $LSTRIPE $TARGET 0 $OST 1
+  $DD if=/dev/zero of=$TARGET bs=1048576 count=$MB_per_FILE >/dev/null 2>&1
 done

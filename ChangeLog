@@ -47,4 +47,9 @@
 	  32 bit quantity it could overflow for really fast or long 
 	  accumulations of transfers.
 	
+	1.8
+	- Dump the iterateions and pause options
+	- Code factoring in the options settings
+	- Consolidate boolean flags into fields in a single flag
+	- Fixed ENOENT / ENONET bug :(
 	

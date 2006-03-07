@@ -23,13 +23,9 @@
  *  with Mib; if not, write to the Free Software Foundation, Inc.,
  *  59 Temple Place, Suite 330, Boston, MA  02111-1307  USA.
 \*****************************************************************************/
-#ifndef NDEBUG
+#ifdef DEBUG_CODE
 #define DEBUG(str) do {          \
-  if(opts->rank == opts->base)   \
- {                               \
-   printf(str);                  \
-   fflush(stdout);               \
- }                               \
+  base_report(SHOW_ALL, str);    \
 } while (0)
 #else
 #define DEBUG(str)
@@ -42,47 +38,123 @@ typedef enum {FALSE, TRUE} BOOL;
 
 #define MAX_BUF 100
 
+#define DEFAULTS      0
+#define NEW           (1 << 0)
+#define REMOVE        (1 << 1)
+#define READ_ONLY     (1 << 2)
+#define WRITE_ONLY    (1 << 3)
+#define PROFILES      (1 << 4)
+#define USE_NODE_AVES (1 << 5)
+
+
 typedef struct Options_Struct {
-  char cluster[MAX_BUF];
-  int new;
-  int remove;
-  int tasks;
-  int nodes;
   char log_dir[MAX_BUF];      /* = /home/auselton/testing/<date> */
-  char write_log[MAX_BUF];    /* = /home/auselton/testing/<date>/write.syscalls.ave */
-  char read_log[MAX_BUF];     /* = /home/auselton/testing/<date>/read.syscalls.date */
-  FILE *lfd;                  /* Currently active log file */
   char testdir[MAX_BUF];      /* = /p/gbtest/lustre-test/ior/smooth */
-  int call_limit;       /* = 8 */
-  long long call_size;  /* = 1m */
-  int time_limit;     /* = 400 */
-  int rank;
-  int size;
-  int base;
-  int last_write_call;
-  int last_read_call;
-  MPI_Comm comm;
-  char write_target[MAX_BUF];
-  char read_target[MAX_BUF];
-  int write_only;
-  int read_only;
-  int iterations;
-  int pause;
-  int progress;
-  int profiles;
-  int use_node_aves;
+  int call_limit;     
+  long long call_size;
+  int time_limit;    
+  int flags;
   int verbosity;
 }Options;
 
-#define QUIET   0
-#define NORMAL  1
-#define VERBOSE 2
+typedef struct Mib_Struct {
+  int nodes;
+  int tasks;
+  int rank;
+  int size;
+  int base;
+  MPI_Comm comm;
+}Mib;
 
-void command_line(int argc, char *argv[], char *opt_path, int rank);
-Options *read_options(char *opt_path, int rank, int size);
+/*
+ *  I made "QUIET" have a non-zero value above the others so that 
+ * the verbosity macro will return a TRUE for the SHOW_ALL level.
+ */
+#define SHOW_SIGNON               (1 << 0)
+#define SHOW_HEADERS              (1 << 1)
+#define SHOW_ENVIRONMENT          (1 << 2)
+#define SHOW_PROGRESS             (1 << 3)
+#define SHOW_INTERMEDIATE_VALUES  (1 << 4)
+#define QUIET                     (1 << 5)
+#define SHOW_ALL                  (~0)
+
+#define CL_LOG_DIR                  (1 << 0)
+#define CL_TESTDIR                  (1 << 1)
+#define CL_CALL_LIMIT               (1 << 2)
+#define CL_CALL_SIZE                (1 << 3)
+#define CL_TIME_LIMIT               (1 << 4)
+#define CL_NEW                      (1 << 5)
+#define CL_REMOVE                   (1 << 6)
+#define CL_WRITE_ONLY               (1 << 7)
+#define CL_READ_ONLY                (1 << 8)
+#define CL_PROFILES                 (1 << 9)
+#define CL_USE_NODE_AVES            (1 << 10)
+#define CL_SHOW_SIGNON              (1 << 11)
+#define CL_SHOW_HEADERS             (1 << 12)
+#define CL_SHOW_ENVIRONMENT         (1 << 13)
+#define CL_SHOW_PROGRESS            (1 << 14)
+#define CL_SHOW_INTERMEDIATE_VALUES (1 << 15)
+
+void command_line(int argc, char *argv[], int rank);
+Options *read_options(int rank, int size);
 void write_log();
 void read_log();
 void close_log();
 void log_it(char *fmt, char *str);
 void Free_Opts();
 void usage( void );
+
+#define check_flags(mask)  (opts->flags & mask)
+#define verbosity(mask)    (opts->verbosity & mask)
+#define check_cl(mask)     (cl_opts_mask & mask)
+
+/* 
+ * These are the SLURM environment values available to a task.
+ * I go them with the command:
+ srun -N8 -n16 -l  bash -c set | grep SLURM
+ * The task 0 environment variables:
+ 00: SLURM_CPUS_ON_NODE=2
+ 00: SLURM_CPUS_PER_TASK=1
+ 00: SLURM_CPU_BIND_LIST=
+ 00: SLURM_CPU_BIND_TYPE=
+ 00: SLURM_CPU_BIND_VERBOSE=quiet
+ 00: SLURM_JOBID=66371
+ 00: SLURM_LABELIO=1
+ 00: SLURM_LAUNCH_NODE_IPADDR=192.168.17.198
+ 00: SLURM_LOCALID=0
+ 00: SLURM_NNODES=8
+ 00: SLURM_NODEID=0
+ 00: SLURM_NODELIST='adev[2,8-14]'
+ 00: SLURM_NPROCS=16
+ 00: SLURM_PROCID=0
+ 00: SLURM_SRUN_COMM_HOST=adevi
+ 00: SLURM_SRUN_COMM_PORT=3071
+ 00: SLURM_STEPID=0
+ 00: SLURM_TASKS_PER_NODE='2(x8)'
+ 00: SLURM_TASK_PID=9026
+ 00: SLURM_UMASK=0022
+ *
+ */
+
+typedef struct SLURM_Struct {
+  int CPUS_ON_NODE;
+  int CPUS_PER_TASK;
+  char CPU_BIND_LIST[MAX_BUF];
+  char CPU_BIND_TYPE[MAX_BUF];
+  char CPU_BIND_VERBOSE[MAX_BUF];
+  int  JOBID;
+  char LAUNCH_NODE_IPADDR[MAX_BUF];
+  int  LOCALID;
+  int  NNODES;
+  int  NODEID;
+  char NODELIST[MAX_BUF];
+  int  NPROCS;
+  int  PROCID;
+  char SRUN_COMM_HOST[MAX_BUF];
+  int  SRUN_COMM_PORT;
+  int  STEPID;
+  char TASKS_PER_NODE[MAX_BUF];
+  int  TASK_PID;
+  char UMASK[MAX_BUF];
+}SLURM;
+

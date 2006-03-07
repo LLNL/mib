@@ -45,6 +45,7 @@
 #include "options.h"
 
 extern Options *opts;
+extern Mib     *mib;
 
 int
 Open(char *name, int flags)
@@ -67,13 +68,21 @@ Open(char *name, int flags)
    * MPI_reduce the cause to the base task for error reporting.
    */
   int fd;
+  mode_t mode = S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH ; /* 664 */
 
   errno = 0;
-  if( (fd = open(name, flags)) < 0 )
+  if( (fd = open(name, flags, mode)) < 0 )
     {
-        printf("failed to open %s: %d\n", name, errno);
-	fflush(stdout);
-	FAIL();
+      if(errno == ENOENT) 
+	{
+	  flags |= O_CREAT;
+	  if( (fd = open(name, flags, mode)) < 0 )
+	    {
+	      printf("failed to open %s: %d\n", name, errno);
+	      fflush(stdout);
+	      FAIL();
+	    }
+	}
     }
   return (fd);
 }
@@ -83,7 +92,7 @@ Unlink(char *name)
 {
   /*
    *   This is called once per task if the "new" flag is set.
-   *   If we can't unlink the file then ignore the error.  Any
+   *   If we can't unlink the file then ignore the ENOENT error.  Any
    * other error should probably be a FAIL.
    *   Here are the relevant errno codes:
    *  EACCESS
@@ -105,7 +114,7 @@ Unlink(char *name)
   int ret;
 
   errno = 0;
-  if( ((ret = unlink(name)) < 0) && (errno != ENONET) )
+  if( ((ret = unlink(name)) < 0) && (errno != ENOENT) )
     {
         printf("failed to unlink %s: %d\n", name, errno);
 	fflush(stdout);
@@ -259,7 +268,7 @@ Fgets(char *buf, int n, FILE *stream)
    * to opt->rank, it fails with signal 15.  I'm beggining to wonder
    * if there's some sort of stack corruption due to a compiler bug,
    * or even just a stack limit or something.
-  ASSERT(opts->rank == opts->base);
+  ASSERT(mib->rank == mib->base);
    */
   if ( (s = fgets(buf, n, stream)) == NULL)
     if(!feof(stream))
@@ -278,7 +287,7 @@ Fprintf(FILE *stream, char *fmt, char *str)
    */
   int ret;
 
-  ASSERT(opts->rank == opts->base);
+  ASSERT(mib->rank == mib->base);
   if ( (ret = fprintf(stream, fmt, str)) < 0)
     FAIL();
   fflush(stream);
@@ -294,7 +303,7 @@ Snprintf(char *buf, size_t size, char *fmt, double val)
    */
   int ret;
 
-  ASSERT(opts->rank == opts->base);
+  ASSERT(mib->rank == mib->base);
   if ( ((ret = snprintf(buf, size, fmt, val)) < 0) || (ret > size) )
     FAIL();
   return(ret);
