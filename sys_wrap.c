@@ -230,6 +230,37 @@ Close(int fd)
   return(rc);
 }
 
+int
+Exists(const char *pathname)
+{
+  /*
+   *   The relevant errno values are:
+   *  EACCESS
+   *  ELOOP
+   *  ENAMETOOLONG
+   *  ENOENT
+   *  ENOTDIR
+   *  EROFS
+   *  EFAULT
+   *  EINVAL
+   *  EIO
+   *  ENOMEM
+   *  ETXTBSY
+   */
+  int rc;
+  struct stat stat_st;
+
+  errno = 0;
+  if ( (rc = stat(path, &stat_st)) < 0 )
+    if ( errno == ENOENT )
+      rc = 0;
+    else
+      FAIL();
+  else
+    rc = 1;
+  return(rc);
+}
+
 /*
  * These library calls should all be conducted from the base task
  * only, except for the Malloc function.  I'm not sure if

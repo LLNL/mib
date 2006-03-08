@@ -1,0 +1,129 @@
+\."#################################################################
+\."$Id: mib.1 663 2003-12-19 16:39:10Z garlick $
+\."by Andrew C. Uselton <uselton2@llnl.gov> 
+\."#################################################################
+\."  Copyright (C) 2001-2002 The Regents of the University of California.
+\."  Produced at Lawrence Livermore National Laboratory (cf, DISCLAIMER).
+\."  Written by Andrew Uselton (uselton2@llnl.gov>
+\."  UCRL-CODE-2002-008.
+\."  
+\."  This file is part of Mib, a remote power management program.
+\."  For details, see <http://www.llnl.gov/linux/mib/>.
+\."  
+\."  Mib is free software; you can redistribute it and/or modify it under
+\."  the terms of the GNU General Public License as published by the Free
+\."  Software Foundation; either version 2 of the License, or (at your option)
+\."  any later version.
+\."  
+\."  Mib is distributed in the hope that it will be useful, but WITHOUT 
+\."  ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or 
+\."  FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License 
+\."  for more details.
+\."  
+\."  You should have received a copy of the GNU General Public License along
+\."  with Mib; if not, write to the Free Software Foundation, Inc.,
+\."  59 Temple Place, Suite 330, Boston, MA  02111-1307  USA.
+\."#################################################################
+.\"
+.TH Mib 1 "Release 1.8" "LLNL" "Mib"
+.SH NAME
+mib \- An MPI I/O Benchmark
+.SH SYNOPSIS
+.B mib
+.I "[-option]..."
+.SH DESCRIPTION
+Perform I/O and report on the rates observed.
+.SH OPTIONS
+.TP
+.I "-a, --use_node_aves"
+Use average of task profile times accross each node, if there is
+more than one task per node (default off).
+.TP
+.I "-d <dir>, --log_dir <dir>"
+parameters file 
+.I <dir>/options
+and profiles files here, if any (default is cwd).
+.TP
+.I "-E, --show_environment"
+Show environment of test in output (default false).
+.TP
+.I "-I, --show_intermediate_values"
+Show intermediate values in output (default false).
+.TP
+.I "-h, --help"
+Print a help message and exit.
+.TP
+.I "-H, --show_headers"
+Show headers in output (default false).
+.TP
+.I "-l <count>, --call_limit <count>"
+Issue no more than <count> system calls (default 4096).
+.TP
+.I "-L <seconds>, --time_limit <seconds>"
+Do not issue new system calls after <seconds> seconds (limits are per phase 
+for write and read phases - default 60 seconds) .
+.TP
+.I "-n, --new "
+Create new files if files were already present (will always create new files 
+if none were present - default false, i.e. reuse any files that already exist).
+.TP
+.I "-p, --profiles"
+Output system call timing profiles to 
+.I log_dir
+(default off).
+.TP
+.I "-P, --show_progress"
+Show progress bars during testing (default false).
+.TP
+.I "-r, --remove"
+Remove files when done (default false).
+.TP
+.I "-R, --read_only"
+Only perform the read test (default false).
+.TP
+.I "-s <size>, --call_size <size>"
+Use system calls of this size (default 512k).  Numbers may use abreviations 
+k, K, m, or M.
+.TP
+.I "-S, --show_signon"
+Show signon message, including date, program name, and version number.
+.TP
+.I "-t <dir>, --test_dir <dir>"
+I/O transactions to and from <dir> (default is current working 
+directory).
+.TP
+.I "-W, --write_only"
+Only perform the write test (if -R and -W are both present both tests 
+will run, but that's the default anyway - default false).
+
+.SH OPERATION
+When invoked with a context enabling MPI operations (via 
+.I srun
+for intance)
+.B mib
+writes and the reads files, one per task, reports on the 
+observed data rates, and optionally
+reports on the timings of the system calls.
+
+.SH CONFIGURATION
+All of the command line parameters except 
+.I -d <dir>
+have exquivalent entries in an optional 
+.B mib
+parmaeters file named 
+.I "options"
+in 
+.I "<dir>"
+directory.
+
+.SH FILES
+<dir>/options
+.br
+<dir>/write.syscall.aves
+.br
+<dir>/read.syscall.aves
+.SH ORIGIN
+Developed by Andrew  Uselton <useton2@llnl.gov> on LLNL's Linux 
+clusters.  This software is open source and distributed under
+the terms of the Gnu GPL.  
+

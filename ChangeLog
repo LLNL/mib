@@ -52,4 +52,6 @@
 	- Code factoring in the options settings
 	- Consolidate boolean flags into fields in a single flag
 	- Fixed ENOENT / ENONET bug :(
-	
+	- Get command line options (including long-opts) working and tested
+	- Allow there to be a log_dir with no "options" file
+	- Make a man page

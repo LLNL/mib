@@ -200,8 +200,8 @@ usage( void )
 {
   printf("usage: mib [ad:EIhHl:L:npPrRs:St:W]\n");
   printf("       -a                  :  Use average profile times accross node.\n");
-  printf("       -d <log_dir>        :  parameters file and profiles files here, \n");
-  printf("                           :    if any.\n");
+  printf("       -d <log_dir>        :  parameters file \"<log_dir>/options\" and profiles files here, \n");
+  printf("                           :    if any (default is cwd).\n");
   printf("       -E                  :  Show environment of test in output.\n");
   printf("       -I                  :  Show intermediate values in output.\n");
   printf("       -h                  :  This message\n");
@@ -209,7 +209,7 @@ usage( void )
   printf("       -l <call_limit>     :  Issue no more than this many system calls.\n");
   printf("       -L <time_limit>     :  Do not issue new system calls after this many\n");
   printf("                           :    seconds (limits are per phase for write and\n");
-  printf("       -n                  :    read phases).\n");
+  printf("                           :    read phases).\n");
   printf("       -n                  :  Create new files if files were already present\n");
   printf("                           :    (will always create new files if none were\n");
   printf("       -n                  :    present).\n");
@@ -224,7 +224,7 @@ usage( void )
   printf("                           :    name, and version number.\n");
   printf("       -t <test_dir>       :  I/O transactions to and from this directory\n");
   printf("                           :    (default is current working directory).\n");
-  printf("       -W                  :  Only perform the Write test\n");
+  printf("       -W                  :  Only perform the write test\n");
   printf("                           :    (if -R and -W are both present both tests \n");
   printf("                           :     will run, but that's the default anyway)\n");
 }
@@ -252,21 +252,21 @@ Init_Opts()
       if (check_cl(CL_LOG_DIR))
 	{
 	  strncpy(opts->log_dir, cl_opts->log_dir, MAX_BUF);
-	  snprintf(options, MAX_BUF, "%s/options", opts->log_dir);
-	  fflush(stdout);
-	  if( (ofp = fopen(options, "r")) != NULL)
-	    { 
-	      b = Fgets(buf, MAX_BUF, ofp);
-	      while( b != NULL)
-		{
-		  if (kv_pair(buf, &k, &v))
-		    if(!set_key(k, v, opts))
-		      FAIL();
-		  b = Fgets(buf, MAX_BUF, ofp);
-		}
-	      fclose(ofp);
-	    }
 	}
+      snprintf(options, MAX_BUF, "%s/options", opts->log_dir);
+      if( (Exists(options) && (ofp = fopen(options, "r")) != NULL) )
+	{ 
+	  b = Fgets(buf, MAX_BUF, ofp);
+	  while( b != NULL)
+	    {
+	      if (kv_pair(buf, &k, &v))
+		if(!set_key(k, v, opts))
+		  FAIL();
+	      b = Fgets(buf, MAX_BUF, ofp);
+	    }
+	  fclose(ofp);
+	}
+
       
       if( mib->tasks == mib->nodes ) opts->flags &= ~USE_NODE_AVES;
       command_line_overrides(opts);
@@ -303,7 +303,7 @@ Make_Opts()
   Options *opts;
 
   opts = (Options *)Malloc(sizeof(Options));
-  opts->log_dir[0] = '\0';
+  strncpy(opts->log_dir, ".", MAX_BUF);
   strncpy(opts->testdir, ".", MAX_BUF);
   opts->call_limit = 4096;
   opts->call_size = 524288;
