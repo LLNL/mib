@@ -60,7 +60,7 @@ init_timer(int rank, char *signon)
       p = time_str;
       while( (*p != '\0') && (*p != '\n') && (p - time_str < MAX_BUF) )p++;
       if( *p == '\n' ) *p = '\0';
-      sprintf(signon, "\n\n%s  %s\n\n", version, time_str);
+      sprintf(signon, "\n\nmib-%s  %s\n\n", version, time_str);
     }
 }
 

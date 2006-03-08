@@ -24,6 +24,14 @@
  *  59 Temple Place, Suite 330, Boston, MA  02111-1307  USA.
 \*****************************************************************************/
 
+#ifdef DEBUG_CODE
+#define DEBUG(str) do {          \
+  base_report(SHOW_ALL, str);    \
+} while (0)
+#else
+#define DEBUG(str)
+#endif
+
 #ifndef BOOL_DEF
 typedef enum {FALSE, TRUE} BOOL;
 #define BOOL_DEF

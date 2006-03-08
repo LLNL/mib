@@ -90,82 +90,91 @@ command_line(int argc, char *argv[], int rank)
       {"help", 0, NULL, 'h'},
       {0, 0, 0, 0},
     };
+  int bail = 0;
 
   cl_opts = Make_Opts();
-  DEBUG("Enter command_line\n");
-  while( (opt = getopt_long(argc, argv, opt_str, long_options, &idx)) != -1)
+  if ( rank == 0 )
     {
-      switch(opt)
+      while( (opt = getopt_long(argc, argv, opt_str, long_options, &idx)) != -1)
 	{
-	case 'a' : /* use_node_aves */
-	  set_flags("true", &(cl_opts->flags), USE_NODE_AVES);
-	  set_flags("true", &(cl_opts_mask), CL_USE_NODE_AVES);
-	  break;
-	case 'd' : /* log_dir */
-	  set_string(optarg, cl_opts->log_dir);
-	  set_flags("true", &(cl_opts_mask), CL_LOG_DIR);
-	  break;
-	case 'E' : /* show_environment */
-	  set_flags("true", &(cl_opts->verbosity), SHOW_ENVIRONMENT);
-	  set_flags("true", &(cl_opts_mask), CL_SHOW_ENVIRONMENT);
-	  break;
-	case 'I' : /* show_intermediate_values */
-	  set_flags("true", &(cl_opts->verbosity), SHOW_INTERMEDIATE_VALUES);
-	  set_flags("true", &(cl_opts_mask), CL_SHOW_INTERMEDIATE_VALUES);
-	  break;
-	case 'H' : /* show_headers */
-	  set_flags("true", &(cl_opts->verbosity), SHOW_HEADERS);
-	  set_flags("true", &(cl_opts_mask), CL_SHOW_HEADERS);
-	  break;
-	case 'l' : /* call_limit */
-	  set_int(optarg, &(cl_opts->call_limit));
-	  set_flags("true", &(cl_opts_mask), CL_CALL_LIMIT);
-	  break;
-	case 'L' : /* time_limit */
-	  set_int(optarg, &(cl_opts->time_limit));
-	  set_flags("true", &(cl_opts_mask), CL_TIME_LIMIT);
-	  break;
-	case 'n' : /* new */
-	  set_flags("true", &(cl_opts->flags), NEW);
-	  set_flags("true", &(cl_opts_mask), CL_NEW);
-	  break;
-	case 'p' : /* profiles */
-	  set_flags("true", &(cl_opts->flags), PROFILES);
-	  set_flags("true", &(cl_opts_mask), CL_PROFILES);
-	  break;
-	case 'P' : /* show_progress */
-	  set_flags("true", &(cl_opts->verbosity), SHOW_PROGRESS);
-	  set_flags("true", &(cl_opts_mask), CL_SHOW_PROGRESS);
-	  break;
-	case 'r' : /* remove */
-	  set_flags("true", &(cl_opts->flags), REMOVE);
-	  set_flags("true", &(cl_opts_mask), CL_REMOVE);
-	  break;
-	case 'R' : /* read_only */
-	  set_flags("true", &(cl_opts->flags), READ_ONLY);
-	  set_flags("true", &(cl_opts_mask), CL_READ_ONLY);
-	  break;
-	case 's' : /* call_size */
-	  set_longlong(optarg, &(cl_opts->call_size));
-	  set_flags("true", &(cl_opts_mask), CL_CALL_SIZE);
-	  break;
-	case 'S' : /* show_signon */
-	  set_flags("true", &(cl_opts->verbosity), SHOW_SIGNON);
-	  set_flags("true", &(cl_opts_mask), CL_SHOW_SIGNON);
-	  break;
-	case 't' : /* test_dir */
-	  set_string(optarg, opts->testdir);
-	  set_flags("true", &(cl_opts_mask), CL_TESTDIR);
-	  break;
-	case 'W' : /* write_only */
-	  set_flags("true", &(cl_opts->flags), WRITE_ONLY);
-	  set_flags("true", &(cl_opts_mask), CL_WRITE_ONLY);
-	  break;
-	case 'h' :  /* help */
-	default : if (rank == 0) usage(); break;
+	  switch(opt)
+	    {
+	    case 'a' : /* use_node_aves */
+	      set_flags("true", &(cl_opts->flags), USE_NODE_AVES);
+	      set_flags("true", &(cl_opts_mask), CL_USE_NODE_AVES);
+	      break;
+	    case 'd' : /* log_dir */
+	      set_string(optarg, cl_opts->log_dir);
+	      set_flags("true", &(cl_opts_mask), CL_LOG_DIR);
+	      break;
+	    case 'E' : /* show_environment */
+	      set_flags("true", &(cl_opts->verbosity), SHOW_ENVIRONMENT);
+	      set_flags("true", &(cl_opts_mask), CL_SHOW_ENVIRONMENT);
+	      break;
+	    case 'I' : /* show_intermediate_values */
+	      set_flags("true", &(cl_opts->verbosity), SHOW_INTERMEDIATE_VALUES);
+	      set_flags("true", &(cl_opts_mask), CL_SHOW_INTERMEDIATE_VALUES);
+	      break;
+	    case 'H' : /* show_headers */
+	      set_flags("true", &(cl_opts->verbosity), SHOW_HEADERS);
+	      set_flags("true", &(cl_opts_mask), CL_SHOW_HEADERS);
+	      break;
+	    case 'l' : /* call_limit */
+	      set_int(optarg, &(cl_opts->call_limit));
+	      set_flags("true", &(cl_opts_mask), CL_CALL_LIMIT);
+	      break;
+	    case 'L' : /* time_limit */
+	      set_int(optarg, &(cl_opts->time_limit));
+	      set_flags("true", &(cl_opts_mask), CL_TIME_LIMIT);
+	      break;
+	    case 'n' : /* new */
+	      set_flags("true", &(cl_opts->flags), NEW);
+	      set_flags("true", &(cl_opts_mask), CL_NEW);
+	      break;
+	    case 'p' : /* profiles */
+	      set_flags("true", &(cl_opts->flags), PROFILES);
+	      set_flags("true", &(cl_opts_mask), CL_PROFILES);
+	      break;
+	    case 'P' : /* show_progress */
+	      set_flags("true", &(cl_opts->verbosity), SHOW_PROGRESS);
+	      set_flags("true", &(cl_opts_mask), CL_SHOW_PROGRESS);
+	      break;
+	    case 'r' : /* remove */
+	      set_flags("true", &(cl_opts->flags), REMOVE);
+	      set_flags("true", &(cl_opts_mask), CL_REMOVE);
+	      break;
+	    case 'R' : /* read_only */
+	      set_flags("true", &(cl_opts->flags), READ_ONLY);
+	      set_flags("true", &(cl_opts_mask), CL_READ_ONLY);
+	      break;
+	    case 's' : /* call_size */
+	      set_longlong(optarg, &(cl_opts->call_size));
+	      set_flags("true", &(cl_opts_mask), CL_CALL_SIZE);
+	      break;
+	    case 'S' : /* show_signon */
+	      set_flags("true", &(cl_opts->verbosity), SHOW_SIGNON);
+	      set_flags("true", &(cl_opts_mask), CL_SHOW_SIGNON);
+	      break;
+	    case 't' : /* test_dir */
+	      set_string(optarg, cl_opts->testdir);
+	      set_flags("true", &(cl_opts_mask), CL_TESTDIR);
+	      break;
+	    case 'W' : /* write_only */
+	      set_flags("true", &(cl_opts->flags), WRITE_ONLY);
+	      set_flags("true", &(cl_opts_mask), CL_WRITE_ONLY);
+	      break;
+	    case 'h' :  /* help */
+	    default : 
+	      usage(); bail = 1; break;
+	    }
 	}
     }
-  DEBUG("Exit command_line\n");
+  mpi_bcast(&bail, 1, MPI_INT, 0, MPI_COMM_WORLD);
+  if ( bail )
+    {
+      mpi_finalize();
+      exit(0);
+    }
 }
 
 Options *
@@ -175,12 +184,14 @@ read_options(int rank, int size)
   char *opt_str = "d:h";
   Options *opts;
   
-  DEBUG("Enter read_options\n");
   slurm = get_SLURM_env();
   mib = Init_Mib(rank, size);
+#ifdef DEBUG_CODE
+  if ( mib->rank == mib->base )
+    show_SLURM_env(slurm);
+#endif
   opts = Init_Opts();
   show_keys(opts);
-  DEBUG("Exit read_options\n");
   return(opts);
 }
 
@@ -216,7 +227,6 @@ usage( void )
   printf("       -W                  :  Only perform the Write test\n");
   printf("                           :    (if -R and -W are both present both tests \n");
   printf("                           :     will run, but that's the default anyway)\n");
-  exit(0);
 }
 
 Options *
@@ -236,7 +246,6 @@ Init_Opts()
   MPI_Group world_group, group;
   int group_spec[3];
 
-  DEBUG("Enter Init_Opts\n");
   opts = Make_Opts();
   if(mib->rank == mib->base)
     {
@@ -257,16 +266,16 @@ Init_Opts()
 		}
 	      fclose(ofp);
 	    }
-	  if( (check_flags(WRITE_ONLY))  && (check_flags(READ_ONLY)) )
-	    {
-	      opts->flags &= ~WRITE_ONLY;
-	      opts->flags &= ~READ_ONLY;
-	    }
 	}
       
-      while(opts->testdir[len++]);
       if( mib->tasks == mib->nodes ) opts->flags &= ~USE_NODE_AVES;
       command_line_overrides(opts);
+      while(opts->testdir[len++]);
+      if( (check_flags(WRITE_ONLY))  && (check_flags(READ_ONLY)) )
+	{
+	  opts->flags &= ~WRITE_ONLY;
+	  opts->flags &= ~READ_ONLY;
+	}
     }
   mpi_bcast(&(len), 1, MPI_INT, mib->base, mib->comm);
   mpi_bcast(opts->testdir, len, MPI_CHAR, mib->base, mib->comm);
@@ -285,7 +294,6 @@ Init_Opts()
       MPI_Group_range_incl(world_group, 1, &group_spec, &group);
       MPI_Comm_create(MPI_COMM_WORLD, group, &(mib->comm));
     }
-  DEBUG("Exit Init_Opts\n");
   return(opts);
 }
 
@@ -294,7 +302,6 @@ Make_Opts()
 {
   Options *opts;
 
-  DEBUG("Enter Make_Opts\n");
   opts = (Options *)Malloc(sizeof(Options));
   opts->log_dir[0] = '\0';
   strncpy(opts->testdir, ".", MAX_BUF);
@@ -303,7 +310,6 @@ Make_Opts()
   opts->time_limit = 60;
   opts->flags = DEFAULTS;
   opts->verbosity = QUIET;
-  DEBUG("Exit Make_Opts\n");
   return(opts);
 }
 
@@ -449,9 +455,19 @@ show_keys(Options *opts)
   ASSERT(opts != NULL);
   if ( (mib->rank == mib->base) && (opts->verbosity & SHOW_ENVIRONMENT) )
     {
-      strncpy(cluster, slurm->SRUN_COMM_HOST, MAX_BUF);
-      for(p = cluster; (*p != '\0') && ( p - cluster < MAX_BUF ) ; p++);
-      if( (p > cluster) && (p - cluster < MAX_BUF)  && (*(p-1) == 'i') ) *(p-1) = '\0';
+      strncpy(cluster, slurm->NODELIST, MAX_BUF);
+      for(p = cluster; ( (*p != '\0') &&
+			 (*p != '[') &&
+			 ( (*p < '0') || (*p > '9') ) &&
+			 ( p - cluster < MAX_BUF ) ); p++);
+      if( (p > cluster) && 
+	  (p - cluster < MAX_BUF) &&
+	  (*(p-1) == 'i') 
+	 ) *(p-1) = '\0';
+      if( (p > cluster) && 
+	  (p - cluster < MAX_BUF)  && 
+	  (*p == '[') ||
+	  ( ((*p >= '0') && (*p <= '9')) )  ) *p = '\0';
       printf("cluster                  = %s\n", cluster);      
       printf("new                      = %s\n", ((opts->flags & NEW) ? "true" : "false"));
       printf("remove                   = %s\n", ((opts->flags & REMOVE) ? "true" : "false"));
@@ -551,7 +567,6 @@ get_SLURM_env()
 {
   SLURM *slurm;
   
-  DEBUG("Enter get_SLURM_env\n");
   slurm = (SLURM*)Malloc(sizeof(SLURM));
   slurm->CPUS_ON_NODE = get_int_env("SLURM_CPUS_ON_NODE");
   slurm->CPUS_PER_TASK = get_int_env("SLURM_CPUS_PER_TASK");
@@ -573,7 +588,6 @@ get_SLURM_env()
   slurm->TASK_PID = get_int_env("SLURM_TASK_PID");
   get_str_env(slurm->UMASK, "SLURM_UMASK");
   /*  show_SLURM_env(slurm); */
-  DEBUG("Exit get_SLURM_env\n");
   return(slurm);
 }
 
@@ -622,8 +636,6 @@ get_str_env(char *str, char *key)
 
   if( (val = getenv(key)) != NULL )
     {
-      /*      printf( "%s = %s\n", key, val);
-	      fflush(stdout);*/
       strncpy(str, val, MAX_BUF);
     }
   else

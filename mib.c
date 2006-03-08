@@ -106,12 +106,13 @@ main( int argc, char *argv[] )
   int iteration = 0;
   double read = 0;
   double write = 0;
+  int bail;
 
   mpi_init( &argc, &argv );
   mpi_comm_size(MPI_COMM_WORLD, &size );
   mpi_comm_rank(MPI_COMM_WORLD, &rank );
   init_timer(rank, signon);
-  command_line(argc, argv, rank);
+  command_line(argc, argv, rank );
   opts = read_options(rank, size);
   base_report(SHOW_SIGNON, "%s", signon);
   if( mib->comm == MPI_COMM_NULL )
