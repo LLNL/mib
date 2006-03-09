@@ -30,6 +30,7 @@ cp mib/* mib-$VERSION/
 rm mib-$VERSION/*.in
 rm mib-$VERSION/configure
 rm mib-$VERSION/META
+rm mib-$VERSION/tools/mibrpm.sh
 cp mib/aux/* mib-$VERSION/aux
 cp mib/mib-parms/* mib-$VERSION/mib-parms
 cp mib/tools/* mib-$VERSION/tools
