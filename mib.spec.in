@@ -64,7 +64,7 @@ rm -rf $RPM_BUILD_ROOT
 %doc README TODO ChangeLog
 
 /usr/bin/mib
-/usr/man/man1/mib.1
+/usr/man/man1/*
 /var/lustredata/scripts/*
 /var/lustredata/mib-parms/*
 
