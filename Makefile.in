@@ -77,7 +77,8 @@ install: all
 	$(INSTALL) tools/composite.pl		$(DESTDIR)$(scriptdir)/
 	$(INSTALL) tools/diff.pl		$(DESTDIR)$(scriptdir)/
 	$(INSTALL) tools/file-layout.sh		$(DESTDIR)$(scriptdir)/
-	$(INSTALL) tools/hullo-lustre.sh	$(DESTDIR)$(scriptdir)/
+	$(mkinstalldirs) 			$(DESTDIR)$(sbindir)
+	$(INSTALL) tools/hullo-lustre.sh	$(DESTDIR)$(sbindir)/hullo-lustre
 	$(INSTALL) tools/lfind-dist1.pl		$(DESTDIR)$(scriptdir)/
 	$(INSTALL) tools/lfind-dist2.pl		$(DESTDIR)$(scriptdir)/
 	$(INSTALL) tools/lfind-dist3.pl		$(DESTDIR)$(scriptdir)/
