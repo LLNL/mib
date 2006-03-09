@@ -24,14 +24,16 @@
 #*  59 Temple Place, Suite 330, Boston, MA  02111-1307  USA.
 #*****************************************************************************/
 
+PROJECT=mib
 CLUSTER=%CLUSTER%
 VERSION=%VERSION%
-
+SHELL=   /bin/sh
 MAKE=    /usr/bin/make
-
 CC = %CC%
-CCFLAGS = -g -D_LARGEFILE64_SOURCE -D_FILE_OFFSET_BITS=64
+INSTALL= /usr/bin/install -c
+mkinstalldirs=	 $(SHELL) $(top_srcdir)/aux/mkinstalldirs
 
+CCFLAGS = -g -D_LARGEFILE64_SOURCE -D_FILE_OFFSET_BITS=64
 LDFLAGS =
 LIBDIRS = 
 LIBS = 
@@ -40,6 +42,16 @@ DEBUG = # Put 'DEBUG="-DDEBUG_CODE=1"' on the command line if you want
 	# debugging, or you can put it here if you really want to be sure
 	# and always have the debugging on.  N.B. I don't think it even
 	# works right now.
+
+top_srcdir	=	.
+prefix		=	/usr
+exec_prefix	=	${prefix}
+bindir		=	${exec_prefix}/bin
+sbindir		= 	${exec_prefix}/sbin
+mandir		=	$(prefix)/man
+etcdir		=	/etc
+packagedir	=	${etcdir}/${PROJECT}
+scriptdir       =       /var/lustredata/scripts
 
 BIN=/g/g0/auselton/$(CLUSTER)
 
@@ -53,8 +65,28 @@ all: mib
 mib: $(OBJECTS) $(HEADERS)
 	$(CC) $(OBJECTS) $(DEBUG) -o $@ $(LIBDIRS) $(LIBS)
 
-install: mib
-	mv mib $(BIN)/mib-$(VERSION)
+install: all
+	$(mkinstalldirs) 			$(DESTDIR)$(bindir)
+	$(INSTALL) mib				$(DESTDIR)$(bindir)/
+	$(mkinstalldirs)			$(DESTDIR)$(mandir)/man1
+	$(INSTALL) -m 644 mib.1			$(DESTDIR)$(mandir)/man1
+	$(mkinstalldirs)			$(DESTDIR)$(scriptdir)
+	$(INSTALL) tools/composite.pl		$(DESTDIR)$(scriptdir)/
+	$(INSTALL) tools/diff.pl		$(DESTDIR)$(scriptdir)/
+	$(INSTALL) tools/file-layout.sh		$(DESTDIR)$(scriptdir)/
+	$(INSTALL) tools/hullo-lustre.sh	$(DESTDIR)$(scriptdir)/
+	$(INSTALL) tools/lfind-dist1.pl		$(DESTDIR)$(scriptdir)/
+	$(INSTALL) tools/lfind-dist2.pl		$(DESTDIR)$(scriptdir)/
+	$(INSTALL) tools/lfind-dist3.pl		$(DESTDIR)$(scriptdir)/
+	$(INSTALL) tools/lfinding.sh		$(DESTDIR)$(scriptdir)/
+	$(INSTALL) tools/lwatch.pl		$(DESTDIR)$(scriptdir)/
+	$(INSTALL) tools/mest.sh		$(DESTDIR)$(scriptdir)/
+	$(INSTALL) tools/mib.sh			$(DESTDIR)$(scriptdir)/
+	$(INSTALL) tools/profile.pl		$(DESTDIR)$(scriptdir)/
+	$(INSTALL) tools/rm-files.sh		$(DESTDIR)$(scriptdir)/
+	$(INSTALL) tools/sum.pl			$(DESTDIR)$(scriptdir)/
+	$(INSTALL) tools/viewcalls.pl		$(DESTDIR)$(scriptdir)/
+
 .c.o:
 	$(CC) $(CCFLAGS) $(DEBUG) -c $<  $(INCDIR)
 

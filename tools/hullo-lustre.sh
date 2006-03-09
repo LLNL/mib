@@ -48,7 +48,7 @@ if [ X"$TEST_DIR" == X ]
     esac
 fi
 
-[ X"$TEST_DIR" == X -o ! -d $TEST_DIR -o ! -w $TEST_DIR ] && usage
+[ X"$TEST_DIR" == X -o ! -d $TEST_DIR -o ! -w $TEST_DIR ] && usage "There is a problem with the test directory"
 
 cd $TEST_DIR
 
