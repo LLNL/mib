@@ -37,7 +37,7 @@
 Summary: An MPI-based I/O test for beowulf-style clusters
 Name: mib
 Version: %VERSION%
-Release: chaos
+Release: 1chaos
 Copyright: GPL
 Group: Applications/System
 Source:  %{name}-%{version}.tar.gz
@@ -50,29 +50,30 @@ An MPI-based I/O test for beowulf-style clusters.
 %setup -q
 
 %build
-make mpiio
+make
 
 %install
 rm -rf $RPM_BUILD_ROOT
-mkdir -p $RPM_BUILD_ROOT/usr/bin
-#mkdir -p $RPM_BUILD_ROOT/usr/man/man1
-
-install -m 755 mib $RPM_BUILD_ROOT/usr/bin/mib
-#install -m 644 mib.1 $RPM_BUILD_ROOT/usr/man/man1/mib.1
+DESTDIR=$RPM_BUILD_ROOT make -e install
 
 %clean
 rm -rf $RPM_BUILD_ROOT
 
 %files
 %defattr(-,root,root)
-%doc README META
+%doc README TODO ChangeLog
 
 /usr/bin/mib
-#/usr/man/man1/mib.1
+/usr/man/man1/mib.1
+/var/lustredata/scripts/*
+/var/lustredata/mib-parms/*
 
 
 %changelog
 * Thu Feb 10 2005 Andrew C. Uselton <auselton@alci> 
 - Initial build.
+* Thu Mar 9 2006 Andrew C. Uselton <auselton@alci> 
+- Substantial changes, relocated to subversion, rewritten from scratch
+
 
 

@@ -52,6 +52,7 @@ mandir		=	$(prefix)/man
 etcdir		=	/etc
 packagedir	=	${etcdir}/${PROJECT}
 scriptdir       =       /var/lustredata/scripts
+parmsdir        =       /var/lustredata/mib-parms
 
 BIN=/g/g0/auselton/$(CLUSTER)
 
@@ -70,6 +71,8 @@ install: all
 	$(INSTALL) mib				$(DESTDIR)$(bindir)/
 	$(mkinstalldirs)			$(DESTDIR)$(mandir)/man1
 	$(INSTALL) -m 644 mib.1			$(DESTDIR)$(mandir)/man1
+	$(mkinstalldirs)			$(DESTDIR)$(parmsdir)
+	$(INSTALL) mib-parms/options		$(DESTDIR)$(parmsdir)/
 	$(mkinstalldirs)			$(DESTDIR)$(scriptdir)
 	$(INSTALL) tools/composite.pl		$(DESTDIR)$(scriptdir)/
 	$(INSTALL) tools/diff.pl		$(DESTDIR)$(scriptdir)/
