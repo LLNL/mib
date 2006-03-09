@@ -47,8 +47,8 @@ BuildRoot: %{_tmppath}/%{name}-%{version}-buildroot
 An MPI-based I/O test for beowulf-style clusters.  
 
 %prep
-echo %{INSTALLPREFIX}/var/lustredata
-[ -d %{INSTALLPREFIX}/var/lustredata ] || { echo "no lustredata directory"; exit 1; }
+echo $INSTALLPREFIX/var/lustredata
+[ -d $INSTALLPREFIX/var/lustredata ] || { echo "no lustredata directory"; exit 1; }
 %setup -q
 
 %build
