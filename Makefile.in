@@ -70,7 +70,7 @@ install: all
 	$(mkinstalldirs) 			$(DESTDIR)$(bindir)
 	$(INSTALL) mib				$(DESTDIR)$(bindir)/
 	$(mkinstalldirs)			$(DESTDIR)$(mandir)/man1
-	$(INSTALL) -m 644 mib.1			$(DESTDIR)$(mandir)/man1/
+	$(INSTALL) mib.1 -m 644			$(DESTDIR)$(mandir)/man1/
 	$(mkinstalldirs)			$(DESTDIR)$(parmsdir)
 	$(INSTALL) mib-parms/options		$(DESTDIR)$(parmsdir)/
 	$(mkinstalldirs)			$(DESTDIR)$(scriptdir)
