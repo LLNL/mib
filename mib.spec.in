@@ -70,10 +70,10 @@ rm -rf $RPM_BUILD_ROOT
 
 
 %changelog
-* Thu Feb 10 2005 Andrew C. Uselton <auselton@alci> 
-- Initial build.
 * Thu Mar 9 2006 Andrew C. Uselton <auselton@alci> 
 - Substantial changes, relocated to subversion, rewritten from scratch
+* Thu Feb 10 2005 Andrew C. Uselton <auselton@alci> 
+- Initial build.
 
 
 
