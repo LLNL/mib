@@ -43,6 +43,8 @@ int Fsync(int fd);
 
 int Close(int fd);
 
+int Exists(const char *path);
+
 char *Fgets(char *buf, int n, FILE *stream);
 
 FILE *Fopen(const char *path, const char *mode);

@@ -231,7 +231,7 @@ Close(int fd)
 }
 
 int
-Exists(const char *pathname)
+Exists(const char *path)
 {
   /*
    *   The relevant errno values are:
