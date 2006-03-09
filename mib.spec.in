@@ -42,7 +42,7 @@ Copyright: GPL
 Group: Applications/System
 Source:  %{name}-%{version}.tar.gz
 BuildRoot: %{_tmppath}/%{name}-%{version}-buildroot
-
+Prefix: /
 %description
 An MPI-based I/O test for beowulf-style clusters.  
 
