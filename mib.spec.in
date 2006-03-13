@@ -46,8 +46,18 @@ Prefix: /
 %description
 An MPI-based I/O test for beowulf-style clusters.  
 
-%prep
+%package tools
+Summary: Tools to assist with mib 
+Group: Applications/System
+%description tools 
+Shell, Perl, and Python scripts to assist with analyzing mib results
+	and setting up for mib tests.
+
+%pre tools
 [ -d $INSTALLPREFIX/var/lustredata ] || { echo "no lustredata directory"; exit 1; }
+
+
+%prep
 %setup -q
 
 %build
@@ -66,6 +76,8 @@ rm -rf $RPM_BUILD_ROOT
 
 /usr/bin/mib
 /usr/man/man1/*
+
+%files tools
 /var/lustredata/scripts/*
 /var/lustredata/mib-parms/*
 
