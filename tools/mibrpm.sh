@@ -40,4 +40,4 @@ cp mib-$VERSION/mib.spec $HOME/rpm/SPECS
 rm -rf mib-$VERSION
 cd $HOME/rpm/SPECS
 mkdir -p $HOME/rpm/TMP/mib-$VERSION
-#rpmbuild -ba --define "_tmppath $HOME/rpm/TMP/mib-$VERSION" --define "_topdir $HOME/rpm" mib.spec 
+rpmbuild -ba --define "_tmppath $HOME/rpm/TMP/mib-$VERSION" --define "_topdir $HOME/rpm" mib.spec 
