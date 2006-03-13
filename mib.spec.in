@@ -76,6 +76,7 @@ rm -rf $RPM_BUILD_ROOT
 
 /usr/bin/mib
 /usr/man/man1/*
+/usr/sbin/hullo-lustre
 
 %files tools
 /var/lustredata/scripts/*
