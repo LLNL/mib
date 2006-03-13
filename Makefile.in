@@ -25,7 +25,6 @@
 #*****************************************************************************/
 
 PROJECT=mib
-CLUSTER=%CLUSTER%
 VERSION=%VERSION%
 SHELL=   /bin/sh
 MAKE=    /usr/bin/make
@@ -53,8 +52,6 @@ etcdir		=	/etc
 packagedir	=	${etcdir}/${PROJECT}
 scriptdir       =       /var/lustredata/scripts
 parmsdir        =       /var/lustredata/mib-parms
-
-BIN=/g/g0/auselton/$(CLUSTER)
 
 HEADERS = miberr.h mpi_wrap.h sys_wrap.h options.h mib_timer.h
 SOURCES = mib.c mpi_wrap.c sys_wrap.c miberr.c options.c mib_timer.c

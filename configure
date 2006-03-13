@@ -54,7 +54,7 @@ VERSION=${VERSION// /}
 [ X"$VERSION" != X ] ||  usage "The META file did not yield a version"
 
 rm -f $MAKEFILE >/dev/null 2>&1
-cat $MAKEFILE.in  | sed "s/%CC%/$CC/" | sed "s/%CLUSTER%/$CLUSTER/" | sed "s/%VERSION%/$VERSION/" > $MAKEFILE
+cat $MAKEFILE.in  | sed "s/%CC%/$CC/" | sed "s/%VERSION%/$VERSION/" > $MAKEFILE
 
 rm -f $VERSION_H >/dev/null 2>&1
 cat $VERSION_H.in  | sed "s/%VERSION%/$VERSION/" > $VERSION_H

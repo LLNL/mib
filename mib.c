@@ -91,19 +91,10 @@ int
 main( int argc, char *argv[] )
 {
   /*
-   *   The command line is sorted out in the "options.c" module.
-   * From there you get the options file, which is required for the 
-   * proper operation of the program.  The test may iterate, and 
-   * the options file is reread on each iteration.
-   *   Opts is the structure that hold all the global information
-   * concerning the conduct of the test, including where to record
-   * its results.  Summary and debug information is sent to stdout.
-   * 
    */
   int size;
   int rank;
   char signon[MAX_BUF];
-  int iteration = 0;
   double read = 0;
   double write = 0;
   int bail;
