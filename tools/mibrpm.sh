@@ -30,10 +30,10 @@ cp mib/* mib-$VERSION/
 rm mib-$VERSION/*.in
 rm mib-$VERSION/configure
 rm mib-$VERSION/META
-rm mib-$VERSION/tools/mibrpm.sh
 cp mib/aux/* mib-$VERSION/aux
 cp mib/mib-parms/* mib-$VERSION/mib-parms
 cp mib/tools/* mib-$VERSION/tools
+rm mib-$VERSION/tools/mibrpm.sh
 rm -rf mib
 tar cvfz $HOME/rpm/SOURCES/mib-$VERSION.tar.gz mib-$VERSION
 cp mib-$VERSION/mib.spec $HOME/rpm/SPECS
