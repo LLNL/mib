@@ -1,5 +1,5 @@
 #*****************************************************************************\
-#*  $Id: Makefile,v 1.9 2005/11/30 20:24:57 auselton Exp $
+#*  $Id: Makefile.in 1.9 2005/11/30 20:24:57 auselton Exp $
 #*****************************************************************************
 #*  Copyright (C) 2001-2002 The Regents of the University of California.
 #*  Produced at Lawrence Livermore National Laboratory (cf, DISCLAIMER).
@@ -24,33 +24,18 @@
 #*  59 Temple Place, Suite 330, Boston, MA  02111-1307  USA.
 #*****************************************************************************/
 
+PROJECT=mib
+VERSION=%VERSION%
 MAKE=    /usr/bin/make
 
-# These are for BGL
-CC = mpgcc
+CC = %CC%
 CCFLAGS = -g -D_LARGEFILE64_SOURCE -D_FILE_OFFSET_BITS=64
 
-# These are for Gauss
-# To find the compiler use "export PATH=/usr/local/intel/compiler90_64_023/bin:$PATH"
-#CC = mpiicc
-#CCFLAGS = -g -D_LARGEFILE64_SOURCE -D_FILE_OFFSET_BITS=64
-
-# These are for ALC
-# To find the compiler use "export PATH=/usr/local/intel/compiler90_031/bin:$PATH"
-#CC = mpicc
-#CCFLAGS = -g -D_LARGEFILE64_SOURCE -D_FILE_OFFSET_BITS=64
 
 LDFLAGS =
 LIBDIRS = 
 LIBS = 
 INCDIR = 
-DEBUG = # Put 'DEBUG="-DNDEBUG=1"' on the command line if you want 
-        # debugging off
-
-# I'd prefer getting a dependence between source files and headers
-HEADERS = miberr.h mpi_wrap.h sys_wrap.h options.h mib_timer.h
-SOURCES = mib.c mpi_wrap.c sys_wrap.c miberr.c options.c mib_timer.c
-OBJECTS = $(SOURCES:.c=.o)
 
 all: 
 	@ echo "Nothing to make in the tools directory"

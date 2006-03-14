@@ -1,5 +1,5 @@
 #*****************************************************************************\
-#*  $Id: mib.spec,v 1.8 2005/11/30 20:24:57 auselton Exp $
+#*  $Id: mib.spec.in,v 1.8 2005/11/30 20:24:57 auselton Exp $
 #*****************************************************************************
 #*  Copyright (C) 2001-2002 The Regents of the University of California.
 #*  Produced at Lawrence Livermore National Laboratory (cf, DISCLAIMER).
@@ -25,13 +25,7 @@
 #*****************************************************************************/
 #
 # Sources in, for instance, $HOME/src/mib, so 
-# cd $HOME/src/mib
-# make $HOME/rpm and its subdirs BUILD, RPMS, SPECS, SOURCES, and SRPMS then
-# The source RPM ends up in SRPMS and the binary in RPMS/<arch>
-# make $HOME/tmp, so temporary RPM build scripts have a place to live
-# Put this spec file in SPECS and %{name}-%{version}.tar.gz in SOURCES
-# then build with
-# rpmbuild -ba --define "_tmppath $HOME/tmp" --define "_topdir $HOME/rpm/" mib.spec
+# See the hints in the script $HOME/src/mib/tools/mibrpm.sh 
 #
 
 Summary: An MPI-based I/O test for beowulf-style clusters

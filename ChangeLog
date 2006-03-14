@@ -1,57 +1,106 @@
-
-	1.0
-	- Working code
-
-	1.1
-	- Reorganize for single directory of output
-
-	1.2
-	- Progress meter
-
-	1.3
-	- Code refactoring
+2005-10-01 Andrew Uselton <uselton2@llnl.gov>
 	
-	1.4
-	- Bool enumeration
-	- Optional read_only and write_only
-	- Optional looping
-
-	1.5
-	- Discovered where the rogue ASSERT was, though not why.
-	- Retrenched to only using FAIL and ASSERT and removed 
-	  problematic error handling code
-	- Documented, but did not implement, details of system
-	  call return codes
-	- Timer intialization check
-
-	1.6
-	- Introduce "profiles" option, and don't do profiles unless it is
-	  set
-	- Adjust defaults for operation without parameters file
-	- Reduce verbosity for default operation, summary line only
-	- Clean up "lint" detected by icc compiler, missing "returns"
-	  pointer arithmetic, missing "include" files <stdlib> and <string>
-	- init_timer() now uses MPI_COMM_WORLD and occurs outside the 
-	  iteration loop.  It also announces the program name and start 
-	  time.
-	- the fsync() seems to return errors that (probably) occurred
-	  earlier and were corrected.  Work around, investigate, fix.
+	* tag 1.0
 	
-	1.7
-	- Introduce "new" and "remove" options to allow for managing files.
-	- Introduce "use_ion_aves" option to suppress (by default) calculating
-	  averages accross IONs the way BGL does.
-	- Fixed the "no averages" code path so it rightly preserves
-	  the whole profile from a run.  
-	- Promoted the res->transferred field to a double because as a
-	  32 bit quantity it could overflow for really fast or long 
-	  accumulations of transfers.
+	* Working code
+
+2005-11-01 Andrew Uselton <uselton2@llnl.gov>
 	
-	1.8
-	- Dump the iterateions and pause options
-	- Code factoring in the options settings
-	- Consolidate boolean flags into fields in a single flag
-	- Fixed ENOENT / ENONET bug :(
-	- Get command line options (including long-opts) working and tested
-	- Allow there to be a log_dir with no "options" file
-	- Make a man page
+	* tag 1.1
+	
+	* Reorganize for single directory of output
+
+2005-11-15 Andrew Uselton <uselton2@llnl.gov>
+	
+	* Tag 1.2
+
+	* Progress meter
+
+2005-11-22 Andrew Uselton <uselton2@llnl.gov>
+
+	* Tag 1.3
+
+	* Code refactoring
+	
+2005-12-01 Andrew Uselton <uselton2@llnl.gov>
+
+	* Tag 1.4
+	
+	* Bool enumeration
+
+	* Optional read_only and write_only
+
+	* Optional looping
+
+2005-12-07 Andrew Uselton <uselton2@llnl.gov>
+
+	* Tag 1.5
+	
+	* Discovered where the rogue ASSERT was, though not why.
+
+	* Retrenched to only using FAIL and ASSERT and removed 
+	problematic error handling code
+
+	* Documented, but did not implement, details of system
+	call return codes
+
+	* Timer intialization check
+
+2006-01-15 Andrew Uselton <uselton2@llnl.gov>
+	
+	* Tag 1.6
+	
+	* Introduce "profiles" option, and don't do profiles unless it is
+	set
+
+	* Adjust defaults for operation without parameters file
+
+	* Reduce verbosity for default operation, summary line only
+
+	* Clean up "lint" detected by icc compiler, missing "returns"
+	pointer arithmetic, missing "include" files <stdlib> and <string>
+
+	* init_timer() now uses MPI_COMM_WORLD and occurs outside the 
+	iteration loop.  It also announces the program name and start 
+	time.
+
+	* the fsync() seems to return errors that (probably) occurred
+	earlier and were corrected.  Work around, investigate, fix.
+	
+2006-02-15 Andrew Uselton <uselton2@llnl.gov>
+	
+	* Tag 1.7
+	
+	* Introduce "new" and "remove" options to allow for managing files.
+
+	* Introduce "use_ion_aves" option to suppress (by default) calculating
+	averages accross IONs the way BGL does.
+
+	* Fixed the "no averages" code path so it rightly preserves
+	the whole profile from a run.  
+
+	* Promoted the res->transferred field to a double because as a
+	32 bit quantity it could overflow for really fast or long 
+	accumulations of transfers.
+	
+2006-03-01 Andrew Uselton <uselton2@llnl.gov>
+	
+	* Tag 1.8
+
+	* Dump the iterateions and pause options
+
+	* Code factoring in the options settings
+
+	* Consolidate boolean flags into fields in a single flag
+
+	* Fixed ENOENT / ENONET bug :(
+
+	* Get command line options (including long-opts) working and tested
+
+	* Allow there to be a log_dir with no "options" file
+
+	* Make a man page
+
+	* Fix packaging
+
+	

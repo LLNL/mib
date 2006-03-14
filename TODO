@@ -14,34 +14,6 @@ o  The error reporting needs to be much more refined.
      *  Let __FILE__, __LINE__, and errno document the error or make up
         a mib_specific error condition
 
-o  Logging might be usefully incorporated into the program.  Open and
-   communicate with the log directly rather than having it all go to
-   stdout
-   -  What goes to stdout?
-   -  What goes to stderr?
-   -  What goes to log?
-
-o  There are a few other dychotomies concerning data representation
-   -  command line parameters vs. option file parameters
-   -  program level control info
-   -  test level control info
-   -  base task only info
-   -  all-tasks info
-
-o  I'd like to know the limits of trying to use stdin
-
 o  Test against arbitrary subcommunicators of MPI_COMM_WORLD
 
-o  Revisit the ION uneven completion detection code.  I am not
-   confident of it. 
-
-o  Bring all the tools into the mib project
-
-o  Get configure and RPM building to work accross all target architectures
-
 o  Respond to Signals
-
-o  Progress should track time and space
-
-o  Have the MPI_wrap.c interface handle setting and using rank, size, and
-   base.  Also have rank==base test be a BOOL function or macro.

@@ -29,7 +29,7 @@
  * one could probably give up but instead of failing outright one
  * could wait for the next MPI_Barrier and communicate the problem back 
  * to the base node to be reported.  I don't see any of these requiring 
- * MPI_Abort as a starting pont for the error handling.
+ * MPI_Abort as a starting point for the error handling.
  */
 
 #include <sys/types.h>
