@@ -37,7 +37,6 @@ typedef enum {FALSE, TRUE} BOOL;
 #define BOOL_DEF
 #endif
 
-
 typedef struct Results_Struct {
   double  start_open;
   double  end_open;
@@ -52,4 +51,13 @@ typedef struct Results_Struct {
   double  end_close;
   double  end_test;
 }Results;
+
+typedef struct Mib_Struct {
+  int nodes;
+  int tasks;
+  int rank;
+  int size;
+  int base;
+  MPI_Comm comm;
+}Mib;
 

@@ -66,12 +66,12 @@
 #include "miberr.h"
 #include "mpi_wrap.h"
 #include "options.h"
+#include "slurm.h"
 #include "mib_timer.h"
 #include "sys_wrap.h"
-#include "mib_timer.h"
 #include "version.h"
 
-void init_filenames();
+Mib *Init_Mib(int rank, int size);
 double write_test();
 char *fill_buff();
 void init_status(char *str);
@@ -82,37 +82,40 @@ void profiles(double *array, int count, char *profile_log_name);
 void report(double write, double read);
 void base_report(int verb, char *fmt, ...);
 
-extern Options *opts;
-extern Mib     *mib;
-
+Mib  *mib;
 char *version=MIB_VERSION;
+
+extern Options *opts;
+extern SLURM   *slurm;
 
 int
 main( int argc, char *argv[] )
 {
   /*
    */
-  int size;
+  int size = 0;
   int rank;
   char signon[MAX_BUF];
   double read = 0;
   double write = 0;
   int bail;
 
+  get_SLURM_env();
+  command_line(&argc, &argv);
   mpi_init( &argc, &argv );
   mpi_comm_size(MPI_COMM_WORLD, &size );
   mpi_comm_rank(MPI_COMM_WORLD, &rank );
   init_timer(rank, signon);
-  command_line(argc, argv, rank );
+  mib = Init_Mib(rank, size);
   opts = read_options(rank, size);
   base_report(SHOW_SIGNON, "%s", signon);
+  show_keys(opts);
   if( mib->comm == MPI_COMM_NULL )
     {
       mpi_barrier(MPI_COMM_WORLD);
     }
   else
     {
-      init_filenames();
       DEBUG("Initializations complete.\n");
       if(! check_flags(READ_ONLY) )
 	{
@@ -133,18 +136,18 @@ main( int argc, char *argv[] )
   mpi_finalize();
 }
 
-void
-init_filenames()
+Mib *
+Init_Mib(int rank, int size)
 {
-  /*
-   *   The file that is the target for the write system calls is given
-   * a conventional name based on the target directory and the task number.
-   * The read target is similarly named but based on a task number "180
-   * degrees" around the job, so to speek.  This is intended to guarantee,
-   * as best one may, that the reader will not exploit locally cached 
-   * data from the write. 
-   */
+  Mib *mib;
 
+  mib = (Mib *)Malloc(sizeof(Mib));
+  mib->nodes = slurm->NNODES;
+  mib->tasks = slurm->NPROCS;
+  mib->rank = rank;
+  mib->size = size;
+  mib->base = 0;
+  mib->comm = MPI_COMM_WORLD;
 }
 
 double

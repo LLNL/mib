@@ -30,6 +30,12 @@ typedef enum {FALSE, TRUE} BOOL;
 #define BOOL_DEF
 #endif
 
+#define FORCE_NO_MPI (-1)
+#define NO_MPI 0
+#define YES_MPI 1
+#define USE_MPI (use_mpi > NO_MPI)
+#define DO_NOT_USE_MPI (use_mpi < YES_MPI)
+
 void mpi_init(int *argcp, char ***argvp);
 
 void mpi_comm_size(MPI_Comm comm, int *sizep);

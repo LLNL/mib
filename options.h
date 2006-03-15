@@ -49,15 +49,6 @@ typedef struct Options_Struct {
   int verbosity;
 }Options;
 
-typedef struct Mib_Struct {
-  int nodes;
-  int tasks;
-  int rank;
-  int size;
-  int base;
-  MPI_Comm comm;
-}Mib;
-
 /*
  *  I made "QUIET" have a non-zero value above the others so that 
  * the verbosity macro will return a TRUE for the SHOW_ALL level.
@@ -87,66 +78,17 @@ typedef struct Mib_Struct {
 #define CL_SHOW_PROGRESS            (1 << 14)
 #define CL_SHOW_INTERMEDIATE_VALUES (1 << 15)
 
-void command_line(int argc, char *argv[], int rank);
-Options *read_options(int rank, int size);
+void command_line(int *argcp, char **argvp[]);
+Options *read_options();
 void write_log();
 void read_log();
 void close_log();
 void log_it(char *fmt, char *str);
 void Free_Opts();
 void usage( void );
+void show_keys(Options *opts);
 
 #define check_flags(mask)  (opts->flags & mask)
 #define verbosity(mask)    (opts->verbosity & mask)
 #define check_cl(mask)     (cl_opts_mask & mask)
-
-/* 
- * These are the SLURM environment values available to a task.
- * I go them with the command:
- srun -N8 -n16 -l  bash -c set | grep SLURM
- * The task 0 environment variables:
- 00: SLURM_CPUS_ON_NODE=2
- 00: SLURM_CPUS_PER_TASK=1
- 00: SLURM_CPU_BIND_LIST=
- 00: SLURM_CPU_BIND_TYPE=
- 00: SLURM_CPU_BIND_VERBOSE=quiet
- 00: SLURM_JOBID=66371
- 00: SLURM_LABELIO=1
- 00: SLURM_LAUNCH_NODE_IPADDR=192.168.17.198
- 00: SLURM_LOCALID=0
- 00: SLURM_NNODES=8
- 00: SLURM_NODEID=0
- 00: SLURM_NODELIST='adev[2,8-14]'
- 00: SLURM_NPROCS=16
- 00: SLURM_PROCID=0
- 00: SLURM_SRUN_COMM_HOST=adevi
- 00: SLURM_SRUN_COMM_PORT=3071
- 00: SLURM_STEPID=0
- 00: SLURM_TASKS_PER_NODE='2(x8)'
- 00: SLURM_TASK_PID=9026
- 00: SLURM_UMASK=0022
- *
- */
-
-typedef struct SLURM_Struct {
-  int CPUS_ON_NODE;
-  int CPUS_PER_TASK;
-  char CPU_BIND_LIST[MAX_BUF];
-  char CPU_BIND_TYPE[MAX_BUF];
-  char CPU_BIND_VERBOSE[MAX_BUF];
-  int  JOBID;
-  char LAUNCH_NODE_IPADDR[MAX_BUF];
-  int  LOCALID;
-  int  NNODES;
-  int  NODEID;
-  char NODELIST[MAX_BUF];
-  int  NPROCS;
-  int  PROCID;
-  char SRUN_COMM_HOST[MAX_BUF];
-  int  SRUN_COMM_PORT;
-  int  STEPID;
-  char TASKS_PER_NODE[MAX_BUF];
-  int  TASK_PID;
-  char UMASK[MAX_BUF];
-}SLURM;
 

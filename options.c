@@ -37,12 +37,11 @@
 #include "miberr.h"
 #include "options.h"
 #include "mpi_wrap.h"
+#include "slurm.h"
+#include "mib.h"
 
-Options *Init_Opts();
 Options *Make_Opts();
-Mib *Init_Mib(int rank, int size);
 void command_line_overrides();
-void show_keys(Options *opts);
 
 BOOL set_string(char *v, char *str);
 BOOL set_flags(char *v, int *flagp, int mask);
@@ -52,22 +51,22 @@ BOOL set_longlong(char *v, long long *llnump);
 void lowercase(char *str);
 BOOL kv_pair(char *buf, char **k, char **v);
 BOOL set_key(char *k, char *v, Options *opts);
-SLURM *get_SLURM_env();
-int get_int_env(char *key);
-void get_str_env(char *str, char *key);
-void show_SLURM_env(SLURM *slurm);
 
 Options *cl_opts;
 int      cl_opts_mask = 0;
 Options *opts;
-SLURM   *slurm;
-Mib     *mib;
 
+extern Mib     *mib;
+extern SLURM   *slurm;
+extern int     use_mpi;
+
+char *opt_str = "ad:EIhHl:L:npPrRs:St:W";
 void
-command_line(int argc, char *argv[], int rank)
+command_line(int *argcp, char **argvp[])
 {
+  int argc = *argcp;
+  char **argv = *argvp; 
   int opt;
-  char *opt_str = "ad:EIhHl:L:npPrRs:St:W";
   int idx;
   const struct option long_options[] = 
     {
@@ -78,7 +77,8 @@ command_line(int argc, char *argv[], int rank)
       {"show_headers", 0, NULL, 'H'},
       {"call_limit", 1, NULL, 'l'},
       {"time_limit", 1, NULL, 'L'},
-      {"new ", 0 , NULL, 'n'},
+      {"no_mpi", 0 , NULL, 'M'},
+      {"new", 0 , NULL, 'n'},
       {"profiles", 0, NULL, 'p'},
       {"show_progress", 0, NULL, 'P'},
       {"remove", 0, NULL, 'r'},
@@ -90,115 +90,93 @@ command_line(int argc, char *argv[], int rank)
       {"help", 0, NULL, 'h'},
       {0, 0, 0, 0},
     };
-  int bail = 0;
 
   cl_opts = Make_Opts();
-  if ( rank == 0 )
+  while( (opt = getopt_long(argc, argv, opt_str, long_options, &idx)) != -1)
     {
-      while( (opt = getopt_long(argc, argv, opt_str, long_options, &idx)) != -1)
+      switch(opt)
 	{
-	  switch(opt)
-	    {
-	    case 'a' : /* use_node_aves */
-	      set_flags("true", &(cl_opts->flags), USE_NODE_AVES);
-	      set_flags("true", &(cl_opts_mask), CL_USE_NODE_AVES);
-	      break;
-	    case 'd' : /* log_dir */
-	      set_string(optarg, cl_opts->log_dir);
-	      set_flags("true", &(cl_opts_mask), CL_LOG_DIR);
-	      break;
-	    case 'E' : /* show_environment */
-	      set_flags("true", &(cl_opts->verbosity), SHOW_ENVIRONMENT);
-	      set_flags("true", &(cl_opts_mask), CL_SHOW_ENVIRONMENT);
-	      break;
-	    case 'I' : /* show_intermediate_values */
-	      set_flags("true", &(cl_opts->verbosity), SHOW_INTERMEDIATE_VALUES);
-	      set_flags("true", &(cl_opts_mask), CL_SHOW_INTERMEDIATE_VALUES);
-	      break;
-	    case 'H' : /* show_headers */
-	      set_flags("true", &(cl_opts->verbosity), SHOW_HEADERS);
-	      set_flags("true", &(cl_opts_mask), CL_SHOW_HEADERS);
-	      break;
-	    case 'l' : /* call_limit */
-	      set_int(optarg, &(cl_opts->call_limit));
-	      set_flags("true", &(cl_opts_mask), CL_CALL_LIMIT);
-	      break;
-	    case 'L' : /* time_limit */
-	      set_int(optarg, &(cl_opts->time_limit));
-	      set_flags("true", &(cl_opts_mask), CL_TIME_LIMIT);
-	      break;
-	    case 'n' : /* new */
-	      set_flags("true", &(cl_opts->flags), NEW);
-	      set_flags("true", &(cl_opts_mask), CL_NEW);
-	      break;
-	    case 'p' : /* profiles */
-	      set_flags("true", &(cl_opts->flags), PROFILES);
-	      set_flags("true", &(cl_opts_mask), CL_PROFILES);
-	      break;
-	    case 'P' : /* show_progress */
-	      set_flags("true", &(cl_opts->verbosity), SHOW_PROGRESS);
-	      set_flags("true", &(cl_opts_mask), CL_SHOW_PROGRESS);
-	      break;
-	    case 'r' : /* remove */
-	      set_flags("true", &(cl_opts->flags), REMOVE);
-	      set_flags("true", &(cl_opts_mask), CL_REMOVE);
-	      break;
-	    case 'R' : /* read_only */
-	      set_flags("true", &(cl_opts->flags), READ_ONLY);
-	      set_flags("true", &(cl_opts_mask), CL_READ_ONLY);
-	      break;
-	    case 's' : /* call_size */
-	      set_longlong(optarg, &(cl_opts->call_size));
-	      set_flags("true", &(cl_opts_mask), CL_CALL_SIZE);
-	      break;
-	    case 'S' : /* show_signon */
-	      set_flags("true", &(cl_opts->verbosity), SHOW_SIGNON);
-	      set_flags("true", &(cl_opts_mask), CL_SHOW_SIGNON);
-	      break;
-	    case 't' : /* test_dir */
-	      set_string(optarg, cl_opts->testdir);
-	      set_flags("true", &(cl_opts_mask), CL_TESTDIR);
-	      break;
-	    case 'W' : /* write_only */
-	      set_flags("true", &(cl_opts->flags), WRITE_ONLY);
-	      set_flags("true", &(cl_opts_mask), CL_WRITE_ONLY);
-	      break;
-	    case 'h' :  /* help */
-	    default : 
-	      usage(); bail = 1; break;
-	    }
+	case 'a' : /* use_node_aves */
+	  set_flags("true", &(cl_opts->flags), USE_NODE_AVES);
+	  set_flags("true", &(cl_opts_mask), CL_USE_NODE_AVES);
+	  break;
+	case 'd' : /* log_dir */
+	  set_string(optarg, cl_opts->log_dir);
+	  set_flags("true", &(cl_opts_mask), CL_LOG_DIR);
+	  break;
+	case 'E' : /* show_environment */
+	  set_flags("true", &(cl_opts->verbosity), SHOW_ENVIRONMENT);
+	  set_flags("true", &(cl_opts_mask), CL_SHOW_ENVIRONMENT);
+	  break;
+	case 'I' : /* show_intermediate_values */
+	  set_flags("true", &(cl_opts->verbosity), SHOW_INTERMEDIATE_VALUES);
+	  set_flags("true", &(cl_opts_mask), CL_SHOW_INTERMEDIATE_VALUES);
+	  break;
+	case 'H' : /* show_headers */
+	  set_flags("true", &(cl_opts->verbosity), SHOW_HEADERS);
+	  set_flags("true", &(cl_opts_mask), CL_SHOW_HEADERS);
+	  break;
+	case 'l' : /* call_limit */
+	  set_int(optarg, &(cl_opts->call_limit));
+	  set_flags("true", &(cl_opts_mask), CL_CALL_LIMIT);
+	  break;
+	case 'L' : /* time_limit */
+	  set_int(optarg, &(cl_opts->time_limit));
+	  set_flags("true", &(cl_opts_mask), CL_TIME_LIMIT);
+	  break;
+	case 'M' : /* no MPI */
+	  use_mpi = FORCE_NO_MPI;
+	  break;
+	case 'n' : /* new */
+	  set_flags("true", &(cl_opts->flags), NEW);
+	  set_flags("true", &(cl_opts_mask), CL_NEW);
+	  break;
+	case 'p' : /* profiles */
+	  set_flags("true", &(cl_opts->flags), PROFILES);
+	  set_flags("true", &(cl_opts_mask), CL_PROFILES);
+	  break;
+	case 'P' : /* show_progress */
+	  set_flags("true", &(cl_opts->verbosity), SHOW_PROGRESS);
+	  set_flags("true", &(cl_opts_mask), CL_SHOW_PROGRESS);
+	  break;
+	case 'r' : /* remove */
+	  set_flags("true", &(cl_opts->flags), REMOVE);
+	  set_flags("true", &(cl_opts_mask), CL_REMOVE);
+	  break;
+	case 'R' : /* read_only */
+	  set_flags("true", &(cl_opts->flags), READ_ONLY);
+	  set_flags("true", &(cl_opts_mask), CL_READ_ONLY);
+	  break;
+	case 's' : /* call_size */
+	  set_longlong(optarg, &(cl_opts->call_size));
+	  set_flags("true", &(cl_opts_mask), CL_CALL_SIZE);
+	  break;
+	case 'S' : /* show_signon */
+	  set_flags("true", &(cl_opts->verbosity), SHOW_SIGNON);
+	  set_flags("true", &(cl_opts_mask), CL_SHOW_SIGNON);
+	  break;
+	case 't' : /* test_dir */
+	  set_string(optarg, cl_opts->testdir);
+	  set_flags("true", &(cl_opts_mask), CL_TESTDIR);
+	  break;
+	case 'W' : /* write_only */
+	  set_flags("true", &(cl_opts->flags), WRITE_ONLY);
+	  set_flags("true", &(cl_opts_mask), CL_WRITE_ONLY);
+	  break;
+	case 'h' :  /* help */
+	default : 
+	  if ( slurm->PROCID == 0 ) usage(); break;
 	}
     }
-  mpi_bcast(&bail, 1, MPI_INT, 0, MPI_COMM_WORLD);
-  if ( bail )
-    {
-      mpi_finalize();
-      exit(0);
-    }
-}
-
-Options *
-read_options(int rank, int size)
-{
-  int opt;
-  char *opt_str = "d:h";
-  Options *opts;
-  
-  slurm = get_SLURM_env();
-  mib = Init_Mib(rank, size);
-#ifdef DEBUG_CODE
-  if ( mib->rank == mib->base )
-    show_SLURM_env(slurm);
-#endif
-  opts = Init_Opts();
-  show_keys(opts);
-  return(opts);
+  /* Anything we've consumed doesn't need to be passed to the MPI initializer */
+  *argcp -= optind;
+  *argvp += optind;
 }
 
 void
 usage( void )
 {
-  printf("usage: mib [ad:EIhHl:L:npPrRs:St:W]\n");
+  printf("usage: mib [%s]\n", opt_str);
   printf("       -a                  :  Use average profile times accross node.\n");
   printf("       -d <log_dir>        :  parameters file \"<log_dir>/options\" and profiles files here, \n");
   printf("                           :    if any (default is cwd).\n");
@@ -210,9 +188,10 @@ usage( void )
   printf("       -L <time_limit>     :  Do not issue new system calls after this many\n");
   printf("                           :    seconds (limits are per phase for write and\n");
   printf("                           :    read phases).\n");
+  printf("       -M                  :  Do not use MPI even if it is available.\n");
   printf("       -n                  :  Create new files if files were already present\n");
   printf("                           :    (will always create new files if none were\n");
-  printf("       -n                  :    present).\n");
+  printf("                           :    present).\n");
   printf("       -p                  :  Output system call timing profiles to <log_dir>\n");
   printf("                           :    (default is current working directory).\n");
   printf("       -P                  :  Show progress bars during testing.\n");
@@ -227,10 +206,11 @@ usage( void )
   printf("       -W                  :  Only perform the write test\n");
   printf("                           :    (if -R and -W are both present both tests \n");
   printf("                           :     will run, but that's the default anyway)\n");
+  exit(0);
 }
 
 Options *
-Init_Opts()
+read_options()
 {
   Options *opts;
   char options[MAX_BUF];
@@ -247,7 +227,13 @@ Init_Opts()
   int group_spec[3];
 
   opts = Make_Opts();
-  if(mib->rank == mib->base)
+  /* 
+   *   If we are using MPI then only task 0 needs to read the config file.
+   * We'll broadcast the results shortly.  This reduces how much needs to 
+   * be read in, presumably via a thin pipe to NFS.  If there are very many
+   * tasks the savings may be substantial in both time and stability.
+   */
+  if ( (mib->rank == mib->base) || ( DO_NOT_USE_MPI ) )
     {
       if (check_cl(CL_LOG_DIR))
 	{
@@ -277,22 +263,30 @@ Init_Opts()
 	  opts->flags &= ~READ_ONLY;
 	}
     }
-  mpi_bcast(&(len), 1, MPI_INT, mib->base, mib->comm);
-  mpi_bcast(opts->testdir, len, MPI_CHAR, mib->base, mib->comm);
-  mpi_bcast(&(opts->call_limit), 1, MPI_INT, mib->base, mib->comm);
-  mpi_bcast(&(opts->call_size), 1, MPI_LONG_LONG, mib->base, mib->comm);
-  mpi_bcast(&(opts->time_limit), 1, MPI_INT, mib->base, mib->comm);
-  mpi_bcast(&(opts->flags), 1, MPI_INT, mib->base, mib->comm);
-  mpi_bcast(&(opts->verbosity), 1, MPI_INT, mib->base, mib->comm);
-  
-  if(mib->tasks < mib->size)
+  if (USE_MPI)
     {
-      MPI_Comm_group(MPI_COMM_WORLD, &world_group);
-      group_spec[0] = mib->base;
-      group_spec[1] = mib->tasks + mib->base - 1;
-      group_spec[3] = 1;
-      MPI_Group_range_incl(world_group, 1, &group_spec, &group);
-      MPI_Comm_create(MPI_COMM_WORLD, group, &(mib->comm));
+      mpi_bcast(&(len), 1, MPI_INT, mib->base, mib->comm);
+      mpi_bcast(opts->testdir, len, MPI_CHAR, mib->base, mib->comm);
+      mpi_bcast(&(opts->call_limit), 1, MPI_INT, mib->base, mib->comm);
+      mpi_bcast(&(opts->call_size), 1, MPI_LONG_LONG, mib->base, mib->comm);
+      mpi_bcast(&(opts->time_limit), 1, MPI_INT, mib->base, mib->comm);
+      mpi_bcast(&(opts->flags), 1, MPI_INT, mib->base, mib->comm);
+      mpi_bcast(&(opts->verbosity), 1, MPI_INT, mib->base, mib->comm);
+
+      /*
+       *   this is an unexplored part of the application.  I'd eventually
+       * like to allow for arbitrary subcommunicators, but not untill much
+       * else is sorted out.
+       */
+      if(mib->tasks < mib->size)
+	{
+	  MPI_Comm_group(MPI_COMM_WORLD, &world_group);
+	  group_spec[0] = mib->base;
+	  group_spec[1] = mib->tasks + mib->base - 1;
+	  group_spec[3] = 1;
+	  MPI_Group_range_incl(world_group, 1, &group_spec, &group);
+	  MPI_Comm_create(MPI_COMM_WORLD, group, &(mib->comm));
+	}
     }
   return(opts);
 }
@@ -311,20 +305,6 @@ Make_Opts()
   opts->flags = DEFAULTS;
   opts->verbosity = QUIET;
   return(opts);
-}
-
-Mib *
-Init_Mib(int rank, int size)
-{
-  Mib *mib;
-
-  mib = (Mib *)Malloc(sizeof(Mib));
-  mib->nodes = slurm->NNODES;
-  mib->tasks = slurm->NPROCS;
-  mib->rank = rank;
-  mib->size = size;
-  mib->base = 0;
-  mib->comm = MPI_COMM_WORLD;
 }
 
 void
@@ -562,83 +542,3 @@ lowercase(char *str)
     }
 }
 
-SLURM *
-get_SLURM_env()
-{
-  SLURM *slurm;
-  
-  slurm = (SLURM*)Malloc(sizeof(SLURM));
-  slurm->CPUS_ON_NODE = get_int_env("SLURM_CPUS_ON_NODE");
-  slurm->CPUS_PER_TASK = get_int_env("SLURM_CPUS_PER_TASK");
-  get_str_env(slurm->CPU_BIND_LIST, "SLURM_CPU_BIND_LIST");
-  get_str_env(slurm->CPU_BIND_TYPE, "SLURM_CPU_BIND_TYPE");
-  get_str_env(slurm->CPU_BIND_VERBOSE, "SLURM_CPU_BIND_VERBOSE");
-  slurm->JOBID = get_int_env("SLURM_JOBID");
-  get_str_env(slurm->LAUNCH_NODE_IPADDR, "SLURM_LAUNCH_NODE_IPADDR");
-  slurm->LOCALID = get_int_env("SLURM_LOCALID");
-  slurm->NNODES = get_int_env("SLURM_NNODES");
-  slurm->NODEID = get_int_env("SLURM_NODEID");
-  get_str_env(slurm->NODELIST, "SLURM_NODELIST");
-  slurm->NPROCS = get_int_env("SLURM_NPROCS");
-  slurm->PROCID = get_int_env("SLURM_PROCID");
-  get_str_env(slurm->SRUN_COMM_HOST, "SLURM_SRUN_COMM_HOST");
-  slurm->SRUN_COMM_PORT = get_int_env("SLURM_SRUN_COMM_PORT");
-  slurm->STEPID = get_int_env("SLURM_STEPID");
-  get_str_env(slurm->TASKS_PER_NODE, "SLURM_TASKS_PER_NODE");
-  slurm->TASK_PID = get_int_env("SLURM_TASK_PID");
-  get_str_env(slurm->UMASK, "SLURM_UMASK");
-  /*  show_SLURM_env(slurm); */
-  return(slurm);
-}
-
-void
-show_SLURM_env(SLURM *slurm)
-{
-  printf("SLURM_CPUS_ON_NODE = %d\n", slurm->CPUS_ON_NODE);
-  printf("SLURM_CPUS_PER_TASK = %d\n", slurm->CPUS_PER_TASK);
-  printf("SLURM_CPU_BIND_LIST = %s\n", slurm->CPU_BIND_LIST);
-  printf("SLURM_CPU_BIND_TYPE = %s\n", slurm->CPU_BIND_TYPE);
-  printf("SLURM_CPU_BIND_VERBOSE = %s\n", slurm->CPU_BIND_VERBOSE);
-  printf("SLURM_JOBID = %d\n", slurm->JOBID);
-  printf("SLURM_LAUNCH_NODE_IPADDR = %s\n", slurm->LAUNCH_NODE_IPADDR);
-  printf("SLURM_LOCALID = %d\n", slurm->LOCALID);
-  printf("SLURM_NNODES = %d\n", slurm->NNODES);
-  printf("SLURM_NODEID = %d\n", slurm->NODEID);
-  printf("SLURM_NODELIST = %s\n", slurm->NODELIST);
-  printf("SLURM_NPROCS = %d\n", slurm->NPROCS);
-  printf("SLURM_PROCID = %d\n", slurm->PROCID);
-  printf("SLURM_SRUN_COMM_HOST = %s\n", slurm->SRUN_COMM_HOST);
-  printf("SLURM_SRUN_COMM_PORT = %d\n", slurm->SRUN_COMM_PORT);
-  printf("SLURM_STEPID = %d\n", slurm->STEPID);
-  printf("SLURM_TASKS_PER_NODE = %s\n", slurm->TASKS_PER_NODE);
-  printf("SLURM_TASK_PID = %d\n", slurm->TASK_PID);
-  printf("SLURM_UMASK = %s\n", slurm->UMASK);
-}
-
-int
-get_int_env(char *key)
-{
-  char *val;
-
-  if( (val = getenv(key)) != NULL )
-    {
-      /*      printf( "%s = %s\n", key, val);
-	      fflush(stdout);*/
-      return(atoi(val));
-    }
-  return(0);
-}
-  
-void
-get_str_env(char *str, char *key)
-{
-  char *val;
-
-  if( (val = getenv(key)) != NULL )
-    {
-      strncpy(str, val, MAX_BUF);
-    }
-  else
-    str[0] = '\0';
-}
-  

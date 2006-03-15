@@ -33,9 +33,9 @@ INSTALL= /usr/bin/install -c
 mkinstalldirs=	 $(SHELL) $(top_srcdir)/aux/mkinstalldirs
 
 CCFLAGS = -g -D_LARGEFILE64_SOURCE -D_FILE_OFFSET_BITS=64
-LDFLAGS =
+LDFLAGS = -rdynamic
 LIBDIRS = 
-LIBS = 
+LIBS = -ldl
 INCDIR = 
 DEBUG = # Put 'DEBUG="-DDEBUG_CODE=1"' on the command line if you want 
 	# debugging, or you can put it here if you really want to be sure
@@ -61,7 +61,7 @@ all: mib
 	$(MAKE) -C tools
 
 mib: $(OBJECTS) $(HEADERS)
-	$(CC) $(OBJECTS) $(DEBUG) -o $@ $(LIBDIRS) $(LIBS)
+	$(CC) $(CCFLAGS) $(OBJECTS) $(DEBUG) -o $@ $(LDFLAGS) $(LIBDIRS) $(LIBS)
 
 install: all
 	$(mkinstalldirs) 			$(DESTDIR)$(bindir)
