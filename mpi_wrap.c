@@ -31,16 +31,22 @@
 #include "mpi_wrap.h"
 #include "miberr.h"
 #include "options.h"
+#include "slurm.h"
+
 /*
  * Revisit these and decide which ones necessarily must FAIL, and wich
  * can defer to a barrier.
+ * In several cases it might be better to ASSERT(USE_MPI) rather than 
+ * silently return, since using, for instance, MPI_Gather can't really
+ * be amulated the way MPI_Reduce(...MAX...) is.  Even MPI_Reduce(...SUM...)
+ * could be a problem.
  */
 
 int use_mpi = NO_MPI;
 void *mpi_lib_handle;
 
 extern Options *opts;
-
+extern SLURM   *slurm;
 void
 mpi_init(int *argcp, char ***argvp)
 {
@@ -135,6 +141,7 @@ void
 mpi_reduce(void *sendbuf, void *recvbuf, int count, MPI_Datatype datatype, MPI_Op op, int root, MPI_Comm comm)
 {
   int rc;
+  int size = 1;
 
   if(USE_MPI)
     {
@@ -143,7 +150,7 @@ mpi_reduce(void *sendbuf, void *recvbuf, int count, MPI_Datatype datatype, MPI_O
     }
   else
     {
-      switch datatype
+      switch (datatype)
 	{
 	case MPI_INT :
 	  size = 4;
@@ -249,7 +256,7 @@ mpi_allreduce(void *sendbuf, void *recvbuf, int count, MPI_Datatype datatype, MP
     }
   else
     {
-      switch datatype
+      switch (datatype)
 	{
 	case MPI_INT :
 	  size = 4;

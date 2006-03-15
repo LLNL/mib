@@ -38,6 +38,7 @@ typedef enum {FALSE, TRUE} BOOL;
 #endif
 
 typedef struct Results_Struct {
+  double  before_unlink;
   double  start_open;
   double  end_open;
   double  start;
@@ -49,6 +50,7 @@ typedef struct Results_Struct {
   double  finish_fsync;  /* Only used for writes */
   double  start_close;
   double  end_close;
+  double  after_unlink;
   double  end_test;
 }Results;
 

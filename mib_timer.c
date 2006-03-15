@@ -39,6 +39,7 @@ static double _skew;
 static int _initialized = 0;
 
 extern char *version;
+extern int use_mpi;
 
 void
 init_timer(int rank, char *signon)
@@ -48,14 +49,22 @@ init_timer(int rank, char *signon)
   time_t t;
   char *p;
 
-  mpi_barrier(MPI_COMM_WORLD);
-  start = MPI_Wtime();
-  mpi_allreduce(&start, &_zero, 1, MPI_DOUBLE, MPI_MIN, MPI_COMM_WORLD);
-  _skew = start - _zero;
+  t = time(NULL);
+  if (USE_MPI)
+    {
+      mpi_barrier(MPI_COMM_WORLD);
+      start = MPI_Wtime();
+      mpi_allreduce(&start, &_zero, 1, MPI_DOUBLE, MPI_MIN, MPI_COMM_WORLD);
+      _skew = start - _zero;
+    }
+  else
+    {
+      _zero = t;
+      _skew = 0;
+    }
   _initialized = 1;
   if ( rank == 0 )
     {
-      t = time(NULL);
       strncpy(time_str, ctime(&t), MAX_BUF);
       p = time_str;
       while( (*p != '\0') && (*p != '\n') && (p - time_str < MAX_BUF) )p++;
@@ -67,6 +76,16 @@ init_timer(int rank, char *signon)
 double
 get_time()
 {
+  time_t t;
+  double now;
+
   ASSERT(_initialized == 1);
-  return(MPI_Wtime() - _zero - _skew);
+  if(USE_MPI)
+    now = MPI_Wtime() - _zero - _skew;
+  else
+    {
+      t = time(NULL);
+      now = t - _zero;
+    }
+  return(now);
 }

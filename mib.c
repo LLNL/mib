@@ -62,6 +62,7 @@
 #include <errno.h>
 #include <time.h>
 #include <stdarg.h>    /* varargs */
+#include <mpi.h>
 #include "mib.h"
 #include "miberr.h"
 #include "mpi_wrap.h"
@@ -87,6 +88,7 @@ char *version=MIB_VERSION;
 
 extern Options *opts;
 extern SLURM   *slurm;
+extern int use_mpi;
 
 int
 main( int argc, char *argv[] )
@@ -190,12 +192,13 @@ write_test()
    * utility.
    */
   mpi_barrier(mib->comm);
-  res->start_open = get_time();
+  res->before_unlink = get_time();
   if( check_flags(NEW) ) 
     {
       Unlink(write_target);
       flag |= O_CREAT;
     }
+  res->start_open = get_time();
   wf = Open(write_target, flag);
   res->end_open = get_time();
   mpi_barrier(mib->comm);
@@ -250,6 +253,12 @@ write_test()
   res->start_close = get_time();
   Close(wf);
   res->end_close = get_time();
+  /* 
+   * N.B. there is no optional unlink at the end of the writes
+   * Note to self: What happens when this is a write_only test and files are to be
+   * removed at the end?
+   */
+  res->after_unlink = get_time();
   mpi_barrier(mib->comm);
   res->end_test = get_time();
   free(buf);
@@ -278,36 +287,44 @@ write_test()
 	      "\nAfter %d calls and %f seconds\n", 
 	      last_write_call, res->end_test - res->start_open);
 
-  /*
-   *   Red will end up with the aggregate amout of data transfered and the
-   * earliest and latest values for the various timestamps.  From that it
-   * is a simple calculation to get the aggregate data rate.
-   */
-  red = reduce_results(res);
-  if(mib->rank == mib->base)
-    {
-      time = red->finish_fsync - red->start;
-      if(time != 0)
-	rate = red->transferred/time;
-    }
-  base_report(SHOW_INTERMEDIATE_VALUES, "%f MB written in %f seconds\n", red->transferred, time);
-  if ( red->short_transfers != 0 )
-    base_report(SHOW_INTERMEDIATE_VALUES, "%d short writes\n", red->short_transfers);
-  free(red);
-
-  if( check_flags(PROFILES) )
+  if(USE_MPI)
     {
       /*
-       *   The job of reporting out details of the system call timings is
-       *   left to this function.  The info goes to the
-       *   write.syscalls.aves file in the log directory.  A summary of
-       *   the unevenness of the system calls, if any, is reported to
-       *   stdout.
+       *   Red will end up with the aggregate amout of data transfered and the
+       * earliest and latest values for the various timestamps.  From that it
+       * is a simple calculation to get the aggregate data rate.
        */
-      DEBUG("Write table:\n");
-      profiles(res->timings, last_write_call + 1, "write");
+      red = reduce_results(res);
+      if(mib->rank == mib->base)
+	{
+	  time = red->finish_fsync - red->start;
+	  if(time != 0)
+	    rate = red->transferred/time;
+	}
+      base_report(SHOW_INTERMEDIATE_VALUES, "%f MB written in %f seconds\n", red->transferred, time);
+      if ( red->short_transfers != 0 )
+	base_report(SHOW_INTERMEDIATE_VALUES, "%d short writes\n", red->short_transfers);
+      free(red);
+      
+      if( check_flags(PROFILES) )
+	{
+	  /*
+	   *   The job of reporting out details of the system call timings is
+	   *   left to this function.  The info goes to the
+	   *   write.syscalls.aves file in the log directory.  A summary of
+	   *   the unevenness of the system calls, if any, is reported to
+	   *   stdout.
+	   */
+	  DEBUG("Write table:\n");
+	  profiles(res->timings, last_write_call + 1, "write");
+	}
     }
-
+  else
+    {
+      time = res->finish_fsync - res->start;
+      if(time != 0)
+	rate = res->transferred/time;
+    }
   free(res->timings);
   free(res);
   DEBUG("Write complete.\n");
@@ -340,6 +357,8 @@ reduce_results(Results *res)
   red = (Results *)Malloc(sizeof(Results));
   red->timings = NULL;
 
+  mpi_reduce(&(res->before_unlink), &(red->before_unlink), 1, MPI_DOUBLE, 
+	     MPI_MIN, mib->base, mib->comm);
   mpi_reduce(&(res->start_open), &(red->start_open), 1, MPI_DOUBLE, 
 	     MPI_MIN, mib->base, mib->comm);
   mpi_reduce(&(res->end_open), &(red->end_open), 1, MPI_DOUBLE, 
@@ -358,6 +377,8 @@ reduce_results(Results *res)
 	     MPI_MIN, mib->base, mib->comm);
   mpi_reduce(&(res->end_close), &(red->end_close), 1, MPI_DOUBLE, 
 	     MPI_MAX, mib->base, mib->comm);
+  mpi_reduce(&(res->after_unlink), &(red->after_unlink), 1, MPI_DOUBLE, 
+	     MPI_MIN, mib->base, mib->comm);
   mpi_reduce(&(res->end_test), &(red->end_test), 1, MPI_DOUBLE, 
 	     MPI_MAX, mib->base, mib->comm);
   return(red);
@@ -470,6 +491,12 @@ read_test()
   buf = (char *)Malloc(opts->call_size);
   snprintf(read_target, MAX_BUF, "%s/mibData.%08d", opts->testdir, read_rank);
 
+  /* 
+   * N.B. there is no optional unlink at the beginning of the reads 
+   * Note to self: What happens when this is a read_only test and there are no target
+   * files?
+   */
+  res->before_unlink = get_time();
   /*
    *   Open the target file.  
    */
@@ -518,11 +545,12 @@ read_test()
   mpi_barrier(mib->comm);
   res->start_close = get_time();
   Close(rf);
+  res->end_close = get_time();
   if( check_flags(REMOVE) ) 
     {
       Unlink(read_target);
     }
-  res->end_close = get_time();
+  res->after_unlink = get_time();
   mpi_barrier(mib->comm);
   res->end_test = get_time();
   free(buf);
@@ -552,38 +580,46 @@ read_test()
 	      "\nAfter %d calls and %f seconds\n", 
 	      last_read_call, res->end_test - res->start_open);
 
-  /*
-   *   Red will end up with the aggregate amout of data transfered and the
-   * earliest and latest values for the various timestamps.  From that it
-   * is a simple calculation to get the aggregate data rate.
-   */
-  red = reduce_results(res);
-  if(mib->rank == mib->base)
-    {
-      time = red->end - red->start;
-      if(time != 0)
-	rate = red->transferred/time;
-    }
-  base_report(SHOW_INTERMEDIATE_VALUES, 
-	      "%f MB read in %f seconds\n", red->transferred, time);
-  if ( red->short_transfers != 0 )
-    base_report(SHOW_INTERMEDIATE_VALUES, "%d short reads\n", red->short_transfers);
-  free(red);
-
-  if( check_flags(PROFILES) )
+  if(USE_MPI)
     {
       /*
-       *   The job of reporting out details of the system call timings is
-       *   left to this function.  The info goes to the
-       *   read.syscalls.aves file in the log directory.  A summary of
-       *   the unevenness of the system calls, if any, is reported to
-       *   stdout.
+       *   Red will end up with the aggregate amout of data transfered and the
+       * earliest and latest values for the various timestamps.  From that it
+       * is a simple calculation to get the aggregate data rate.
        */
-      DEBUG("Read table:\n");
-      profiles(res->timings,  last_read_call + 1, "read");
-      DEBUG("Reductions complete.\n");
+      red = reduce_results(res);
+      if(mib->rank == mib->base)
+	{
+	  time = red->end - red->start;
+	  if(time != 0)
+	    rate = red->transferred/time;
+	}
+      base_report(SHOW_INTERMEDIATE_VALUES, 
+		  "%f MB read in %f seconds\n", red->transferred, time);
+      if ( red->short_transfers != 0 )
+	base_report(SHOW_INTERMEDIATE_VALUES, "%d short reads\n", red->short_transfers);
+      free(red);
+      
+      if( check_flags(PROFILES) )
+	{
+	  /*
+	   *   The job of reporting out details of the system call timings is
+	   *   left to this function.  The info goes to the
+	   *   read.syscalls.aves file in the log directory.  A summary of
+	   *   the unevenness of the system calls, if any, is reported to
+	   *   stdout.
+	   */
+	  DEBUG("Read table:\n");
+	  profiles(res->timings,  last_read_call + 1, "read");
+	  DEBUG("Reductions complete.\n");
+	}
     }
-
+  else
+    {
+      time = res->end - res->start;
+      if(time != 0)
+	rate = res->transferred/time;      
+    }
   free(res->timings);
   free(res);
   DEBUG("Read complete.\n");
@@ -797,15 +833,29 @@ report(double write, double read)
       range_ch = 'M';
     }
   xfer = opts->call_size/range;
-  
-  base_report(SHOW_HEADERS, 
-	      "%14s           %6s %5s %5s %5s %10s %10s\n", "date", "tasks", "xfer", "call", "time", "write", "read");
-  base_report(SHOW_HEADERS, 
-	      "%24s %6s %5s %5s %5s %10s %10s\n", " ", " ", " ", "limit", "limit", "MB/s", "MB/s");
-  base_report(SHOW_HEADERS, 
-	      "%24s %6s %5s %5s %5s %10s %10s\n", "------------------------", "------", "-----", "-----", "-----", "----------", "----------");
-  base_report(SHOW_ALL, 
-	      "%s %6d %4d%c %5d %5d %10.2f %10.2f\n", time_str, mib->tasks, xfer, range_ch, opts->call_limit, opts->time_limit, write, read);
+  if ( USE_MPI && (mib->rank == mib->base)  )
+    {
+      
+      base_report(SHOW_HEADERS, 
+		  "%14s           %6s %5s %5s %5s %10s %10s\n", "date", "tasks", "xfer", "call", "time", "write", "read");
+      base_report(SHOW_HEADERS, 
+		  "%24s %6s %5s %5s %5s %10s %10s\n", " ", " ", " ", "limit", "limit", "MB/s", "MB/s");
+      base_report(SHOW_HEADERS, 
+		  "%24s %6s %5s %5s %5s %10s %10s\n", "------------------------", "------", "-----", "-----", "-----", "----------", "----------");
+      base_report(SHOW_ALL, 
+		  "%s %6d %4d%c %5d %5d %10.2f %10.2f\n", time_str, mib->tasks, xfer, range_ch, opts->call_limit, opts->time_limit, write, read);
+
+    }
+  else
+    {
+      base_report(SHOW_HEADERS, 
+		  "%6d %14s           %6s %5s %5s %5s %10s %10s\n", "task", "date", "tasks", "xfer", "call", "time", "write", "read");
+      base_report(SHOW_HEADERS, 
+		  "%6d %24s %6s %5s %5s %5s %10s %10s\n", " ", " ", " ", " ", "limit", "limit", "MB/s", "MB/s");
+      base_report(SHOW_HEADERS, 
+		  "%6d %24s %6s %5s %5s %5s %10s %10s\n", "------", "------------------------", "------", "-----", "-----", "-----", "----------", "----------");
+      printf("%6d %s %6d %4d%c %5d %5d %10.2f %10.2f\n", slurm->PROCID, time_str, mib->tasks, xfer, range_ch, opts->call_limit, opts->time_limit, write, read);
+    }
 }
 
 void

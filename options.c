@@ -33,6 +33,7 @@
 #include <stdarg.h>
 #define _GNU_SOURCE
 #include <getopt.h>
+#include <mpi.h>
 #include "sys_wrap.h"
 #include "miberr.h"
 #include "options.h"

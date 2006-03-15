@@ -40,6 +40,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdarg.h>
+#include <mpi.h>
+#include "mib.h"
 #include "miberr.h"
 #include "sys_wrap.h"
 #include "options.h"
