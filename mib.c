@@ -135,6 +135,7 @@ main( int argc, char *argv[] )
 	mpi_comm_free(&(mib->comm));
       mpi_barrier(MPI_COMM_WORLD);
     }
+  fflush(stdout);
   mpi_finalize();
 }
 
@@ -144,12 +145,34 @@ Init_Mib(int rank, int size)
   Mib *mib;
 
   mib = (Mib *)Malloc(sizeof(Mib));
-  mib->nodes = slurm->NNODES;
-  mib->tasks = slurm->NPROCS;
-  mib->rank = rank;
-  mib->size = size;
-  mib->base = 0;
+  /* 
+   *   If we don't even have a slurm environment then act like there's 
+   * just one of us.  Get your rank off of the hostname and be sure to
+   * set size = 1 and base the same as rank.
+   */
+  mib->nodes = slurm->use_SLURM ? slurm->NNODES : 1;
+  mib->tasks = slurm->use_SLURM ? slurm->NPROCS : 1;
+  mib->rank =  USE_MPI ? rank : (slurm->use_SLURM ? slurm->PROCID : get_host_index());
+  mib->size =  USE_MPI ? size : (slurm->use_SLURM ? slurm->NPROCS : 1 );
+  mib->base =  USE_MPI ? 0 : (slurm->use_SLURM ? 0 : mib->rank );
   mib->comm = MPI_COMM_WORLD;
+}
+
+int
+get_host_index()
+{
+  int rc;
+  char name[MAX_BUF];
+  char *p = name;
+
+  if((rc = gethostname(name, MAX_BUF)) == -1)
+    {
+      return(0);
+    }
+
+  while ( *p && ((*p < '0') || (*p > '9')) ) p++;
+  if(*p) return(atoi(p));
+  return(0);
 }
 
 double
@@ -833,7 +856,7 @@ report(double write, double read)
       range_ch = 'M';
     }
   xfer = opts->call_size/range;
-  if ( USE_MPI && (mib->rank == mib->base)  )
+  if ( USE_MPI )
     {
       
       base_report(SHOW_HEADERS, 
@@ -844,17 +867,18 @@ report(double write, double read)
 		  "%24s %6s %5s %5s %5s %10s %10s\n", "------------------------", "------", "-----", "-----", "-----", "----------", "----------");
       base_report(SHOW_ALL, 
 		  "%s %6d %4d%c %5d %5d %10.2f %10.2f\n", time_str, mib->tasks, xfer, range_ch, opts->call_limit, opts->time_limit, write, read);
-
+      fflush(stdout);
     }
   else
     {
       base_report(SHOW_HEADERS, 
-		  "%6d %14s           %6s %5s %5s %5s %10s %10s\n", "task", "date", "tasks", "xfer", "call", "time", "write", "read");
+		  "%6s %14s           %6s %5s %5s %5s %10s %10s\n", "task", "date", "tasks", "xfer", "call", "time", "write", "read");
       base_report(SHOW_HEADERS, 
-		  "%6d %24s %6s %5s %5s %5s %10s %10s\n", " ", " ", " ", " ", "limit", "limit", "MB/s", "MB/s");
+		  "%6s %24s %6s %5s %5s %5s %10s %10s\n", " ", " ", " ", " ", "limit", "limit", "MB/s", "MB/s");
       base_report(SHOW_HEADERS, 
-		  "%6d %24s %6s %5s %5s %5s %10s %10s\n", "------", "------------------------", "------", "-----", "-----", "-----", "----------", "----------");
-      printf("%6d %s %6d %4d%c %5d %5d %10.2f %10.2f\n", slurm->PROCID, time_str, mib->tasks, xfer, range_ch, opts->call_limit, opts->time_limit, write, read);
+		  "%6s %24s %6s %5s %5s %5s %10s %10s\n", "------", "------------------------", "------", "-----", "-----", "-----", "----------", "----------");
+      printf("%6d %s %6d %4d%c %5d %5d %10.2f %10.2f\n", mib->rank, time_str, mib->tasks, xfer, range_ch, opts->call_limit, opts->time_limit, write, read);
+      fflush(stdout);
     }
 }
 

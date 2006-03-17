@@ -43,12 +43,13 @@
 #include <mpi.h>
 #include "mib.h"
 #include "miberr.h"
+#include "mpi_wrap.h"
 #include "sys_wrap.h"
 #include "options.h"
 
 extern Options *opts;
 extern Mib     *mib;
-
+extern int use_mpi;
 int
 Open(char *name, int flags)
 {

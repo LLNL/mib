@@ -57,6 +57,7 @@ void show_SLURM_env();
 #define MAX_SLURM_BUF 100
 
 typedef struct SLURM_Struct {
+  int use_SLURM;
   int CPUS_ON_NODE;
   int CPUS_PER_TASK;
   char CPU_BIND_LIST[MAX_SLURM_BUF];

@@ -31,7 +31,6 @@
 #include "mpi_wrap.h"
 #include "miberr.h"
 #include "options.h"
-#include "slurm.h"
 
 /*
  * Revisit these and decide which ones necessarily must FAIL, and wich
@@ -46,7 +45,7 @@ int use_mpi = NO_MPI;
 void *mpi_lib_handle;
 
 extern Options *opts;
-extern SLURM   *slurm;
+
 void
 mpi_init(int *argcp, char ***argvp)
 {
@@ -56,9 +55,8 @@ mpi_init(int *argcp, char ***argvp)
 
   if( (use_mpi == FORCE_NO_MPI) || (mpi_lib_handle = dlopen(mpi_lib, flag)) == NULL)
     return;
-  use_mpi = YES_MPI;
-  if((rc = MPI_Init(argcp, argvp)) != MPI_SUCCESS)
-    FAIL();
+  if((rc = MPI_Init(argcp, argvp)) == MPI_SUCCESS)
+    use_mpi = YES_MPI;
 }
 
 void
@@ -71,8 +69,6 @@ mpi_comm_size(MPI_Comm comm, int *sizep)
       if((rc = MPI_Comm_size(comm, sizep)) != MPI_SUCCESS)
 	FAIL();
     }
-  else
-    *sizep = slurm->NPROCS;
 }
 
 void
@@ -85,8 +81,6 @@ mpi_comm_rank(MPI_Comm comm, int *rankp)
       if((rc = MPI_Comm_rank(comm, rankp)) != MPI_SUCCESS)
 	FAIL();
     }
-  else
-    *rankp = slurm->PROCID;
 }
 
 /*MPI_Errhandler_set not planning on using this one yet*/
@@ -99,9 +93,11 @@ mpi_finalize(void)
   int rc;
 
   if(USE_MPI)
-    if((rc = MPI_Finalize()) != MPI_SUCCESS)
-      FAIL();
-  dlclose(mpi_lib_handle);
+    {
+      if((rc = MPI_Finalize()) != MPI_SUCCESS)
+	FAIL();
+      dlclose(mpi_lib_handle);
+    }
 }
 
 void

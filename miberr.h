@@ -41,7 +41,7 @@ typedef enum {FALSE, TRUE} BOOL;
         if(!(condition)) {                                               \
           fprintf(stderr, "ASSERTION: %s (%d)\n", __FILE__, __LINE__);   \
           fflush(stderr);                                                \
-          MPI_Abort(MPI_COMM_WORLD, 1);                                  \
+          if(USE_MPI) MPI_Abort(MPI_COMM_WORLD, 1);                      \
         }                                                                \
 } while (0)
 

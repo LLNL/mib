@@ -42,6 +42,7 @@ void
 get_SLURM_env()
 {
   slurm = (SLURM*)Malloc(sizeof(SLURM));
+  slurm->use_SLURM = 1;
   slurm->CPUS_ON_NODE = _get_int_env("SLURM_CPUS_ON_NODE");
   slurm->CPUS_PER_TASK = _get_int_env("SLURM_CPUS_PER_TASK");
   _get_str_env(slurm->CPU_BIND_LIST, "SLURM_CPU_BIND_LIST");
@@ -61,31 +62,40 @@ get_SLURM_env()
   _get_str_env(slurm->TASKS_PER_NODE, "SLURM_TASKS_PER_NODE");
   slurm->TASK_PID = _get_int_env("SLURM_TASK_PID");
   _get_str_env(slurm->UMASK, "SLURM_UMASK");
-  /*  show_SLURM_env(slurm); */
+  if(slurm->NPROCS == 0)
+    {
+      slurm->use_SLURM = 0;
+    }
+  /* show_SLURM_env(slurm); */
 }
 
 void
 show_SLURM_env()
 {
-  printf("SLURM_CPUS_ON_NODE = %d\n", slurm->CPUS_ON_NODE);
-  printf("SLURM_CPUS_PER_TASK = %d\n", slurm->CPUS_PER_TASK);
-  printf("SLURM_CPU_BIND_LIST = %s\n", slurm->CPU_BIND_LIST);
-  printf("SLURM_CPU_BIND_TYPE = %s\n", slurm->CPU_BIND_TYPE);
-  printf("SLURM_CPU_BIND_VERBOSE = %s\n", slurm->CPU_BIND_VERBOSE);
-  printf("SLURM_JOBID = %d\n", slurm->JOBID);
-  printf("SLURM_LAUNCH_NODE_IPADDR = %s\n", slurm->LAUNCH_NODE_IPADDR);
-  printf("SLURM_LOCALID = %d\n", slurm->LOCALID);
-  printf("SLURM_NNODES = %d\n", slurm->NNODES);
-  printf("SLURM_NODEID = %d\n", slurm->NODEID);
-  printf("SLURM_NODELIST = %s\n", slurm->NODELIST);
-  printf("SLURM_NPROCS = %d\n", slurm->NPROCS);
-  printf("SLURM_PROCID = %d\n", slurm->PROCID);
-  printf("SLURM_SRUN_COMM_HOST = %s\n", slurm->SRUN_COMM_HOST);
-  printf("SLURM_SRUN_COMM_PORT = %d\n", slurm->SRUN_COMM_PORT);
-  printf("SLURM_STEPID = %d\n", slurm->STEPID);
-  printf("SLURM_TASKS_PER_NODE = %s\n", slurm->TASKS_PER_NODE);
-  printf("SLURM_TASK_PID = %d\n", slurm->TASK_PID);
-  printf("SLURM_UMASK = %s\n", slurm->UMASK);
+  printf("use SLURM? %s\n", (slurm->use_SLURM ? "Yes" : "No"));
+  if(slurm->use_SLURM)
+    {
+      printf("SLURM_CPUS_ON_NODE = %d\n", slurm->CPUS_ON_NODE);
+      printf("SLURM_CPUS_PER_TASK = %d\n", slurm->CPUS_PER_TASK);
+      printf("SLURM_CPU_BIND_LIST = %s\n", slurm->CPU_BIND_LIST);
+      printf("SLURM_CPU_BIND_TYPE = %s\n", slurm->CPU_BIND_TYPE);
+      printf("SLURM_CPU_BIND_VERBOSE = %s\n", slurm->CPU_BIND_VERBOSE);
+      printf("SLURM_JOBID = %d\n", slurm->JOBID);
+      printf("SLURM_LAUNCH_NODE_IPADDR = %s\n", slurm->LAUNCH_NODE_IPADDR);
+      printf("SLURM_LOCALID = %d\n", slurm->LOCALID);
+      printf("SLURM_NNODES = %d\n", slurm->NNODES);
+      printf("SLURM_NODEID = %d\n", slurm->NODEID);
+      printf("SLURM_NODELIST = %s\n", slurm->NODELIST);
+      printf("SLURM_NPROCS = %d\n", slurm->NPROCS);
+      printf("SLURM_PROCID = %d\n", slurm->PROCID);
+      printf("SLURM_SRUN_COMM_HOST = %s\n", slurm->SRUN_COMM_HOST);
+      printf("SLURM_SRUN_COMM_PORT = %d\n", slurm->SRUN_COMM_PORT);
+      printf("SLURM_STEPID = %d\n", slurm->STEPID);
+      printf("SLURM_TASKS_PER_NODE = %s\n", slurm->TASKS_PER_NODE);
+      printf("SLURM_TASK_PID = %d\n", slurm->TASK_PID);
+      printf("SLURM_UMASK = %s\n", slurm->UMASK);
+    }
+  fflush(stdout);
 }
 
 int

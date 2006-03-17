@@ -61,7 +61,7 @@ extern Mib     *mib;
 extern SLURM   *slurm;
 extern int     use_mpi;
 
-char *opt_str = "ad:EIhHl:L:npPrRs:St:W";
+char *opt_str = "ad:EIhHl:L:MnpPrRs:St:W";
 void
 command_line(int *argcp, char **argvp[])
 {
@@ -166,7 +166,7 @@ command_line(int *argcp, char **argvp[])
 	  break;
 	case 'h' :  /* help */
 	default : 
-	  if ( slurm->PROCID == 0 ) usage(); break;
+	  if ( (slurm->use_SLURM == 0) || (slurm->PROCID == 0) ) usage(); break;
 	}
     }
   /* Anything we've consumed doesn't need to be passed to the MPI initializer */
@@ -179,8 +179,9 @@ usage( void )
 {
   printf("usage: mib [%s]\n", opt_str);
   printf("       -a                  :  Use average profile times accross node.\n");
-  printf("       -d <log_dir>        :  parameters file \"<log_dir>/options\" and profiles files here, \n");
-  printf("                           :    if any (default is cwd).\n");
+  printf("       -d <log_dir>        :  parameters file \"<log_dir>/options\"\n");
+  printf("                           :    and profiles files here, if any \n");
+  printf("                           :    (default is cwd).\n");
   printf("       -E                  :  Show environment of test in output.\n");
   printf("       -I                  :  Show intermediate values in output.\n");
   printf("       -h                  :  This message\n");
@@ -320,7 +321,7 @@ Free_Opts()
 void 
 command_line_overrides(Options *opts)
 {
-  ASSERT(mib->rank == mib->base);
+  ASSERT(DO_NOT_USE_MPI || (mib->rank == mib->base));
   if(check_cl(CL_TESTDIR))
     set_string(cl_opts->testdir, opts->testdir);
   if(check_cl(CL_CALL_LIMIT))
@@ -436,19 +437,24 @@ show_keys(Options *opts)
   ASSERT(opts != NULL);
   if ( (mib->rank == mib->base) && (opts->verbosity & SHOW_ENVIRONMENT) )
     {
-      strncpy(cluster, slurm->NODELIST, MAX_BUF);
-      for(p = cluster; ( (*p != '\0') &&
-			 (*p != '[') &&
-			 ( (*p < '0') || (*p > '9') ) &&
-			 ( p - cluster < MAX_BUF ) ); p++);
-      if( (p > cluster) && 
-	  (p - cluster < MAX_BUF) &&
-	  (*(p-1) == 'i') 
-	 ) *(p-1) = '\0';
-      if( (p > cluster) && 
-	  (p - cluster < MAX_BUF)  && 
-	  (*p == '[') ||
-	  ( ((*p >= '0') && (*p <= '9')) )  ) *p = '\0';
+      if( slurm->use_SLURM)
+	{
+	  strncpy(cluster, slurm->NODELIST, MAX_BUF);
+	  for(p = cluster; ( (*p != '\0') &&
+			     (*p != '[') &&
+			     ( (*p < '0') || (*p > '9') ) &&
+			     ( p - cluster < MAX_BUF ) ); p++);
+	  if( (p > cluster) && 
+	      (p - cluster < MAX_BUF) &&
+	      (*(p-1) == 'i') 
+	      ) *(p-1) = '\0';
+	  if( (p > cluster) && 
+	      (p - cluster < MAX_BUF)  && 
+	      (*p == '[') ||
+	      ( ((*p >= '0') && (*p <= '9')) )  ) *p = '\0';
+	}
+      else
+	cluster[0] = '\0';
       printf("cluster                  = %s\n", cluster);      
       printf("new                      = %s\n", ((opts->flags & NEW) ? "true" : "false"));
       printf("remove                   = %s\n", ((opts->flags & REMOVE) ? "true" : "false"));
