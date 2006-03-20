@@ -413,12 +413,6 @@ char *
 fill_buff()
 {
   /*
-   * Since it must be compatible with IOR tests (at least
-   * simple ones) this is borrowed (and suitably adapted) directly 
-   * from IOR.  It is the only non-original code in mib.
-   * N.B.  IOR sensibly does some gymnastics to get a page-alligned 
-   * buffer.  On BGL this is probably moot, but might be interesting
-   * to look into.
    */
   char *buffer;
   unsigned long long count, hi, lo, lomask;
@@ -717,7 +711,7 @@ profiles(double *array,   int count, char *io_direction)
 
   if(mib->rank == mib->base)
     {
-      if ( (ret = snprintf(profile_log_name, MAX_BUF, "%s/%s.syscall.aves", opts->log_dir, io_direction)) < 0)
+      if ( (ret = snprintf(profile_log_name, MAX_BUF, "%s/%s.profile", opts->log_dir, io_direction)) < 0)
 	FAIL();
       lfd = Fopen(profile_log_name, "w");
     }

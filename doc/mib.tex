@@ -1,0 +1,191 @@
+\documentclass{article}
+\usepackage[pdftex]{graphicx}
+\usepackage{epsfig}
+\usepackage[hang]{subfigure}
+
+\author{Andrew C. Uselton}
+\title{
+  MIB \\
+  The MPI (POSIX) I/O Benchmark
+}
+
+\begin{document}
+
+\maketitle
+
+\begin{quote}
+No testing has overtaken you that is not common to everyone. \\
+1 Corinthians 10:13
+\end{quote}
+
+
+\begin{abstract} 
+{\em Mib} is a simple MPI application that benchmarks I/O performance to a
+parallel file system.  With it one may profile the timing of all the
+write and read system calls performed during the test.  The level of
+detail provided has been instrumental in identifying performance
+bottlenecks.
+\end{abstract}
+
+\section{Introduction}\label{section.introduction}
+
+{\em Mib} is an outgrowth of Lustre\footnote{http://www.lustre.org/}
+benchmarking efforts at LLNL, though its operation does not require
+Lustre.  It resembles the IOR
+benchmark\footnote{ftp://ftp.llnl.gov/pub/siop/ior/} in that it
+carries out I/O to a parallel file system from within a coordinated
+parallel MPI application.  It is otherwise entirely distinct and
+all-new code.
+
+{\em Mib} has two advantages over IOR.  First, it is very simple.
+Following the idea of ``do only one thing, and do it well,'' {\em mib}
+avoids the complexity and size associated with IOR.  It loads quickly.
+It is easily modified to suit specific local needs.  Second, it will
+optionally produce a {\em profile} of the timing of every system call.
+These timings are synchronized and coordinated across all tasks.
+Post-processing tools (see the ``tools'' subdirectory) can manipulate
+the profiles to give a graphical view of the dynamic behavior of the
+file system under the load provided by {\em mib}.  These graphs have
+proved valuable in isolating performance bottlenecks in Lustre.
+
+{\em Mib} is characterized by the following:
+\begin{itemize}
+\item Both MPI and non-MPI operation
+\item POSIX system calls only
+\item One file per MPI task
+\item The test runs exactly once with the given parameters
+\end{itemize}
+
+\begin{verbatim}
+usage: mib [ab::d:EIhHl:L:MnpPrRs:St:W]
+    -a              :  Use average profile times across node.
+    -b [<gran>]     :  Random seeks (optional granularity) before each read
+                    :  seek(fd, gran*file_size*rand()/RAND_MAX, SEEK_SET
+    -d <log_dir>    :  parameters file "<log_dir>/options"
+                    :    and profiles files here, if any 
+                    :    (default is cwd).
+    -E              :  Show environment of test in output.
+    -I              :  Show intermediate values in output.
+    -h              :  This message
+    -H              :  Show headers in output.
+    -l <call_limit> :  Issue no more than this many system calls.
+    -L <time_limit> :  Do not issue new system calls after this many
+                    :    seconds (limits are per phase for write and
+                    :    read phases).
+    -M              :  Do not use MPI even if it is available.
+    -n              :  Create new files if files were already present
+                    :    (will always create new files if none were
+                    :    present).
+    -p              :  Output system call timing profiles to <log_dir>
+                    :    (default is current working directory).
+    -P              :  Show progress bars during testing.
+    -r              :  Remove files when done.
+    -R              :  Only perform the read test.
+    -s <call_size>  :  Use system calls of this size (default 512k).
+                    :    Numbers may use abbreviations k, K, m, or M.
+    -S              :  Show signon message, including date, program
+                    :    name, and version number.
+    -t <test_dir>   :  I/O transactions to and from this directory
+                    :    (default is current working directory).
+    -W              :  Only perform the write test
+                    :    (if -R and -W are both present both tests 
+                    :     will run, but that's the default anyway)
+\end{verbatim}
+
+In the LLNL Linux clusters environment the
+SLURM\footnote{http://www.llnl.gov/linux/slurm/} command {\em srun}
+launches MPI applications.  A typical invocation might be:
+
+\begin{verbatim}
+srun -N8 -p ltest mib -t /p/ga2/lustre-test/mib/newfiles
+ |    |      |     |       |
+ |    |      |     |       ---target directory
+ |    |      |     -----------MPI application
+ |    |      -----------------partition (group of target nodes)
+ |    ------------------------number of tasks
+ -----------------------------SLURM MPI launcher
+\end{verbatim}
+
+This example would run 8 MPI tasks on nodes taken from the ``ltest''
+group of compute nodes.  The {\em mib} executable would open, write
+to, close, open, read from, and close, a unique file for each task,
+all in the given directory.  The I/O would continue for the default
+amount of time or the default number of transfers (whichever limit
+reached frst), and would involve system calls using the default amount
+of data.  In the following discussion assume the following shell
+variables are defined to create the above command line:
+
+\begin{verbatim}
+SCOM="srun -N8 -p ltest"
+MCOM="mib -t /p/ga2/lustre-test/mib/newfiles"
+\end{verbatim}
+
+The most common use would include a limit on the number of system
+calls, a limit on time, and a system call size.  For instance if we
+wanted to perform, per task, no more than 4096 system calls of 512k
+bytes each and to cease issuing system calls after 60 seconds, the
+command would look like this:
+
+\begin{verbatim}
+$SCOM $MCOM -l 1024 -L 60 -s 512k
+\end{verbatim}
+
+A typical result for the above command (as observed on the {\em ALC}
+cluster) would look like this:
+
+
+\begin{verbatim}
+Fri Mar 17 22:50:59 2006      8    4M  4500   300	897.07     566.20
+\end{verbatim}
+
+The ``-H'' option provides an informative header:
+
+\begin{verbatim}
+$SCOM $MCOM -l 1024 -L 60 -s 512k -H
+
+           date            tasks  xfer  call  time      write       read
+                                       limit limit       MB/s       MB/s
+ ------------------------ ------ ----- ----- ----- ---------- ----------
+ Fri Mar 17 22:50:59 2006      8    4M  4500   300     897.07      566.20
+\end{verbatim}
+
+The next most common use for {\em mib} is to generate a system call timing
+profile.  The command:
+
+\begin{verbatim}
+$SCOM $MCOM -l 1024 -L 60 -s 512k -d ~/alc/ -p
+\end{verbatim}
+
+creates two files, ``\~/alc/write.profile'' and ``\~/alc/read.profile''.
+Each of those is a table with one line per system call, and on each
+line, one floating point number per task.  Each number is the
+timestamp of the corresponding system call (i.e. the MPI\_Wtime() at
+which it returned) on the corresponding task.  The timestamps are all
+relative to a ``zero'' at the beginning of the test, which is
+coordinated across all tasks and adjusted for any skew in the
+``MPI\_Wtime()'' global clock reading.
+
+The perl script ``composite.pl'' uses the two profiles to create a
+graph depicting the dynamic behavior of the benchmark.
+Figure~\ref{composite.fig} is an example of such a graph taken from
+the {\em ALC} cluster during a run at scale (800 tasks on 400 nodes).
+
+\begin{figure}
+  \includegraphics[scale=0.50]{composite.png}
+\caption{A graph of the system call profiles and other information}
+\label{composite.fig}
+\end{figure}
+
+The graph shows 300 seconds of writes at $1743 MB/s$ and another 300
+seconds of reads at about $326 MB/s$.  The composite graph has more
+than just the system call timings, which are the high frequency lines
+in the graph.  The square lines mark the data rate and duration of the
+writes and reads, as reported by mib.  The lower frequency varying
+lines that closely track the system call timings are independent
+readings taken every five seconds from the servers.  The later
+readings come from a separate ({\em Python}-based) script that samples
+the monitoring daemons on the servers\footnote{Unfortunately those
+daemons are not currently available for circulation outside LLNL - the
+``composite.pl'' script can operate without them, if necessary.}.
+
+\end{document}

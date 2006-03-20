@@ -1,0 +1,31 @@
+o DATE = 20060318194222
+o CLUSTER = alc
+o LOG = /usr/local/auto-test/results/20060318194222/log
+o MIB = mib-1.9
+srun -N32 -n64 -p ltest /g/g0/auselton/alc/mib -d /usr/local/auto-test/results/20060318194222 -t /p/ga2/lustre-test/mib/skippy -l 4500 -s 4m -L 300 -pSHE
+
+
+mib-1.9  Sat Mar 18 19:42:22 2006
+
+cluster                  = alc
+new                      = false
+remove                   = false
+nodes                    = 32
+testdir                  = /p/ga2/lustre-test/mib/skippy
+call_limit               = 4500
+call_size                = 4194304
+time_limit               = 300
+tasks                    = 64
+write_only               = false
+read_only                = false
+profiles                 = true
+use_node_aves            = false
+show_signon              = true
+show_headers             = true
+show_environment         = true
+show_progress            = false
+show_intermediate_values = false
+          date            tasks  xfer  call  time      write       read
+                                      limit limit       MB/s       MB/s
+------------------------ ------ ----- ----- ----- ---------- ----------
+Sat Mar 18 19:52:31 2006     64    4M  4500   300    1742.79     325.74

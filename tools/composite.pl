@@ -424,7 +424,7 @@ my $syscall_write_run;
 my $data_written = 0;
 sub read_writes
 {
-    my $write_calls = "write.syscall.aves";
+    my $write_calls = "write.profile";
     my $line;
     my $call;
 
@@ -530,7 +530,7 @@ my $syscall_start_read;
 my $syscall_read_run;
 sub read_reads
 {    
-    my $read_calls = "read.syscall.aves";
+    my $read_calls = "read.profile";
     my $line;
     my $call;
     $read_calls = $log_dir . $read_calls;
