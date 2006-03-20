@@ -58,6 +58,7 @@ SOURCES = mib.c mpi_wrap.c sys_wrap.c miberr.c options.c mib_timer.c slurm.c
 OBJECTS = $(SOURCES:.c=.o)
 
 all: mib 
+	$(MAKE) -C doc
 	$(MAKE) -C tools
 
 mib: $(OBJECTS) $(HEADERS)
