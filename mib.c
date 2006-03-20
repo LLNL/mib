@@ -507,6 +507,9 @@ read_test()
   char read_target[MAX_BUF];
   int read_rank = (mib->rank + (mib->tasks/2)) % mib->tasks;
   int last_read_call;
+  off_t offset;
+  double gran;
+  struct stat stats;
 
   DEBUG("Starting read.\n");
   res = (Results *)Malloc(sizeof(Results));
@@ -527,6 +530,24 @@ read_test()
   res->start_open = get_time();
   rf = Open(read_target, O_RDONLY);
   res->end_open = get_time();
+  /* 
+   * If we're doing random reads then we sneek the fstat call in here 
+   * A similar sort of check might be appropriate for 
+   * stat.st_size <  opts->call_size
+   * reagardless of whether we're random seeking or not. 
+   */
+  if( check_flags(RANDOM_READS) ) 
+    {
+      Fstat(rf, &stats);
+      if (stats.st_size < opts->granularity)
+	{
+	  printf("In task %d, the file size (%d) is too small for the granularity (%ld)\n", 
+		      mib->rank, stats.st_size, opts->granularity);
+	  fflush(stdout);
+	  FAIL();
+	}
+      gran = stats.st_size/(opts->granularity*RAND_MAX);
+    }
   mpi_barrier(mib->comm);
 
   /*
@@ -545,6 +566,11 @@ read_test()
   do
     {
       call++;
+      if( check_flags(RANDOM_READS) ) 
+	{
+	  offset = gran*rand();
+	  Lseek(rf, offset, SEEK_SET);
+	}
       xfer = Read(rf, buf, opts->call_size);
       res->transferred += xfer;
       if( xfer < opts->call_size )

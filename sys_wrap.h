@@ -33,6 +33,10 @@ typedef enum {FALSE, TRUE} BOOL;
 
 int Open(char *name, int flags);
 
+off_t  Lseek(int filedes, off_t offset, int whence);
+
+int  Fstat(int filedes, struct stat *buf);
+
 void Unlink(char *name);
 
 ssize_t Write(int fd, const void *buf, size_t count);

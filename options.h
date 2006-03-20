@@ -37,6 +37,7 @@ typedef enum {FALSE, TRUE} BOOL;
 #define WRITE_ONLY    (1 << 3)
 #define PROFILES      (1 << 4)
 #define USE_NODE_AVES (1 << 5)
+#define RANDOM_READS  (1 << 6)
 
 
 typedef struct Options_Struct {
@@ -45,6 +46,7 @@ typedef struct Options_Struct {
   int call_limit;     
   long long call_size;
   int time_limit;    
+  long long granularity;
   int flags;
   int verbosity;
 }Options;
@@ -72,11 +74,12 @@ typedef struct Options_Struct {
 #define CL_READ_ONLY                (1 << 8)
 #define CL_PROFILES                 (1 << 9)
 #define CL_USE_NODE_AVES            (1 << 10)
-#define CL_SHOW_SIGNON              (1 << 11)
-#define CL_SHOW_HEADERS             (1 << 12)
-#define CL_SHOW_ENVIRONMENT         (1 << 13)
-#define CL_SHOW_PROGRESS            (1 << 14)
-#define CL_SHOW_INTERMEDIATE_VALUES (1 << 15)
+#define CL_RANDOM_READS             (1 << 11)
+#define CL_SHOW_SIGNON              (1 << 12)
+#define CL_SHOW_HEADERS             (1 << 13)
+#define CL_SHOW_ENVIRONMENT         (1 << 14)
+#define CL_SHOW_PROGRESS            (1 << 15)
+#define CL_SHOW_INTERMEDIATE_VALUES (1 << 16)
 
 void command_line(int *argcp, char **argvp[]);
 Options *read_options();

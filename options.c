@@ -24,6 +24,9 @@
  *  59 Temple Place, Suite 330, Boston, MA  02111-1307  USA.
 \*****************************************************************************/
 
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>     /* strncpy */
@@ -61,7 +64,7 @@ extern Mib     *mib;
 extern SLURM   *slurm;
 extern int     use_mpi;
 
-char *opt_str = "ad:EIhHl:L:MnpPrRs:St:W";
+char *opt_str = "ab::d:EIhHl:L:MnpPrRs:St:W";
 void
 command_line(int *argcp, char **argvp[])
 {
@@ -71,24 +74,25 @@ command_line(int *argcp, char **argvp[])
   int idx;
   const struct option long_options[] = 
     {
-      {"use_node_aves", 0, NULL, 'a'},
-      {"log_dir", 1, NULL, 'd'},
-      {"show_environment", 0, NULL, 'E'},
-      {"show_intermediate_values", 0, NULL, 'I'},
-      {"show_headers", 0, NULL, 'H'},
-      {"call_limit", 1, NULL, 'l'},
-      {"time_limit", 1, NULL, 'L'},
+      {"use_node_aves", no_argument, NULL, 'a'},
+      {"random_reads", optional_argument, NULL, 'b'},
+      {"log_dir", required_argument, NULL, 'd'},
+      {"show_environment", no_argument, NULL, 'E'},
+      {"show_intermediate_values", no_argument, NULL, 'I'},
+      {"show_headers", no_argument, NULL, 'H'},
+      {"call_limit", required_argument, NULL, 'l'},
+      {"time_limit", required_argument, NULL, 'L'},
       {"no_mpi", 0 , NULL, 'M'},
       {"new", 0 , NULL, 'n'},
-      {"profiles", 0, NULL, 'p'},
-      {"show_progress", 0, NULL, 'P'},
-      {"remove", 0, NULL, 'r'},
-      {"read_only", 0, NULL, 'R'},
-      {"call_size", 1, NULL, 's'},
-      {"show_signon", 0, NULL, 'S'},
-      {"test_dir", 1, NULL, 't'},
-      {"write_only", 0, NULL, 'W'},
-      {"help", 0, NULL, 'h'},
+      {"profiles", no_argument, NULL, 'p'},
+      {"show_progress", no_argument, NULL, 'P'},
+      {"remove", no_argument, NULL, 'r'},
+      {"read_only", no_argument, NULL, 'R'},
+      {"call_size", required_argument, NULL, 's'},
+      {"show_signon", no_argument, NULL, 'S'},
+      {"test_dir", required_argument, NULL, 't'},
+      {"write_only", no_argument, NULL, 'W'},
+      {"help", no_argument, NULL, 'h'},
       {0, 0, 0, 0},
     };
 
@@ -100,6 +104,12 @@ command_line(int *argcp, char **argvp[])
 	case 'a' : /* use_node_aves */
 	  set_flags("true", &(cl_opts->flags), USE_NODE_AVES);
 	  set_flags("true", &(cl_opts_mask), CL_USE_NODE_AVES);
+	  break;
+	case 'b' : /* random_reads */
+	  set_flags("true", &(cl_opts->flags), RANDOM_READS);
+	  set_flags("true", &(cl_opts_mask), CL_RANDOM_READS);
+	  if (optarg) set_longlong(optarg, &(cl_opts->granularity));
+	  break;
 	  break;
 	case 'd' : /* log_dir */
 	  set_string(optarg, cl_opts->log_dir);
@@ -179,6 +189,8 @@ usage( void )
 {
   printf("usage: mib [%s]\n", opt_str);
   printf("       -a                  :  Use average profile times accross node.\n");
+  printf("       -b [<gran>]         :  Random seeks (optional granularity) before each read\n");
+  printf("                           :  seek(fd, gran*file_size*rand()/RAND_MAX, SEEK_SET\n");
   printf("       -d <log_dir>        :  parameters file \"<log_dir>/options\"\n");
   printf("                           :    and profiles files here, if any \n");
   printf("                           :    (default is cwd).\n");
@@ -272,6 +284,7 @@ read_options()
       mpi_bcast(&(opts->call_limit), 1, MPI_INT, mib->base, mib->comm);
       mpi_bcast(&(opts->call_size), 1, MPI_LONG_LONG, mib->base, mib->comm);
       mpi_bcast(&(opts->time_limit), 1, MPI_INT, mib->base, mib->comm);
+      mpi_bcast(&(opts->granularity), 1, MPI_LONG_LONG, mib->base, mib->comm);
       mpi_bcast(&(opts->flags), 1, MPI_INT, mib->base, mib->comm);
       mpi_bcast(&(opts->verbosity), 1, MPI_INT, mib->base, mib->comm);
 
@@ -303,6 +316,7 @@ Make_Opts()
   strncpy(opts->testdir, ".", MAX_BUF);
   opts->call_limit = 4096;
   opts->call_size = 524288;
+  opts->granularity = 1;
   opts->time_limit = 60;
   opts->flags = DEFAULTS;
   opts->verbosity = QUIET;
@@ -342,6 +356,11 @@ command_line_overrides(Options *opts)
     set_flags("true", &(opts->flags), PROFILES);
   if(check_cl(CL_USE_NODE_AVES))
     set_flags("true", &(opts->flags), USE_NODE_AVES);
+  if(check_cl(CL_RANDOM_READS))
+    {
+      set_flags("true", &(opts->flags), RANDOM_READS);
+      opts->granularity = cl_opts->granularity;
+    }
   if(check_cl(CL_SHOW_SIGNON))
     set_flags("true", &(opts->verbosity), SHOW_SIGNON);
   if(check_cl(CL_SHOW_HEADERS))
@@ -414,6 +433,11 @@ set_key(char *k, char *v, Options *opts)
     return(set_flags(v, &(opts->flags), PROFILES));
   if(strncmp(k, "use_node_aves", MAX_BUF) == 0)
     return(set_flags(v, &(opts->flags), USE_NODE_AVES));
+  if(strncmp(k, "random_reads", MAX_BUF) == 0)
+    {
+      set_longlong(v, &(opts->granularity));
+      return(set_flags("true", &(opts->flags), RANDOM_READS));
+    }
   if(strncmp(k, "show_signon", MAX_BUF) == 0)
     return(set_flags(v, &(opts->verbosity), SHOW_SIGNON));
   if(strncmp(k, "show_headers", MAX_BUF) == 0)
@@ -468,6 +492,8 @@ show_keys(Options *opts)
       printf("read_only                = %s\n", ((opts->flags & READ_ONLY) ? "true" : "false"));
       printf("profiles                 = %s\n", ((opts->flags & PROFILES) ? "true" : "false"));
       printf("use_node_aves            = %s\n", ((opts->flags & USE_NODE_AVES) ? "true" : "false"));
+      if ( opts->flags & RANDOM_READS )
+	printf("random_reads             = %lld\n", opts->granularity);
       printf("show_signon              = %s\n", ((opts->verbosity & SHOW_SIGNON) ? "true" : "false"));
       printf("show_headers             = %s\n", ((opts->verbosity & SHOW_HEADERS) ? "true" : "false"));
       printf("show_environment         = %s\n", ((opts->verbosity & SHOW_ENVIRONMENT) ? "true" : "false"));

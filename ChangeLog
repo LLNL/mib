@@ -1,51 +1,48 @@
-2005-10-01 Andrew Uselton <uselton2@llnl.gov>
+2006-03-17 Andrew Uselton <uselton2@llnl.gov>
+
+	* Tag 1.9
+
+	* Allow for operation without MPI
+
+	* Introduce random read option
 	
-	* tag 1.0
+2006-03-01 Andrew Uselton <uselton2@llnl.gov>
 	
-	* Working code
+	* Tag 1.8
 
-2005-11-01 Andrew Uselton <uselton2@llnl.gov>
+	* Dump the iterateions and pause options
+
+	* Code factoring in the options settings
+
+	* Consolidate boolean flags into fields in a single flag
+
+	* Fixed ENOENT / ENONET bug :(
+
+	* Get command line options (including long-opts) working and tested
+
+	* Allow there to be a log_dir with no "options" file
+
+	* Make a man page
+
+	* Fix packaging
+
 	
-	* tag 1.1
+2006-02-15 Andrew Uselton <uselton2@llnl.gov>
 	
-	* Reorganize for single directory of output
-
-2005-11-15 Andrew Uselton <uselton2@llnl.gov>
+	* Tag 1.7
 	
-	* Tag 1.2
+	* Introduce "new" and "remove" options to allow for managing files.
 
-	* Progress meter
+	* Introduce "use_ion_aves" option to suppress (by default) calculating
+	averages accross IONs the way BGL does.
 
-2005-11-22 Andrew Uselton <uselton2@llnl.gov>
+	* Fixed the "no averages" code path so it rightly preserves
+	the whole profile from a run.  
 
-	* Tag 1.3
-
-	* Code refactoring
+	* Promoted the res->transferred field to a double because as a
+	32 bit quantity it could overflow for really fast or long 
+	accumulations of transfers.
 	
-2005-12-01 Andrew Uselton <uselton2@llnl.gov>
-
-	* Tag 1.4
-	
-	* Bool enumeration
-
-	* Optional read_only and write_only
-
-	* Optional looping
-
-2005-12-07 Andrew Uselton <uselton2@llnl.gov>
-
-	* Tag 1.5
-	
-	* Discovered where the rogue ASSERT was, though not why.
-
-	* Retrenched to only using FAIL and ASSERT and removed 
-	problematic error handling code
-
-	* Documented, but did not implement, details of system
-	call return codes
-
-	* Timer intialization check
-
 2006-01-15 Andrew Uselton <uselton2@llnl.gov>
 	
 	* Tag 1.6
@@ -67,40 +64,52 @@
 	* the fsync() seems to return errors that (probably) occurred
 	earlier and were corrected.  Work around, investigate, fix.
 	
-2006-02-15 Andrew Uselton <uselton2@llnl.gov>
+2005-12-07 Andrew Uselton <uselton2@llnl.gov>
+
+	* Tag 1.5
 	
-	* Tag 1.7
+	* Discovered where the rogue ASSERT was, though not why.
+
+	* Retrenched to only using FAIL and ASSERT and removed 
+	problematic error handling code
+
+	* Documented, but did not implement, details of system
+	call return codes
+
+	* Timer intialization check
+
+2005-12-01 Andrew Uselton <uselton2@llnl.gov>
+
+	* Tag 1.4
 	
-	* Introduce "new" and "remove" options to allow for managing files.
+	* Bool enumeration
 
-	* Introduce "use_ion_aves" option to suppress (by default) calculating
-	averages accross IONs the way BGL does.
+	* Optional read_only and write_only
 
-	* Fixed the "no averages" code path so it rightly preserves
-	the whole profile from a run.  
+	* Optional looping
 
-	* Promoted the res->transferred field to a double because as a
-	32 bit quantity it could overflow for really fast or long 
-	accumulations of transfers.
+2005-11-22 Andrew Uselton <uselton2@llnl.gov>
+
+	* Tag 1.3
+
+	* Code refactoring
 	
-2006-03-01 Andrew Uselton <uselton2@llnl.gov>
+2005-11-15 Andrew Uselton <uselton2@llnl.gov>
 	
-	* Tag 1.8
+	* Tag 1.2
 
-	* Dump the iterateions and pause options
+	* Progress meter
 
-	* Code factoring in the options settings
+2005-11-01 Andrew Uselton <uselton2@llnl.gov>
+	
+	* tag 1.1
+	
+	* Reorganize for single directory of output
 
-	* Consolidate boolean flags into fields in a single flag
-
-	* Fixed ENOENT / ENONET bug :(
-
-	* Get command line options (including long-opts) working and tested
-
-	* Allow there to be a log_dir with no "options" file
-
-	* Make a man page
-
-	* Fix packaging
+2005-10-01 Andrew Uselton <uselton2@llnl.gov>
+	
+	* tag 1.0
+	
+	* Working code
 
 	

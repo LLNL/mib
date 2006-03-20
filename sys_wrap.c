@@ -90,6 +90,34 @@ Open(char *name, int flags)
   return (fd);
 }
 
+int 
+Fstat(int filedes, struct stat *buf)
+{
+  int ret;
+
+  errno = 0;
+  if( (ret = fstat(filedes, buf)) < 0 )
+    {
+      printf("failed to fstat: %d\n", errno);
+      fflush(stdout);
+      FAIL();     
+    }
+}
+
+off_t 
+Lseek(int filedes, off_t offset, int whence)
+{
+  off_t ret;
+
+  errno = 0;
+  if( (ret = lseek(filedes, offset, whence)) < 0 )
+    {
+      printf("failed to lseek: %d\n", errno);
+      fflush(stdout);
+      FAIL();     
+    }
+}
+
 void
 Unlink(char *name)
 {
