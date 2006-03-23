@@ -39,7 +39,7 @@
 void _get_str_env(char *str, char *key);
 int  _get_int_env(char *key);
 
-SLURM   *slurm;
+SLURM   *slurm = NULL;
 
 void
 get_SLURM_env()

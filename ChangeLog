@@ -5,6 +5,16 @@
 	* Allow for operation without MPI
 
 	* Introduce random read option
+
+	* Improve the mib.sh wrapper script
+
+	* Make the target a required argument to avoid accidentally
+	writing to NFS and causing disruption
+
+	* Check for the file system type of the target and refuse to use
+	NFS unless a "-F" (--force) flag is set.
+
+	* Add a version option that prints the version string and exits.
 	
 2006-03-01 Andrew Uselton <uselton2@llnl.gov>
 	

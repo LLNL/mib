@@ -55,8 +55,12 @@ mpi_init(int *argcp, char ***argvp)
 
   if( (use_mpi == FORCE_NO_MPI) || (mpi_lib_handle = dlopen(mpi_lib, flag)) == NULL)
     return;
+  MPI_Errhandler_set(MPI_COMM_WORLD, MPI_ERRORS_RETURN);
   if((rc = MPI_Init(argcp, argvp)) == MPI_SUCCESS)
-    use_mpi = YES_MPI;
+    {
+      use_mpi = YES_MPI;
+      MPI_Errhandler_set(MPI_COMM_WORLD, MPI_ERRORS_ARE_FATAL);
+    }
 }
 
 void

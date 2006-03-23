@@ -1,0 +1,72 @@
+1.  Identification.
+
+   Software Acronym: MIB
+   Code title: mib
+
+2. Developer Name(s) and Affiliation.
+
+   Andrew Uselton
+   LLNL
+
+3. Software Completion Date
+
+   March 21, 2006
+
+4. Brief Description.
+
+   An MPI-based test for benchmarking parallel I/O on beowulf-style
+clusters.
+
+5. Method of Solution. 
+
+   Given various parameters write from each task to a distinct file.
+Read from that file.  Note the system call timings.  Report observed
+aggregate data rates.  Optionally, produce a table of system call
+timings.  Auxilliary scripts can consume the timings tables to produce
+performance graphs.
+
+6. Computer(s) for which software is written.
+
+   MPI-equipped clusters of I386, ia64, i86_64, powerpc, powerpc64,
+and BGL-style nodes, especially those connected to a parallel file
+systems.
+
+7. Operating System.
+
+   LINUX
+
+8. Programming Language(s) Used.
+
+   C
+
+9. Software Limitations. 
+
+   N/A
+
+10. Unique Features
+
+   N/A
+
+11.  Related and Auxiliary Software.
+
+   There is a small collection of tools that assists with
+configuration and data reduction.
+
+12. Other Programming or Operating Information or Restrictions. 
+ 
+   N/A
+
+13. Hardware Requirements.
+
+   N/A
+
+14. Time Requirements.
+
+   N/A
+
+15. References. 
+
+   http://www.lustre.org/
+   ftp://ftp.llnl.gov/pub/siop/ior/
+   http://www.llnl.gov/linux/slurm/
+   

@@ -83,7 +83,7 @@ void profiles(double *array, int count, char *profile_log_name);
 void report(double write, double read);
 void base_report(int verb, char *fmt, ...);
 
-Mib  *mib;
+Mib  *mib = NULL;
 char *version=MIB_VERSION;
 
 extern Options *opts;
@@ -102,16 +102,21 @@ main( int argc, char *argv[] )
   double write = 0;
   int bail;
 
+  /* initialize the slurm struct */
   get_SLURM_env();
+  /* initialize the opts struct */
   command_line(&argc, &argv);
+  /* initialize MPI */
   mpi_init( &argc, &argv );
   mpi_comm_size(MPI_COMM_WORLD, &size );
   mpi_comm_rank(MPI_COMM_WORLD, &rank );
+  /* initialize the timer, check for skew, get the signon timestamp */
   init_timer(rank, signon);
+  /* initialze the mib struct */
   mib = Init_Mib(rank, size);
-  opts = read_options(rank, size);
+
   base_report(SHOW_SIGNON, "%s", signon);
-  show_keys(opts);
+  if(verbosity(SHOW_ENVIRONMENT)) show_details();
   if( mib->comm == MPI_COMM_NULL )
     {
       mpi_barrier(MPI_COMM_WORLD);
@@ -152,6 +157,8 @@ Init_Mib(int rank, int size)
    */
   mib->nodes = slurm->use_SLURM ? slurm->NNODES : 1;
   mib->tasks = slurm->use_SLURM ? slurm->NPROCS : 1;
+  if( mib->tasks == mib->nodes ) opts->flags &= ~USE_NODE_AVES;
+
   mib->rank =  USE_MPI ? rank : (slurm->use_SLURM ? slurm->PROCID : get_host_index());
   mib->size =  USE_MPI ? size : (slurm->use_SLURM ? slurm->NPROCS : 1 );
   mib->base =  USE_MPI ? 0 : (slurm->use_SLURM ? 0 : mib->rank );
@@ -329,7 +336,7 @@ write_test()
 	base_report(SHOW_INTERMEDIATE_VALUES, "%d short writes\n", red->short_transfers);
       free(red);
       
-      if( check_flags(PROFILES) )
+      if( opts->profiles != NULL )
 	{
 	  /*
 	   *   The job of reporting out details of the system call timings is
@@ -643,7 +650,7 @@ read_test()
 	base_report(SHOW_INTERMEDIATE_VALUES, "%d short reads\n", red->short_transfers);
       free(red);
       
-      if( check_flags(PROFILES) )
+      if( opts->profiles != NULL )
 	{
 	  /*
 	   *   The job of reporting out details of the system call timings is
@@ -711,7 +718,7 @@ profiles(double *array,   int count, char *io_direction)
 
   if(mib->rank == mib->base)
     {
-      if ( (ret = snprintf(profile_log_name, MAX_BUF, "%s/%s.profile", opts->log_dir, io_direction)) < 0)
+      if ( (ret = snprintf(profile_log_name, MAX_BUF, "%s.%s", opts->profiles, io_direction)) < 0)
 	FAIL();
       lfd = Fopen(profile_log_name, "w");
     }
@@ -907,7 +914,16 @@ base_report(int verb, char *fmt, ...)
 {
   va_list args;
   
-  if( (mib->rank == mib->base) && verbosity(verb) )
+  /*
+   * If this is called before mib and slurm are initialized then just
+   * print.  If slurmis initialized but mid is not, then print from the
+   * PROCID = 0 task.  If mib is initialized then print from its base task.
+   * Don't print unless the verbosity level says to.
+   */
+  if( (((mib != NULL) && (mib->rank == mib->base)) ||
+       ((mib == NULL) && (slurm != NULL) && (slurm->PROCID == 0)) ||
+       ((mib == NULL) && (slurm == NULL)))
+      && verbosity(verb) )
     {
       va_start(args, fmt);
       vprintf(fmt, args);

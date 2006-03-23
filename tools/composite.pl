@@ -99,39 +99,7 @@ if ( defined($png_file) and ! ($png_file =~ /\.png$/) )
 }
 $verbose = 1 if ($opt_v);
 
-# If we don't get an options file set the default here.
-my $CNs_per_ION;
-sub read_options
-{
-# Given the value of $log_dir read in the needed values:
-    my $options = "options";
-    my $CNs;
-    my $IONs;
-    my $use_ion_aves;
-
-    $options = $log_dir . $options;
-    if ( ! -f $options )
-    {
-	print "I did not see the options file $options\n";
-	$CNs_per_ION = 64;
-	return;
-    }
-    $use_ion_aves = `grep use_ion_aves $options | grep -v iterations | awk '{print \$3}'`;
-    if ( !defined($use_ion_aves) || ($use_ion_aves eq "true") )
-    {
-	$CNs = `grep cns $options | awk '{print \$3}'`;
-	$IONs = `grep ions $options | grep -v iterations | awk '{print \$3}'`;
-	$CNs_per_ION = $CNs/$IONs;
-    }
-    else
-    {
-	$CNs_per_ION = 1;
-    }
-    defined($CNs_per_ION) or die "Didn't find options CNs_per_ION value";
-    return;
-}
-# $CNs_per_ION
-
+my $Tasks_per_Node;
 my $mib_plot;
 my $mib_write;
 my $mib_read;
@@ -142,6 +110,7 @@ sub read_log
     my $call_size_string;
     my $mib_log = "log";
     my $line;
+    my $use_node_aves;
 
     $mib_log = $log_dir . $mib_log;
     if ( ! -f $mib_log )
@@ -151,6 +120,18 @@ sub read_log
 	return 0;
     }
 
+    $use_node_aves = `grep use_node_aves $mib_log | awk '{print \$3}'`;
+    if ( !defined($use_node_aves) || ($use_node_aves eq "true") )
+    {
+	$Tasks = `grep tasks $mib_log | awk '{print \$3}'`;
+	$Nodes = `grep nodes $mib_log | awk '{print \$3}'`;
+	$Tasks_per_Node = int($Tasks/$Nodes);
+    }
+    else
+    {
+	$Tasks_per_Node = 1;
+    }
+    defined($Tasks_per_Node) or die "Didn't find Tasks_per_Node value from log";
     open(MIB, "<$mib_log") or die "I could not open the mib log file $mib_log";    
     while(defined($line = <MIB>))
     {
@@ -211,7 +192,7 @@ sub read_log
     #print "$mib_read, $mib_write, $mib_xfer\n";
     return 1;
 }
-# $mib_plot, $mib_write, $mib_read, $mib_xfer
+# $mib_plot, $mib_write, $mib_read, $mib_xfer, $Tasks_per_Node
 #End of read_log
 
 my $lwatch_plot;
@@ -424,7 +405,7 @@ my $syscall_write_run;
 my $data_written = 0;
 sub read_writes
 {
-    my $write_calls = "write.profile";
+    my $write_calls = "profile.write";
     my $line;
     my $call;
 
@@ -485,12 +466,12 @@ sub read_writes
     {
 	$sum += $LastW[$index] if (defined($LastW[$index]));
     }
-    $data_written = $sum*$mib_xfer*$CNs_per_ION/(1024*1024);
-    printf("CNs_per_ION = %d\n", $CNs_per_ION) if ($verbose);
+    $data_written = $sum*$mib_xfer*$Tasks_per_Node/(1024*1024);
+    printf("Tasks_per_Node = %d\n", $Tasks_per_Node) if ($verbose);
     printf("Aggregate number of write system calls = %d\n", $sum) if ($verbose);
     printf("Start time = %d\n", $start) if ($verbose);
     printf("End time = %d\n", $end) if ($verbose);
-    printf("Write rate: %f MB/s\n", ($sum*$mib_xfer*$CNs_per_ION)/(1024*1024*($end - $start))) if ($verbose);
+    printf("Write rate: %f MB/s\n", ($sum*$mib_xfer*$Tasks_per_Node)/(1024*1024*($end - $start))) if ($verbose);
     
     $write_min = $start;
     $write_max = $end;
@@ -530,7 +511,7 @@ my $syscall_start_read;
 my $syscall_read_run;
 sub read_reads
 {    
-    my $read_calls = "read.profile";
+    my $read_calls = "profile.read";
     my $line;
     my $call;
     $read_calls = $log_dir . $read_calls;
@@ -590,7 +571,7 @@ sub read_reads
     printf("Aggregate number of read system calls = %d\n", $sum) if ($verbose);
     printf("Start time = %d\n", $start) if ($verbose);
     printf("End time = %d\n", $end) if ($verbose);
-    printf("Read rate:  %f MB/s\n", ($sum*$mib_xfer*$CNs_per_ION)/(1024*1024*($end - $start))) if ($verbose);
+    printf("Read rate:  %f MB/s\n", ($sum*$mib_xfer*$Tasks_per_Node)/(1024*1024*($end - $start))) if ($verbose);
 
     $read_min = $start;
     $read_max = $end;
@@ -686,7 +667,7 @@ sub write_data_file
     for ($t = 0; $t < $syscall_end_read; $t++)
     {
 	$Write[$t] = 0 if (!defined($Write[$t]));
-	$write = $Write[$t]*($CNs_per_ION*$mib_xfer)/(1024*1024);
+	$write = $Write[$t]*($Tasks_per_Node*$mib_xfer)/(1024*1024);
 	printf TMP "%d\t%f\n", $t, $write;
     }
     printf TMP "%d\t%f\n", $syscall_end_read, 0;
@@ -696,7 +677,7 @@ sub write_data_file
     for ($t = 0; $t < $syscall_end_read; $t++)
     {
 	$Read[$t] = 0 if (!defined($Read[$t]));
-	$read = $Read[$t]*($CNs_per_ION*$mib_xfer)/(1024*1024);
+	$read = $Read[$t]*($Tasks_per_Node*$mib_xfer)/(1024*1024);
 	printf TMP "%d\t%f\n", $t, $read;
     }
     printf TMP "%d\t%f\n", $syscall_end_read, 0;
@@ -814,7 +795,6 @@ sub write_gnuplot_file
     return 1;
 }
 
-read_options;
 $mib_plot = read_log;
 $lwatch_plot = read_lwatch;
 $plot_write = read_writes;

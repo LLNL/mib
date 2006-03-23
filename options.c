@@ -26,6 +26,7 @@
 
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <sys/vfs.h>     /* statfs */
 #include <fcntl.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -34,6 +35,7 @@
 #include <time.h>
 #include <unistd.h>
 #include <stdarg.h>
+#include <errno.h>
 #define _GNU_SOURCE
 #include <getopt.h>
 #include <mpi.h>
@@ -45,26 +47,20 @@
 #include "mib.h"
 
 Options *Make_Opts();
-void command_line_overrides();
-
-BOOL set_string(char *v, char *str);
+void check_fs();
+BOOL set_string(char *v, char **strp);
 BOOL set_flags(char *v, int *flagp, int mask);
 BOOL set_int(char *v, int *nump);
 BOOL set_longlong(char *v, long long *llnump);
 
-void lowercase(char *str);
-BOOL kv_pair(char *buf, char **k, char **v);
-BOOL set_key(char *k, char *v, Options *opts);
-
-Options *cl_opts;
-int      cl_opts_mask = 0;
 Options *opts;
+char *opt_str = "ab::EFIhHl:L:Mnp:PrRs:St:VW";
 
 extern Mib     *mib;
 extern SLURM   *slurm;
 extern int     use_mpi;
+extern char   *version;
 
-char *opt_str = "ab::d:EIhHl:L:MnpPrRs:St:W";
 void
 command_line(int *argcp, char **argvp[])
 {
@@ -76,15 +72,15 @@ command_line(int *argcp, char **argvp[])
     {
       {"use_node_aves", no_argument, NULL, 'a'},
       {"random_reads", optional_argument, NULL, 'b'},
-      {"log_dir", required_argument, NULL, 'd'},
       {"show_environment", no_argument, NULL, 'E'},
+      {"force", no_argument, NULL, 'F'},
       {"show_intermediate_values", no_argument, NULL, 'I'},
       {"show_headers", no_argument, NULL, 'H'},
       {"call_limit", required_argument, NULL, 'l'},
       {"time_limit", required_argument, NULL, 'L'},
       {"no_mpi", 0 , NULL, 'M'},
       {"new", 0 , NULL, 'n'},
-      {"profiles", no_argument, NULL, 'p'},
+      {"profiles", required_argument, NULL, 'p'},
       {"show_progress", no_argument, NULL, 'P'},
       {"remove", no_argument, NULL, 'r'},
       {"read_only", no_argument, NULL, 'R'},
@@ -92,87 +88,76 @@ command_line(int *argcp, char **argvp[])
       {"show_signon", no_argument, NULL, 'S'},
       {"test_dir", required_argument, NULL, 't'},
       {"write_only", no_argument, NULL, 'W'},
+      {"version", no_argument, NULL, 'V'},
       {"help", no_argument, NULL, 'h'},
       {0, 0, 0, 0},
     };
 
-  cl_opts = Make_Opts();
+  opts = Make_Opts();
   while( (opt = getopt_long(argc, argv, opt_str, long_options, &idx)) != -1)
     {
       switch(opt)
 	{
 	case 'a' : /* use_node_aves */
-	  set_flags("true", &(cl_opts->flags), USE_NODE_AVES);
-	  set_flags("true", &(cl_opts_mask), CL_USE_NODE_AVES);
+	  set_flags("true", &(opts->flags), USE_NODE_AVES);
 	  break;
 	case 'b' : /* random_reads */
-	  set_flags("true", &(cl_opts->flags), RANDOM_READS);
-	  set_flags("true", &(cl_opts_mask), CL_RANDOM_READS);
-	  if (optarg) set_longlong(optarg, &(cl_opts->granularity));
+	  set_flags("true", &(opts->flags), RANDOM_READS);
+	  if (optarg) set_longlong(optarg, &(opts->granularity));
 	  break;
-	  break;
-	case 'd' : /* log_dir */
-	  set_string(optarg, cl_opts->log_dir);
-	  set_flags("true", &(cl_opts_mask), CL_LOG_DIR);
 	  break;
 	case 'E' : /* show_environment */
-	  set_flags("true", &(cl_opts->verbosity), SHOW_ENVIRONMENT);
-	  set_flags("true", &(cl_opts_mask), CL_SHOW_ENVIRONMENT);
+	  set_flags("true", &(opts->verbosity), SHOW_ENVIRONMENT);
+	  break;
+	case 'F' : /* force */
+	  set_flags("true", &(opts->flags), FORCE);
 	  break;
 	case 'I' : /* show_intermediate_values */
-	  set_flags("true", &(cl_opts->verbosity), SHOW_INTERMEDIATE_VALUES);
-	  set_flags("true", &(cl_opts_mask), CL_SHOW_INTERMEDIATE_VALUES);
+	  set_flags("true", &(opts->verbosity), SHOW_INTERMEDIATE_VALUES);
 	  break;
 	case 'H' : /* show_headers */
-	  set_flags("true", &(cl_opts->verbosity), SHOW_HEADERS);
-	  set_flags("true", &(cl_opts_mask), CL_SHOW_HEADERS);
+	  set_flags("true", &(opts->verbosity), SHOW_HEADERS);
 	  break;
 	case 'l' : /* call_limit */
-	  set_int(optarg, &(cl_opts->call_limit));
-	  set_flags("true", &(cl_opts_mask), CL_CALL_LIMIT);
+	  set_int(optarg, &(opts->call_limit));
 	  break;
 	case 'L' : /* time_limit */
-	  set_int(optarg, &(cl_opts->time_limit));
-	  set_flags("true", &(cl_opts_mask), CL_TIME_LIMIT);
+	  set_int(optarg, &(opts->time_limit));
 	  break;
 	case 'M' : /* no MPI */
 	  use_mpi = FORCE_NO_MPI;
 	  break;
 	case 'n' : /* new */
-	  set_flags("true", &(cl_opts->flags), NEW);
-	  set_flags("true", &(cl_opts_mask), CL_NEW);
+	  set_flags("true", &(opts->flags), NEW);
 	  break;
 	case 'p' : /* profiles */
-	  set_flags("true", &(cl_opts->flags), PROFILES);
-	  set_flags("true", &(cl_opts_mask), CL_PROFILES);
+	  if( (optarg == NULL) && ((slurm->use_SLURM == 0) || (slurm->PROCID == 0)) ) usage();
+	  set_string(optarg, &(opts->profiles));
 	  break;
 	case 'P' : /* show_progress */
-	  set_flags("true", &(cl_opts->verbosity), SHOW_PROGRESS);
-	  set_flags("true", &(cl_opts_mask), CL_SHOW_PROGRESS);
+	  set_flags("true", &(opts->verbosity), SHOW_PROGRESS);
 	  break;
 	case 'r' : /* remove */
-	  set_flags("true", &(cl_opts->flags), REMOVE);
-	  set_flags("true", &(cl_opts_mask), CL_REMOVE);
+	  set_flags("true", &(opts->flags), REMOVE);
 	  break;
 	case 'R' : /* read_only */
-	  set_flags("true", &(cl_opts->flags), READ_ONLY);
-	  set_flags("true", &(cl_opts_mask), CL_READ_ONLY);
+	  set_flags("true", &(opts->flags), READ_ONLY);
 	  break;
 	case 's' : /* call_size */
-	  set_longlong(optarg, &(cl_opts->call_size));
-	  set_flags("true", &(cl_opts_mask), CL_CALL_SIZE);
+	  set_longlong(optarg, &(opts->call_size));
 	  break;
 	case 'S' : /* show_signon */
-	  set_flags("true", &(cl_opts->verbosity), SHOW_SIGNON);
-	  set_flags("true", &(cl_opts_mask), CL_SHOW_SIGNON);
+	  set_flags("true", &(opts->verbosity), SHOW_SIGNON);
 	  break;
 	case 't' : /* test_dir */
-	  set_string(optarg, cl_opts->testdir);
-	  set_flags("true", &(cl_opts_mask), CL_TESTDIR);
+	  if( (optarg == NULL) && ((slurm->use_SLURM == 0) || (slurm->PROCID == 0)) ) usage();
+	  set_string(optarg, &(opts->testdir));
 	  break;
+	case 'V' : /* version */
+	  printf("mib-%s\n", version);
+	  exit(0);
 	case 'W' : /* write_only */
-	  set_flags("true", &(cl_opts->flags), WRITE_ONLY);
-	  set_flags("true", &(cl_opts_mask), CL_WRITE_ONLY);
+	  set_flags("true", &(opts->flags), WRITE_ONLY);
 	  break;
 	case 'h' :  /* help */
 	default : 
@@ -182,6 +167,17 @@ command_line(int *argcp, char **argvp[])
   /* Anything we've consumed doesn't need to be passed to the MPI initializer */
   *argcp -= optind;
   *argvp += optind;
+  if( opts->testdir == NULL)
+    {
+      base_report(SHOW_ALL, "Mib requires a \"-t <test_dir>\" argument.\n");
+      exit(1);
+    }
+  check_fs();
+  if( (check_flags(WRITE_ONLY))  && (check_flags(READ_ONLY)) )
+    {
+      opts->flags &= ~WRITE_ONLY;
+      opts->flags &= ~READ_ONLY;
+    }
 }
 
 void
@@ -191,9 +187,6 @@ usage( void )
   printf("    -a              :  Use average profile times accross node.\n");
   printf("    -b [<gran>]     :  Random seeks (optional granularity) before each read\n");
   printf("                    :  seek(fd, gran*file_size*rand()/RAND_MAX, SEEK_SET\n");
-  printf("    -d <log_dir>    :  parameters file \"<log_dir>/options\"\n");
-  printf("                    :    and profiles files here, if any \n");
-  printf("                    :    (default is cwd).\n");
   printf("    -E              :  Show environment of test in output.\n");
   printf("    -I              :  Show intermediate values in output.\n");
   printf("    -h              :  This message\n");
@@ -206,8 +199,8 @@ usage( void )
   printf("    -n              :  Create new files if files were already present\n");
   printf("                    :    (will always create new files if none were\n");
   printf("                    :    present).\n");
-  printf("    -p              :  Output system call timing profiles to <log_dir>\n");
-  printf("                    :    (default is current working directory).\n");
+  printf("    -p <profiles>   :  Output system call timing profiles to \n");
+  printf("                    :    <profiles>,write and <profiles>.read.\n");
   printf("    -P              :  Show progress bars during testing.\n");
   printf("    -r              :  Remove files when done.\n");
   printf("    -R              :  Only perform the read test.\n");
@@ -215,95 +208,13 @@ usage( void )
   printf("                    :    Numbers may use abreviations k, K, m, or M.\n");
   printf("    -S              :  Show signon message, including date, program\n");
   printf("                    :    name, and version number.\n");
-  printf("    -t <test_dir>   :  I/O transactions to and from this directory\n");
-  printf("                    :    (default is current working directory).\n");
+  printf("    -t <test_dir>   :  Required. I/O transactions to and from this\n");
+  printf("                    :    directory\n");
+  printf("    -V              :  Print the version and exit\n");
   printf("    -W              :  Only perform the write test\n");
   printf("                    :    (if -R and -W are both present both tests \n");
   printf("                    :     will run, but that's the default anyway)\n");
   exit(0);
-}
-
-Options *
-read_options()
-{
-  Options *opts;
-  char options[MAX_BUF];
-  char buf[MAX_BUF];
-  char *b;
-  char *k;
-  char *v;
-  FILE *ofp;
-  int ret;
-  int len = 0;
-  int send;
-  MPI_Comm subcomm;
-  MPI_Group world_group, group;
-  int group_spec[3];
-
-  opts = Make_Opts();
-  /* 
-   *   If we are using MPI then only task 0 needs to read the config file.
-   * We'll broadcast the results shortly.  This reduces how much needs to 
-   * be read in, presumably via a thin pipe to NFS.  If there are very many
-   * tasks the savings may be substantial in both time and stability.
-   */
-  if ( (mib->rank == mib->base) || ( DO_NOT_USE_MPI ) )
-    {
-      if (check_cl(CL_LOG_DIR))
-	{
-	  strncpy(opts->log_dir, cl_opts->log_dir, MAX_BUF);
-	}
-      snprintf(options, MAX_BUF, "%s/options", opts->log_dir);
-      if( (Exists(options) && (ofp = fopen(options, "r")) != NULL) )
-	{ 
-	  b = Fgets(buf, MAX_BUF, ofp);
-	  while( b != NULL)
-	    {
-	      if (kv_pair(buf, &k, &v))
-		if(!set_key(k, v, opts))
-		  FAIL();
-	      b = Fgets(buf, MAX_BUF, ofp);
-	    }
-	  fclose(ofp);
-	}
-
-      
-      if( mib->tasks == mib->nodes ) opts->flags &= ~USE_NODE_AVES;
-      command_line_overrides(opts);
-      while(opts->testdir[len++]);
-      if( (check_flags(WRITE_ONLY))  && (check_flags(READ_ONLY)) )
-	{
-	  opts->flags &= ~WRITE_ONLY;
-	  opts->flags &= ~READ_ONLY;
-	}
-    }
-  if (USE_MPI)
-    {
-      mpi_bcast(&(len), 1, MPI_INT, mib->base, mib->comm);
-      mpi_bcast(opts->testdir, len, MPI_CHAR, mib->base, mib->comm);
-      mpi_bcast(&(opts->call_limit), 1, MPI_INT, mib->base, mib->comm);
-      mpi_bcast(&(opts->call_size), 1, MPI_LONG_LONG, mib->base, mib->comm);
-      mpi_bcast(&(opts->time_limit), 1, MPI_INT, mib->base, mib->comm);
-      mpi_bcast(&(opts->granularity), 1, MPI_LONG_LONG, mib->base, mib->comm);
-      mpi_bcast(&(opts->flags), 1, MPI_INT, mib->base, mib->comm);
-      mpi_bcast(&(opts->verbosity), 1, MPI_INT, mib->base, mib->comm);
-
-      /*
-       *   this is an unexplored part of the application.  I'd eventually
-       * like to allow for arbitrary subcommunicators, but not untill much
-       * else is sorted out.
-       */
-      if(mib->tasks < mib->size)
-	{
-	  MPI_Comm_group(MPI_COMM_WORLD, &world_group);
-	  group_spec[0] = mib->base;
-	  group_spec[1] = mib->tasks + mib->base - 1;
-	  group_spec[3] = 1;
-	  MPI_Group_range_incl(world_group, 1, &group_spec, &group);
-	  MPI_Comm_create(MPI_COMM_WORLD, group, &(mib->comm));
-	}
-    }
-  return(opts);
 }
 
 Options *
@@ -312,8 +223,8 @@ Make_Opts()
   Options *opts;
 
   opts = (Options *)Malloc(sizeof(Options));
-  strncpy(opts->log_dir, ".", MAX_BUF);
-  strncpy(opts->testdir, ".", MAX_BUF);
+  opts->profiles = NULL;
+  opts->testdir = NULL;
   opts->call_limit = 4096;
   opts->call_size = 524288;
   opts->granularity = 1;
@@ -326,140 +237,113 @@ Make_Opts()
 void
 Free_Opts()
 {
+  if(opts->profiles != NULL) free(opts->profiles);
+  if(opts->testdir != NULL) free(opts->testdir);
   if(opts != NULL)
     free(opts);
 }
 
-
-
-void 
-command_line_overrides(Options *opts)
+#define MAX_NAME 30
+struct fs_es
 {
-  ASSERT(DO_NOT_USE_MPI || (mib->rank == mib->base));
-  if(check_cl(CL_TESTDIR))
-    set_string(cl_opts->testdir, opts->testdir);
-  if(check_cl(CL_CALL_LIMIT))
-    opts->call_limit = cl_opts->call_limit;
-  if(check_cl(CL_CALL_SIZE))
-    opts->call_size = cl_opts->call_size;
-  if(check_cl(CL_TIME_LIMIT))
-    opts->time_limit = cl_opts->time_limit;
-  if(check_cl(CL_NEW))
-    set_flags("true", &(opts->flags),NEW );
-  if(check_cl(CL_REMOVE))
-    set_flags("true", &(opts->flags), REMOVE);
-  if(check_cl(CL_WRITE_ONLY))
-    set_flags("true", &(opts->flags), WRITE_ONLY);
-  if(check_cl(CL_READ_ONLY))
-    set_flags("true", &(opts->flags), READ_ONLY);
-  if(check_cl(CL_PROFILES))
-    set_flags("true", &(opts->flags), PROFILES);
-  if(check_cl(CL_USE_NODE_AVES))
-    set_flags("true", &(opts->flags), USE_NODE_AVES);
-  if(check_cl(CL_RANDOM_READS))
-    {
-      set_flags("true", &(opts->flags), RANDOM_READS);
-      opts->granularity = cl_opts->granularity;
-    }
-  if(check_cl(CL_SHOW_SIGNON))
-    set_flags("true", &(opts->verbosity), SHOW_SIGNON);
-  if(check_cl(CL_SHOW_HEADERS))
-    set_flags("true", &(opts->verbosity), SHOW_HEADERS);
-  if(check_cl(CL_SHOW_ENVIRONMENT))
-    set_flags("true", &(opts->verbosity), SHOW_ENVIRONMENT);
-  if(check_cl(CL_SHOW_PROGRESS))
-    set_flags("true", &(opts->verbosity), SHOW_PROGRESS);
-  if(check_cl(CL_SHOW_INTERMEDIATE_VALUES))
-    set_flags("true", &(opts->verbosity), SHOW_INTERMEDIATE_VALUES);
-}
+  char name[MAX_NAME];
+  long f_type;
+  int warn;
+};
 
-BOOL
-kv_pair(char *buf, char **k, char **v)
-{
-  char *eq;
-  char *end;
-
-  ASSERT(buf != NULL);
-  *k = NULL;
-  *v = NULL;
-
-  eq = buf;
-  while( (*eq != '#') && (*eq != '=') && (*eq != '\0') && (eq < buf + MAX_BUF - 1) ) eq++;
-  if( (*eq == '#') || (*eq == '\0') || (eq == buf + MAX_BUF -1) ) return(FALSE);
-
-  *k = buf;
-  while( isspace(**k) && (*k < eq) ) (*k)++;
-  if ( *k == eq) return(FALSE);
-
-  end = *k + 1;
-  while( ! isspace(*end) && (end < eq) ) end++;
-  *end = '\0';
-
-  end++;
-  while( (*end != '#') && (*end != '\0') && (*end != '\n') && (end < buf + MAX_BUF - 1) ) end++;
-  if ( (*end == '#') || (*end == '\n') )  end--;
- 
-  while( isspace(*end) ) end--;
-  if (end == eq) return(FALSE);
-  end++;
-  *end = '\0';
-
-  *v = eq + 1;
-  while( isspace(**v) && (*v < end) ) (*v)++;
-  return(TRUE);
-}
-
-BOOL
-set_key(char *k, char *v, Options *opts)
-{
-  lowercase(k);
-  if(strncmp(k, "new", MAX_BUF) == 0)
-    return(set_flags(v, &(opts->flags), NEW));
-  if(strncmp(k, "remove", MAX_BUF) == 0)
-    return(set_flags(v, &(opts->flags), REMOVE));
-  if(strncmp(k, "testdir", MAX_BUF) == 0)
-    return(set_string(v, opts->testdir));
-  if(strncmp(k, "call_limit", MAX_BUF) == 0)
-    return(set_int(v, &(opts->call_limit)));
-  if(strncmp(k, "call_size", MAX_BUF) == 0)
-    return(set_longlong(v, &(opts->call_size)));
-  if(strncmp(k, "time_limit", MAX_BUF) == 0)
-    return(set_int(v, &(opts->time_limit)));
-  if(strncmp(k, "write_only", MAX_BUF) == 0)
-    return(set_flags(v, &(opts->flags), WRITE_ONLY));
-  if(strncmp(k, "read_only", MAX_BUF) == 0)
-    return(set_flags(v, &(opts->flags), READ_ONLY));
-  if(strncmp(k, "profiles", MAX_BUF) == 0)
-    return(set_flags(v, &(opts->flags), PROFILES));
-  if(strncmp(k, "use_node_aves", MAX_BUF) == 0)
-    return(set_flags(v, &(opts->flags), USE_NODE_AVES));
-  if(strncmp(k, "random_reads", MAX_BUF) == 0)
-    {
-      set_longlong(v, &(opts->granularity));
-      return(set_flags("true", &(opts->flags), RANDOM_READS));
-    }
-  if(strncmp(k, "show_signon", MAX_BUF) == 0)
-    return(set_flags(v, &(opts->verbosity), SHOW_SIGNON));
-  if(strncmp(k, "show_headers", MAX_BUF) == 0)
-    return(set_flags(v, &(opts->verbosity), SHOW_HEADERS));
-  if(strncmp(k, "show_environment", MAX_BUF) == 0)
-    return(set_flags(v, &(opts->verbosity), SHOW_ENVIRONMENT));
-  if(strncmp(k, "show_progress", MAX_BUF) == 0)
-    return(set_flags(v, &(opts->verbosity), SHOW_PROGRESS));
-  if(strncmp(k, "show_intermediate_values", MAX_BUF) == 0)
-    return(set_flags(v, &(opts->verbosity), SHOW_INTERMEDIATE_VALUES));
-  printf("Unrecognized options key \"%s\"\n", k);
-  return(FALSE);
-}
+const struct fs_es fs_list[] = 
+  {
+    {"ADFS_SUPER_MAGIC",      0xadf5, 1},
+    {"AFFS_SUPER_MAGIC",      0xADFF, 1},
+    {"BEFS_SUPER_MAGIC",      0x42465331, 1},
+    {"BFS_MAGIC",             0x1BADFACE, 1},
+    {"CIFS_MAGIC_NUMBER",     0xFF534D42, 1},
+    {"CODA_SUPER_MAGIC",      0x73757245, 1},
+    {"COH_SUPER_MAGIC",       0x012FF7B7, 1},
+    {"CRAMFS_MAGIC",          0x28cd3d45, 1},
+    {"DEVFS_SUPER_MAGIC",     0x1373, 1},
+    {"EFS_SUPER_MAGIC",       0x00414A53, 1},
+    {"EXT_SUPER_MAGIC",       0x137D, 1},
+    {"EXT2_OLD_SUPER_MAGIC",  0xEF51, 1},
+    {"EXT2_SUPER_MAGIC",      0xEF53, 1},
+    {"EXT3_SUPER_MAGIC",      0xEF53, 1},
+    {"HFS_SUPER_MAGIC",       0x4244, 1},
+    {"HPFS_SUPER_MAGIC",      0xF995E849, 1},
+    {"HUGETLBFS_MAGIC",       0x958458f6, 1},
+    {"ISOFS_SUPER_MAGIC",     0x9660, 1},
+    {"JFFS2_SUPER_MAGIC",     0x72b6, 1},
+    {"JFS_SUPER_MAGIC",       0x3153464a, 1},
+    {"MINIX_SUPER_MAGIC",     0x137F, 1},
+    {"MINIX_SUPER_MAGIC2",    0x138F, 1},
+    {"MINIX2_SUPER_MAGIC",    0x2468, 1},
+    {"MINIX2_SUPER_MAGIC2",   0x2478, 1},
+    {"MSDOS_SUPER_MAGIC",     0x4d44, 1},
+    {"NCP_SUPER_MAGIC",       0x564c, 1},
+    {"NFS_SUPER_MAGIC",       0x6969, 1},
+    {"NTFS_SB_MAGIC",         0x5346544e, 1},
+    {"OPENPROM_SUPER_MAGIC",  0x9fa1, 1},
+    {"PROC_SUPER_MAGIC",      0x9fa0, 1},
+    {"QNX4_SUPER_MAGIC",      0x002f, 1},
+    {"REISERFS_SUPER_MAGIC",  0x52654973, 1},
+    {"ROMFS_MAGIC",           0x7275, 1},
+    {"SMB_SUPER_MAGIC",       0x517B, 1},
+    {"SYSV2_SUPER_MAGIC",     0x012FF7B6, 1},
+    {"SYSV4_SUPER_MAGIC",     0x012FF7B5, 1},
+    {"TMPFS_MAGIC",           0x01021994, 1},
+    {"UDF_SUPER_MAGIC",       0x15013346, 1},
+    {"UFS_MAGIC",             0x00011954, 1},
+    {"USBDEVICE_SUPER_MAGIC", 0x9fa2, 1},
+    {"VXFS_SUPER_MAGIC",      0xa501FCF5, 1},
+    {"XENIX_SUPER_MAGIC",     0x012FF7B4, 1},
+    {"XFS_SUPER_MAGIC",       0x58465342, 1},
+    {"_XIAFS_SUPER_MAGIC",    0x012FD16D, 1},
+    {"S_MAGIC_LUSTRE",        0x0BD00BD0, 0},
+    {"", 0, 0}
+  };
 
 void
-show_keys(Options *opts)
+check_fs()
+{
+  int found = 0;
+  int index = 0;
+  int ret;
+  struct statfs buf;
+
+  errno = 0;
+  if ( (ret = statfs(opts->testdir, &buf) < 0) )
+  {
+    base_report(SHOW_ALL, "Could not statfs \"%s\", error: %d\n", opts->testdir, errno);
+  }
+  while ( (!found) && (fs_list[index].f_type != 0) )
+    {
+      if (fs_list[index].f_type == buf.f_type) found = 1;
+      else index++;
+    }
+  if (found)
+    {
+      if( (fs_list[index].warn == 1) && (!check_flags(FORCE)) )
+      {
+	base_report(SHOW_ALL, "Mib will not write to a file system of type \"%s\" (f_type = %#lx) unless you use the \"-F\" (--force) option \n", 
+		    fs_list[index].name, fs_list[index].f_type);
+	exit(1);
+      }
+      base_report(SHOW_ENVIRONMENT, "Testing a file system of type \"%s\" (f_type = %#lx)\n",
+		  fs_list[index].name, fs_list[index].f_type);
+    }
+  else
+    {
+      base_report(SHOW_ENVIRONMENT, "Testing an unregistered file system with f_type = %#lx\n",
+		  buf.f_type);
+    }
+}  
+
+void
+show_details()
 {
   char cluster[MAX_BUF];
   char *p;
 
-  ASSERT(opts != NULL);
-  if ( (mib->rank == mib->base) && (opts->verbosity & SHOW_ENVIRONMENT) )
+  if ( mib->rank == mib->base )
     {
       if( slurm->use_SLURM)
 	{
@@ -490,7 +374,7 @@ show_keys(Options *opts)
       printf("tasks                    = %d\n", mib->tasks);
       printf("write_only               = %s\n", ((opts->flags & WRITE_ONLY) ? "true" : "false"));
       printf("read_only                = %s\n", ((opts->flags & READ_ONLY) ? "true" : "false"));
-      printf("profiles                 = %s\n", ((opts->flags & PROFILES) ? "true" : "false"));
+      printf("profiles                 = %s\n", ((opts->profiles == NULL) ? "no" : opts->profiles));
       printf("use_node_aves            = %s\n", ((opts->flags & USE_NODE_AVES) ? "true" : "false"));
       if ( opts->flags & RANDOM_READS )
 	printf("random_reads             = %lld\n", opts->granularity);
@@ -504,11 +388,14 @@ show_keys(Options *opts)
 }
 
 BOOL
-set_string(char *v, char *str)
+set_string(char *v, char **strp)
 {
   int ret;
 
-  if ( (ret = snprintf(str, MAX_BUF, "%s", v)) < 0)
+  if( *strp != NULL) 
+      free(*strp);
+  *strp = Malloc(strnlen(v, MAX_BUF) + 1);
+  if ( (ret = snprintf(*strp, MAX_BUF, "%s", v)) < 0)
     FAIL();
   return(TRUE);
 }
@@ -562,16 +449,5 @@ set_longlong(char *v, long long *llnump)
 	}
     }	  
   return(TRUE);
-}
-
-void
-lowercase(char *str)
-{
-  while(*str)
-    {
-      if( (*str >= 'A') && (*str <= 'Z') )
-	*str += 'a' - 'A';
-      str++;
-    }
 }
 

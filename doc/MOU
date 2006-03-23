@@ -1,0 +1,8 @@
+TO:      Whom it may concern
+FROM:    Andrew uselton, Livermore Computing
+DATE:    March 21, 2006
+SUBJECT: Memorandum of Understanding
+
+Livermore Computing is requesting the release of a software tool
+called "mib" which is used for "MPI-based parallel I/O benchmarking".
+We wish to release this software under the GNU General Public License.
