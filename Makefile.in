@@ -36,7 +36,7 @@ CCFLAGS = -g -D_LARGEFILE64_SOURCE -D_FILE_OFFSET_BITS=64 -rdynamic
 LDFLAGS = 
 LIBDIRS = 
 LIBS = -ldl
-INCDIR = 
+INCDIR = -I/usr/lib/mpi/mpi_gnu/include
 DEBUG = # Put 'DEBUG="-DDEBUG_CODE=1"' on the command line if you want 
 	# debugging, or you can put it here if you really want to be sure
 	# and always have the debugging on.  N.B. I don't think it even
@@ -90,7 +90,7 @@ install: all
 	$(INSTALL) tools/viewcalls.pl		$(DESTDIR)$(scriptdir)/
 
 .c.o:
-	$(CC) -rdynamic $(CCFLAGS) $(DEBUG) -c $<  $(INCDIR)
+	$(CC) $(CCFLAGS) $(DEBUG) -c $<  $(INCDIR)
 
 clean: 
 	$(MAKE) -C tools clean
