@@ -28,7 +28,7 @@ PROJECT=mib
 VERSION=%VERSION%
 SHELL=   /bin/sh
 MAKE=    /usr/bin/make
-CC = %cc%
+CC = %CC%
 INSTALL= /usr/bin/install -c
 mkinstalldirs=	 $(SHELL) $(top_srcdir)/aux/mkinstalldirs
 
