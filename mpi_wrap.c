@@ -42,24 +42,50 @@
  */
 
 int use_mpi = NO_MPI;
-void *mpi_lib_handle;
+void *mpi_handle;
+void *mpio_handle;
+void *elan_handle;
 
 extern Options *opts;
 
 void
 mpi_init(int *argcp, char ***argvp)
 {
-  char mpi_lib[] = "libmpi.so";
+  char mpi[] = "libmpi.so";
+  char mpio[] = "libmpio.so";
+  char elan[] = "libelan.so";
   int rc;
-  int flag = RTLD_NOW;
+  int flag = RTLD_LAZY;
 
-  if( (use_mpi == FORCE_NO_MPI) || (mpi_lib_handle = dlopen(mpi_lib, flag)) == NULL)
-    return;
-  MPI_Errhandler_set(MPI_COMM_WORLD, MPI_ERRORS_RETURN);
+  if( use_mpi == FORCE_NO_MPI )
+    {
+      base_report(SHOW_ENVIRONMENT, "Command line forbade the use of MPI\n");
+      return;
+    }
+  if( (elan_handle = dlopen(elan, flag)) == NULL)
+    {
+      base_report(SHOW_ENVIRONMENT, "No MPI - Elan lib not loaded\n");
+      return;
+    }
+  if( (mpi_handle = dlopen(mpi, flag)) == NULL)
+    {
+      base_report(SHOW_ENVIRONMENT, "No MPI - MPI lib not loaded\n");
+      return;
+    }
+  if( (mpio_handle = dlopen(mpio, flag)) == NULL)
+    {
+      base_report(SHOW_ENVIRONMENT, "No MPI - MPIO lib not loaded\n");
+      return;
+    }
   if((rc = MPI_Init(argcp, argvp)) == MPI_SUCCESS)
     {
+      base_report(SHOW_ENVIRONMENT, "Using MPI\n");
       use_mpi = YES_MPI;
-      MPI_Errhandler_set(MPI_COMM_WORLD, MPI_ERRORS_ARE_FATAL);
+    }
+  else
+    {
+      base_report(SHOW_ENVIRONMENT, "No MPI - MPI_Init failed, attempting to proceed without\n");
+      return;
     }
 }
 
@@ -100,7 +126,9 @@ mpi_finalize(void)
     {
       if((rc = MPI_Finalize()) != MPI_SUCCESS)
 	FAIL();
-      dlclose(mpi_lib_handle);
+      dlclose(mpi_handle);
+      dlclose(mpio_handle);
+      dlclose(elan_handle);
     }
 }
 

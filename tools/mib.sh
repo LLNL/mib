@@ -47,7 +47,7 @@ function get_cluster () {
     CLUSTER=`nodeattr -v cluster`
     [ X"$CLUSTER" == X ] && usage "Didn't get CLUSTER: $CLUSTER"
     CLUSTER_BIN=$HOME/$CLUSTER
-    MIB="$CLUSTER_BIN/mib"
+    MIB="$CLUSTER_BIN/mib-1.9-try"
 }
 
 function set_log () {

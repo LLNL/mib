@@ -545,7 +545,7 @@ read_test()
 	  printf("In task %d, the file size (%d) is too small for the granularity (%ld)\n", 
 		      mib->rank, stats.st_size, opts->granularity);
 	  fflush(stdout);
-	  FAIL();
+	  if (USE_MPI) {FAIL();} else exit(1);
 	}
       gran = stats.st_size/(opts->granularity*RAND_MAX);
     }

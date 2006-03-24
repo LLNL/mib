@@ -28,12 +28,12 @@ PROJECT=mib
 VERSION=%VERSION%
 SHELL=   /bin/sh
 MAKE=    /usr/bin/make
-CC = %CC%
+CC = %cc%
 INSTALL= /usr/bin/install -c
 mkinstalldirs=	 $(SHELL) $(top_srcdir)/aux/mkinstalldirs
 
-CCFLAGS = -g -D_LARGEFILE64_SOURCE -D_FILE_OFFSET_BITS=64
-LDFLAGS = -rdynamic
+CCFLAGS = -g -D_LARGEFILE64_SOURCE -D_FILE_OFFSET_BITS=64 -rdynamic
+LDFLAGS = 
 LIBDIRS = 
 LIBS = -ldl
 INCDIR = 
@@ -62,7 +62,7 @@ all: mib
 	$(MAKE) -C tools
 
 mib: $(OBJECTS) $(HEADERS)
-	$(CC) $(CCFLAGS) $(OBJECTS) $(DEBUG) -o $@ $(LDFLAGS) $(LIBDIRS) $(LIBS)
+	$(CC) $(LDFLAGS) $(OBJECTS) -o $@ $(LIBDIRS) $(LIBS)
 
 install: all
 	$(mkinstalldirs) 			$(DESTDIR)$(bindir)
@@ -90,7 +90,7 @@ install: all
 	$(INSTALL) tools/viewcalls.pl		$(DESTDIR)$(scriptdir)/
 
 .c.o:
-	$(CC) $(CCFLAGS) $(DEBUG) -c $<  $(INCDIR)
+	$(CC) -rdynamic $(CCFLAGS) $(DEBUG) -c $<  $(INCDIR)
 
 clean: 
 	$(MAKE) -C tools clean

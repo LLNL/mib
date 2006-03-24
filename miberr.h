@@ -52,7 +52,7 @@ typedef enum {FALSE, TRUE} BOOL;
 #define FAIL() do {                                           \
         fprintf(stderr, "%s (%d)\n", __FILE__, __LINE__);     \
           fflush(stderr);                                                \
-          MPI_Abort(MPI_COMM_WORLD, 1);                                  \
+          MPI_Abort(MPI_COMM_WORLD, 1);   \
 } while (0)
 
 

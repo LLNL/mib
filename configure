@@ -27,15 +27,15 @@ usage ()
 [ X"$1" != X"-h" ] || usage
  
 case $CLUSTER in
-	adev) CC=mpicc
+	adev) CC=gcc
 	  ;;
-	alc) CC=mpicc
+	alc) CC=gcc
 	  ;;
-	bgl) CC=mpgcc
+	bgl) CC=gcc
 	  ;;
-	gauss) CC=mpiicc
+	gauss) CC=gcc
 	  ;;
-	tdev) CC=mpicc
+	tdev) CC=gcc
 	  ;;
 	*) usage "This script needs to know what compiler to use for luster $CLUSTER"
 	  ;;
@@ -56,6 +56,10 @@ VERSION=${VERSION// /}
 rm -f $MAKEFILE >/dev/null 2>&1
 cat $MAKEFILE.in  | sed "s/%CC%/$CC/" | sed "s/%VERSION%/$VERSION/" > $MAKEFILE
 cd tools
+rm -f $MAKEFILE >/dev/null 2>&1
+cat $MAKEFILE.in  | sed "s/%CC%/$CC/" | sed "s/%VERSION%/$VERSION/" > $MAKEFILE
+cd ..
+cd doc
 rm -f $MAKEFILE >/dev/null 2>&1
 cat $MAKEFILE.in  | sed "s/%CC%/$CC/" | sed "s/%VERSION%/$VERSION/" > $MAKEFILE
 cd ..

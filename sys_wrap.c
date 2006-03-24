@@ -83,7 +83,7 @@ Open(char *name, int flags)
 	    {
 	      printf("failed to open %s: %d\n", name, errno);
 	      fflush(stdout);
-	      FAIL();
+	      if (USE_MPI) {FAIL();} else exit(1);
 	    }
 	}
     }
@@ -100,7 +100,7 @@ Fstat(int filedes, struct stat *buf)
     {
       printf("failed to fstat: %d\n", errno);
       fflush(stdout);
-      FAIL();     
+      if (USE_MPI) {FAIL();} else exit(1);
     }
 }
 
@@ -114,7 +114,7 @@ Lseek(int filedes, off_t offset, int whence)
     {
       printf("failed to lseek: %d\n", errno);
       fflush(stdout);
-      FAIL();     
+      if (USE_MPI) {FAIL();} else exit(1);
     }
 }
 
@@ -149,7 +149,7 @@ Unlink(char *name)
     {
         printf("failed to unlink %s: %d\n", name, errno);
 	fflush(stdout);
-	FAIL();
+	if (USE_MPI) {FAIL();} else exit(1);
     }
 }
 
@@ -176,7 +176,7 @@ Write(int fd, const void *buf, size_t count)
     {
       if(wrote < 0)
 	{
-	  FAIL();
+	  if (USE_MPI) {FAIL();} else exit(1);
 	}
       if(wrote > 0)
 	{
@@ -214,7 +214,7 @@ Read(int fd, void *buf, size_t count)
     {
       if(got < 0)
 	{
-	  FAIL();
+	  if (USE_MPI) {FAIL();} else exit(1);
 	}
       if(got > 0)
 	{
@@ -240,7 +240,7 @@ Fsync(int fd)
 
   errno = 0;
   if ( (rc = fsync(fd)) < 0 )
-    /*    FAIL()*/;
+    /*       if (USE_MPI) {FAIL();} else exit(1); */;
   return(rc);
 }
 
@@ -257,7 +257,7 @@ Close(int fd)
 
   errno = 0;
   if ( (rc = close(fd)) < 0 )
-    FAIL();
+    if (USE_MPI) {FAIL();} else exit(1);
   return(rc);
 }
 
@@ -286,7 +286,7 @@ Exists(const char *path)
     if ( errno == ENOENT )
       rc = 0;
     else
-      FAIL();
+      if (USE_MPI) {FAIL();} else exit(1);
   else
     rc = 1;
   return(rc);
@@ -310,7 +310,7 @@ Fopen(const char *path, const char *mode)
 
   if ( (fp = fopen(path, mode)) == NULL )
     {
-      FAIL();
+      if (USE_MPI) {FAIL();} else exit(1);
     }
   return(fp);
 }
@@ -335,7 +335,7 @@ Fgets(char *buf, int n, FILE *stream)
   if ( (s = fgets(buf, n, stream)) == NULL)
     if(!feof(stream))
       {
-	FAIL();
+	if (USE_MPI) {FAIL();} else exit(1);
       }
   return(s);
 }
@@ -351,7 +351,7 @@ Fprintf(FILE *stream, char *fmt, char *str)
 
   ASSERT(mib->rank == mib->base);
   if ( (ret = fprintf(stream, fmt, str)) < 0)
-    FAIL();
+    if (USE_MPI) {FAIL();} else exit(1);
   fflush(stream);
 }
 
@@ -367,7 +367,7 @@ Snprintf(char *buf, size_t size, char *fmt, double val)
 
   ASSERT(mib->rank == mib->base);
   if ( ((ret = snprintf(buf, size, fmt, val)) < 0) || (ret > size) )
-    FAIL();
+    if (USE_MPI) {FAIL();} else exit(1);
   return(ret);
 }
 
@@ -378,6 +378,6 @@ Malloc(size_t size)
   void *b;
 
   if( (b = malloc(size)) == NULL)
-    FAIL();
+    if (USE_MPI) {FAIL();} else exit(1);
   return(b);
 }
