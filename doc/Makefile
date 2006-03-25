@@ -25,9 +25,9 @@
 #*****************************************************************************/
 
 
-OS=$(shell uname)
-ARCH=$(shell uname -i)
-
+PROJECT=mib
+VERSION=1.9
+MAKE=    /usr/bin/make
 SRCS = 
 OBJS = 
 DOC = 
