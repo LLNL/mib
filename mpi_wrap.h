@@ -35,41 +35,49 @@ typedef enum {FALSE, TRUE} BOOL;
 #define USE_MPI (use_mpi > NO_MPI)
 #define DO_NOT_USE_MPI (use_mpi < YES_MPI)
 
-void mpi_init(int *argcp, char ***argvp);
+void mpi_abort(MPI_Comm comm, int errorcode);
 
-void mpi_comm_size(MPI_Comm comm, int *sizep);
+void mpi_allreduce(void *sendbuf, void *recvbuf, int count, MPI_Datatype datatype, 
+		       MPI_Op op, MPI_Comm comm);
 
-void mpi_comm_rank(MPI_Comm comm, int *rankp);
-
-void mpi_finalize(void);
-
-void mpi_recv(void *buf, int count, MPI_Datatype datatype,  
-	 int source, int tag, MPI_Comm comm, MPI_Status *status);
-
-void mpi_send(void *buffer, int count, MPI_Datatype datatype, 
-	      int dest, int tag, MPI_Comm comm);
+void mpi_barrier(MPI_Comm comm);
 
 void mpi_bcast(void *buffer, int count, MPI_Datatype datatype, 
 	  int root, MPI_Comm comm);
 
-void mpi_reduce(void *sendbuf, void *recvbuf, int count, MPI_Datatype datatype, MPI_Op op, int root, MPI_Comm comm);
-
-void mpi_comm_group(MPI_Comm comm, MPI_Group *group);
-
-void mpi_group_range_incl(MPI_Group group, int n, int ranges[][3], MPI_Group *newgroup);
-
 void mpi_comm_create(MPI_Comm comm, MPI_Group group,MPI_Comm *newcomm);
-
-void mpi_comm_split(MPI_Comm comm, int color, int key, MPI_Comm *newcomm);
-
-void mpi_barrier(MPI_Comm comm);
 
 void mpi_comm_free(MPI_Comm *comm);
 
+void mpi_comm_group(MPI_Comm comm, MPI_Group *group);
+
+void mpi_comm_rank(MPI_Comm comm, int *rankp);
+
+void mpi_comm_size(MPI_Comm comm, int *sizep);
+
+void mpi_comm_split(MPI_Comm comm, int color, int key, MPI_Comm *newcomm);
+
+void mpi_errhandler_set(MPI_Comm comm, MPI_Errhandler *errhandler);
+
+void mpi_finalize(void);
+
+void mpi_gather(void *sendbuf, int sendcount, MPI_Datatype sendtype, void *recvbuf, 
+		    int recvcount, MPI_Datatype recvtype, int root, MPI_Comm comm);
 void mpi_group_free(MPI_Group *group);
 
-void mpi_allreduce(void *sendbuf, void *recvbuf, int count, MPI_Datatype datatype, MPI_Op op, MPI_Comm comm);
+void mpi_group_range_incl(MPI_Group group, int n, int ranges[][3], MPI_Group *newgroup);
 
-void mpi_gather(void *sendbuf, int sendcount, MPI_Datatype sendtype, void *recvbuf, int recvcount, MPI_Datatype recvtype, int root, MPI_Comm comm);
+void mpi_init(int *argcp, char ***argvp);
+
+void mpi_recv(void *buf, int count, MPI_Datatype datatype,  
+	 int source, int tag, MPI_Comm comm, MPI_Status *status);
+
+void mpi_reduce(void *sendbuf, void *recvbuf, int count, MPI_Datatype datatype, 
+		    MPI_Op op, int root, MPI_Comm comm);
+
+void mpi_send(void *buffer, int count, MPI_Datatype datatype, 
+	      int dest, int tag, MPI_Comm comm);
+
+double mpi_wtime();
 
 

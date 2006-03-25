@@ -42,50 +42,23 @@ extern char *version;
 extern int use_mpi;
 
 void
-init_timer(int rank, char *signon)
+init_timer(int rank)
 {
   double start;
-  char time_str[MAX_BUF];
-  time_t t;
-  char *p;
 
-  t = time(NULL);
-  if (USE_MPI)
-    {
-      mpi_barrier(MPI_COMM_WORLD);
-      start = MPI_Wtime();
-      mpi_allreduce(&start, &_zero, 1, MPI_DOUBLE, MPI_MIN, MPI_COMM_WORLD);
-      _skew = start - _zero;
-    }
-  else
-    {
-      _zero = t;
-      _skew = 0;
-    }
+  mpi_barrier(MPI_COMM_WORLD);
+  start = mpi_wtime();
+  mpi_allreduce(&start, &_zero, 1, MPI_DOUBLE, MPI_MIN, MPI_COMM_WORLD);
+  _skew = start - _zero;
   _initialized = 1;
-  if ( rank == 0 )
-    {
-      strncpy(time_str, ctime(&t), MAX_BUF);
-      p = time_str;
-      while( (*p != '\0') && (*p != '\n') && (p - time_str < MAX_BUF) )p++;
-      if( *p == '\n' ) *p = '\0';
-      sprintf(signon, "\n\nmib-%s  %s\n\n", version, time_str);
-    }
 }
 
 double
 get_time()
 {
-  time_t t;
   double now;
 
   ASSERT(_initialized == 1);
-  if(USE_MPI)
-    now = MPI_Wtime() - _zero - _skew;
-  else
-    {
-      t = time(NULL);
-      now = t - _zero;
-    }
+  now = mpi_wtime() - _zero - _skew;
   return(now);
 }

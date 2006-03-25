@@ -32,11 +32,14 @@ CC = %CC%
 INSTALL= /usr/bin/install -c
 mkinstalldirs=	 $(SHELL) $(top_srcdir)/aux/mkinstalldirs
 
-CCFLAGS = -g -D_LARGEFILE64_SOURCE -D_FILE_OFFSET_BITS=64 -rdynamic
-LDFLAGS = 
-LIBDIRS = 
+MPI_CCFLAGS = -DUSE_STDARG -DHAVE_STDLIB_H=1 -DHAVE_STRING_H=1 -DHAVE_UNISTD_H=1 -DHAVE_STDARG_H=1 -DUSE_STDARG=1 -DMALLOC_RET_VOID=1 
+CCFLAGS = ${MPI_CCFLAGS} -g -D_LARGEFILE64_SOURCE -D_FILE_OFFSET_BITS=64 -rdynamic
+# I don't think it turned out to need the following:
+LDFLAGS = #-Wl,-rpath-link -Wl,/usr/lib/mpi/mpi_intel/lib 
+LIBDIRS = #-L/usr/lib/mpi/mpi_intel/lib 
 LIBS = -ldl
-INCDIR = -I/usr/lib/mpi/mpi_gnu/include
+MPI_INCDIR = -I/usr/lib/mpi/mpi_gnu/include
+INCDIR = ${MPI_INCDIR}
 DEBUG = # Put 'DEBUG="-DDEBUG_CODE=1"' on the command line if you want 
 	# debugging, or you can put it here if you really want to be sure
 	# and always have the debugging on.  N.B. I don't think it even
@@ -62,7 +65,7 @@ all: mib
 	$(MAKE) -C tools
 
 mib: $(OBJECTS) $(HEADERS)
-	$(CC) $(LDFLAGS) $(OBJECTS) -o $@ $(LIBDIRS) $(LIBS)
+	$(CC) $(LDFLAGS) $(LIBDIRS) $(OBJECTS) -o $@ $(LIBS)
 
 install: all
 	$(mkinstalldirs) 			$(DESTDIR)$(bindir)
@@ -90,9 +93,10 @@ install: all
 	$(INSTALL) tools/viewcalls.pl		$(DESTDIR)$(scriptdir)/
 
 .c.o:
-	$(CC) $(CCFLAGS) $(DEBUG) -c $<  $(INCDIR)
+	$(CC) $(CCFLAGS)  $(INCDIR) $(DEBUG) -c $<
 
 clean: 
+	$(MAKE) -C doc clean
 	$(MAKE) -C tools clean
 	rm -f *.o mib *~
 

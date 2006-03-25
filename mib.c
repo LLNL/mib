@@ -72,6 +72,7 @@
 #include "sys_wrap.h"
 #include "version.h"
 
+void sign_on();
 Mib *Init_Mib(int rank, int size);
 double write_test();
 char *fill_buff();
@@ -97,7 +98,6 @@ main( int argc, char *argv[] )
    */
   int size = 0;
   int rank;
-  char signon[MAX_BUF];
   double read = 0;
   double write = 0;
   int bail;
@@ -111,11 +111,11 @@ main( int argc, char *argv[] )
   mpi_comm_size(MPI_COMM_WORLD, &size );
   mpi_comm_rank(MPI_COMM_WORLD, &rank );
   /* initialize the timer, check for skew, get the signon timestamp */
-  init_timer(rank, signon);
+  init_timer(rank);
+  sign_on();
   /* initialze the mib struct */
   mib = Init_Mib(rank, size);
 
-  base_report(SHOW_SIGNON, "%s", signon);
   if(verbosity(SHOW_ENVIRONMENT)) show_details();
   if( mib->comm == MPI_COMM_NULL )
     {
@@ -142,6 +142,23 @@ main( int argc, char *argv[] )
     }
   fflush(stdout);
   mpi_finalize();
+}
+
+void
+sign_on()
+{
+  time_t t;
+  char signon[MAX_BUF];
+  char time_str[MAX_BUF];
+  char *p;
+
+  t = time(NULL);
+  strncpy(time_str, ctime(&t), MAX_BUF);
+  p = time_str;
+  while( (*p != '\0') && (*p != '\n') && (p - time_str < MAX_BUF) )p++;
+  if( *p == '\n' ) *p = '\0';
+  sprintf(signon, "\n\nmib-%s  %s\n\n", version, time_str);
+  base_report(SHOW_SIGNON, signon);
 }
 
 Mib *
