@@ -537,13 +537,19 @@ read_test()
 
   /* 
    * N.B. there is no optional unlink at the beginning of the reads 
-   * Note to self: What happens when this is a read_only test and there are no target
-   * files?
+   * Note to self: What happens when this is a read_only test and there 
+   * are no target files?
    */
   res->before_unlink = get_time();
   /*
    *   Open the target file.  
    */
+  if( ! Exists(read_target) )
+    {
+      printf("No file: %s\n", read_target);
+      fflush(stdout);
+      FAIL();
+    }
   mpi_barrier(mib->comm);
   res->start_open = get_time();
   rf = Open(read_target, O_RDONLY);

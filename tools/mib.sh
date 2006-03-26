@@ -78,6 +78,10 @@ case $CLUSTER in
 #	[ X"$FS" == X"ga1" ] && FS_MONITOR="http://alci:50538"
 	MPI_COM="srun --core=light "
 	;;
+    adev) FS_MONITOR="http://ilci:50538"
+#	[ X"$FS" == X"ga1" ] && FS_MONITOR="http://alci:50538"
+	MPI_COM="srun --core=light "
+	;;
     *) usage "Edit \"mib.sh\" to list the fs monitor (lmtd) and MPI command for this cluster"
 	;;
 esac

@@ -28,6 +28,7 @@
 #include <mpi.h>
 #include "string.h"     /* for strncpy */
 #include <dlfcn.h>      /* dynamic loader interface */
+#include "slurm.h"
 #include "mpi_wrap.h"
 #include "miberr.h"
 #include "options.h"
@@ -74,18 +75,199 @@ int (*pMPI_Send)(void *buffer, int count, MPI_Datatype datatype,
 double (*pMPI_Wtime)();
 
 extern Options *opts;
+extern SLURM *slurm;
 
 void
 mpi_abort(MPI_Comm comm, int errorcode)
 {
   if( USE_MPI )
     {
+      printf("About to MPI_Abort\n");
+      fflush(stdout);
       (*pMPI_Abort)(comm, errorcode);
     }
   else
     {
       exit(errorcode);
     }
+}
+
+void
+mpi_allreduce(void *sendbuf, void *recvbuf, int count, MPI_Datatype datatype, MPI_Op op, MPI_Comm comm)
+{
+  int rc;
+  int size = 1;
+
+  if(USE_MPI)
+    {
+      if((rc = (*pMPI_Allreduce)(sendbuf, recvbuf, count, datatype, op, comm)) != MPI_SUCCESS)
+	FAIL();
+    }
+  else
+    {
+      switch (datatype)
+	{
+	case MPI_INT :
+	  size = 4;
+	  break;
+	case MPI_DOUBLE : 
+	  size = 8;
+	  break;
+	case MPI_CHAR :
+	default :
+	  size = 1;
+	  break;
+	}
+      size *= count;
+      memcpy(recvbuf, sendbuf, size);
+    }
+}
+
+void
+mpi_barrier(MPI_Comm comm)
+{
+  int rc;
+  
+  /*
+   *   This code no longer checks for delayed error reports.  I'll
+   * want to reintroduce that once I get error handling on a more
+   * solid footing.
+   */
+  if(USE_MPI)
+    if((rc = (*pMPI_Barrier)(comm)) != MPI_SUCCESS)
+      FAIL();
+}
+
+void
+mpi_bcast(void *buffer, int count, MPI_Datatype datatype, 
+	 int root, MPI_Comm comm)
+{
+  int rc;
+
+  if(USE_MPI)
+    if((rc = (*pMPI_Bcast)(buffer, count, datatype, root, comm)) != MPI_SUCCESS)
+      FAIL();
+}
+
+void
+mpi_comm_create(MPI_Comm comm, MPI_Group group, MPI_Comm *newcomm)
+{
+  int rc;
+
+  if(USE_MPI)
+    if((rc = (*pMPI_Comm_create)(comm, group, newcomm)) != MPI_SUCCESS)
+      FAIL();
+}
+
+void
+mpi_comm_free(MPI_Comm *comm)
+{
+  int rc;
+
+  if(USE_MPI)
+    if((rc = (*pMPI_Comm_free)(comm)) != MPI_SUCCESS)
+      FAIL();
+}
+
+void
+mpi_comm_group(MPI_Comm comm, MPI_Group *group)
+{
+  int rc;
+
+  if(USE_MPI)
+    if((rc = (*pMPI_Comm_group)(comm, group)) != MPI_SUCCESS)
+      FAIL();
+}
+
+void
+mpi_comm_rank(MPI_Comm comm, int *rankp)
+{
+  int rc;
+
+  if(USE_MPI)
+    {
+      if((rc = (*pMPI_Comm_rank)(comm, rankp)) != MPI_SUCCESS)
+	FAIL();
+    }
+}
+
+void
+mpi_comm_size(MPI_Comm comm, int *sizep)
+{
+  int rc;
+
+  if(USE_MPI)
+    {
+      if((rc = (*pMPI_Comm_size)(comm, sizep)) != MPI_SUCCESS)
+	FAIL();
+    }
+}
+
+void
+mpi_comm_split(MPI_Comm comm, int color, int key, MPI_Comm *newcomm)
+{
+  int rc;
+
+  if(USE_MPI)
+    if((rc = (*pMPI_Comm_split)(comm, color, key, newcomm)) != MPI_SUCCESS)
+      FAIL();
+}
+
+void 
+mpi_errhandler_set(MPI_Comm comm, MPI_Errhandler *errhandler)
+{
+  int rc;
+
+  if(USE_MPI)
+    {
+      if((rc = (*pMPI_Errhandler_set)(comm, errhandler)) != MPI_SUCCESS)
+	FAIL();
+    }
+}
+
+void
+mpi_finalize(void)
+{
+  int rc;
+
+  if(USE_MPI)
+    {
+      if((rc = (*pMPI_Finalize)()) != MPI_SUCCESS)
+	FAIL();
+      dlclose(mpi_handle);
+      dlclose(mpio_handle);
+      dlclose(elan_handle);
+    }
+}
+
+void
+mpi_gather(void *sendbuf, int sendcount, MPI_Datatype sendtype, void *recvbuf, int recvcount, MPI_Datatype recvtype, int root, MPI_Comm comm)
+{
+  int rc;
+
+  if(USE_MPI)
+    if((rc = (*pMPI_Gather)(sendbuf, sendcount, sendtype, recvbuf, recvcount, recvtype, root, comm)) != MPI_SUCCESS)
+      FAIL();
+}
+
+void
+mpi_group_free(MPI_Group *group)
+{
+  int rc;
+
+  if(USE_MPI)
+    if((rc = (*pMPI_Group_free)(group)) != MPI_SUCCESS)
+      FAIL();
+}
+
+void
+mpi_group_range_incl(MPI_Group group, int n, int ranges[][3], MPI_Group *newgroup)
+{
+  int rc;
+
+  if(USE_MPI)
+    if((rc = (*pMPI_Group_range_incl)(group, n, ranges, newgroup)) != MPI_SUCCESS)
+      FAIL();
 }
 
 void
@@ -101,6 +283,11 @@ mpi_init(int *argcp, char ***argvp)
   if( use_mpi == FORCE_NO_MPI )
     {
       base_report(SHOW_ENVIRONMENT, "Command line forbade the use of MPI\n");
+      return;
+    }
+  if( ! slurm->use_SLURM )
+    {
+      base_report(SHOW_ENVIRONMENT, "No SLURM, no MPI\n");
       return;
     }
   dlerror(); /* clear any preexisting error */
@@ -161,57 +348,6 @@ mpi_init(int *argcp, char ***argvp)
 }
 
 void
-mpi_comm_size(MPI_Comm comm, int *sizep)
-{
-  int rc;
-
-  if(USE_MPI)
-    {
-      if((rc = (*pMPI_Comm_size)(comm, sizep)) != MPI_SUCCESS)
-	FAIL();
-    }
-}
-
-void
-mpi_comm_rank(MPI_Comm comm, int *rankp)
-{
-  int rc;
-
-  if(USE_MPI)
-    {
-      if((rc = (*pMPI_Comm_rank)(comm, rankp)) != MPI_SUCCESS)
-	FAIL();
-    }
-}
-
-void 
-mpi_errhandler_set(MPI_Comm comm, MPI_Errhandler *errhandler)
-{
-  int rc;
-
-  if(USE_MPI)
-    {
-      if((rc = (*pMPI_Errhandler_set)(comm, errhandler)) != MPI_SUCCESS)
-	FAIL();
-    }
-}
-
-void
-mpi_finalize(void)
-{
-  int rc;
-
-  if(USE_MPI)
-    {
-      if((rc = (*pMPI_Finalize)()) != MPI_SUCCESS)
-	FAIL();
-      dlclose(mpi_handle);
-      dlclose(mpio_handle);
-      dlclose(elan_handle);
-    }
-}
-
-void
 mpi_recv(void *buf, int count, MPI_Datatype datatype, 
 	 int source, int tag, MPI_Comm comm, MPI_Status *status)
 {
@@ -219,28 +355,6 @@ mpi_recv(void *buf, int count, MPI_Datatype datatype,
 
   if(USE_MPI)
     if((rc = (*pMPI_Recv)(buf, count, datatype, source, tag, comm, status)) != MPI_SUCCESS)
-      FAIL();
-}
-
-void
-mpi_send(void *buffer, int count, MPI_Datatype datatype, 
-	 int dest, int tag, MPI_Comm comm)
-{
-  int rc;
-
-  if(USE_MPI)
-    if((rc = (*pMPI_Send)(buffer, count, datatype, dest, tag, comm)) != MPI_SUCCESS)
-      FAIL();
-}
-
-void
-mpi_bcast(void *buffer, int count, MPI_Datatype datatype, 
-	 int root, MPI_Comm comm)
-{
-  int rc;
-
-  if(USE_MPI)
-    if((rc = (*pMPI_Bcast)(buffer, count, datatype, root, comm)) != MPI_SUCCESS)
       FAIL();
 }
 
@@ -276,121 +390,15 @@ mpi_reduce(void *sendbuf, void *recvbuf, int count, MPI_Datatype datatype, MPI_O
 }
 
 void
-mpi_comm_group(MPI_Comm comm, MPI_Group *group)
+mpi_send(void *buffer, int count, MPI_Datatype datatype, 
+	 int dest, int tag, MPI_Comm comm)
 {
   int rc;
 
   if(USE_MPI)
-    if((rc = (*pMPI_Comm_group)(comm, group)) != MPI_SUCCESS)
+    if((rc = (*pMPI_Send)(buffer, count, datatype, dest, tag, comm)) != MPI_SUCCESS)
       FAIL();
 }
-
-void
-mpi_group_range_incl(MPI_Group group, int n, int ranges[][3], MPI_Group *newgroup)
-{
-  int rc;
-
-  if(USE_MPI)
-    if((rc = (*pMPI_Group_range_incl)(group, n, ranges, newgroup)) != MPI_SUCCESS)
-      FAIL();
-}
-
-void
-mpi_comm_create(MPI_Comm comm, MPI_Group group, MPI_Comm *newcomm)
-{
-  int rc;
-
-  if(USE_MPI)
-    if((rc = (*pMPI_Comm_create)(comm, group, newcomm)) != MPI_SUCCESS)
-      FAIL();
-}
-
-void
-mpi_comm_split(MPI_Comm comm, int color, int key, MPI_Comm *newcomm)
-{
-  int rc;
-
-  if(USE_MPI)
-    if((rc = (*pMPI_Comm_split)(comm, color, key, newcomm)) != MPI_SUCCESS)
-      FAIL();
-}
-
-void
-mpi_barrier(MPI_Comm comm)
-{
-  int rc;
-  
-  /*
-   *   This code no longer checks for delayed error reports.  I'll
-   * want to reintroduce that once I get error handling on a more
-   * solid footing.
-   */
-  if(USE_MPI)
-    if((rc = (*pMPI_Barrier)(comm)) != MPI_SUCCESS)
-      FAIL();
-}
-
-void
-mpi_comm_free(MPI_Comm *comm)
-{
-  int rc;
-
-  if(USE_MPI)
-    if((rc = (*pMPI_Comm_free)(comm)) != MPI_SUCCESS)
-      FAIL();
-}
-
-void
-mpi_group_free(MPI_Group *group)
-{
-  int rc;
-
-  if(USE_MPI)
-    if((rc = (*pMPI_Group_free)(group)) != MPI_SUCCESS)
-      FAIL();
-}
-
-void
-mpi_allreduce(void *sendbuf, void *recvbuf, int count, MPI_Datatype datatype, MPI_Op op, MPI_Comm comm)
-{
-  int rc;
-  int size = 1;
-
-  if(USE_MPI)
-    {
-      if((rc = (*pMPI_Allreduce)(sendbuf, recvbuf, count, datatype, op, comm)) != MPI_SUCCESS)
-	FAIL();
-    }
-  else
-    {
-      switch (datatype)
-	{
-	case MPI_INT :
-	  size = 4;
-	  break;
-	case MPI_DOUBLE : 
-	  size = 8;
-	  break;
-	case MPI_CHAR :
-	default :
-	  size = 1;
-	  break;
-	}
-      size *= count;
-      memcpy(recvbuf, sendbuf, size);
-    }
-}
-
-void
-mpi_gather(void *sendbuf, int sendcount, MPI_Datatype sendtype, void *recvbuf, int recvcount, MPI_Datatype recvtype, int root, MPI_Comm comm)
-{
-  int rc;
-
-  if(USE_MPI)
-    if((rc = (*pMPI_Gather)(sendbuf, sendcount, sendtype, recvbuf, recvcount, recvtype, root, comm)) != MPI_SUCCESS)
-      FAIL();
-}
-
 
 double 
 mpi_wtime()
