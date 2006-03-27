@@ -54,7 +54,7 @@ mandir		=	$(prefix)/man
 etcdir		=	/etc
 packagedir	=	${etcdir}/${PROJECT}
 scriptdir       =       /var/lustredata/scripts
-docdir          =       ${prefix}/share/doc
+docdir          =       ${prefix}/share/doc/mib-${VERSION}
 
 HEADERS = miberr.h mpi_wrap.h sys_wrap.h options.h mib_timer.h slurm.h
 SOURCES = mib.c mpi_wrap.c sys_wrap.c miberr.c options.c mib_timer.c slurm.c
@@ -71,7 +71,9 @@ doc: doc_dummy
 doc_dummy:
 	$(MAKE) -C doc
 
-tools:
+tools: tools-dummy
+
+tools-dummy:
 	$(MAKE) -C tools
 
 install: mib doc
@@ -99,6 +101,8 @@ install: mib doc
 	$(mkinstalldirs) 			$(DESTDIR)$(docdir)
 	$(INSTALL) doc/mib.pdf			$(DESTDIR)$(docdir)/
 	$(INSTALL) doc/sample.png		$(DESTDIR)$(docdir)/
+	$(INSTALL) README			$(DESTDIR)$(docdir)/
+	$(INSTALL) ChangeLog			$(DESTDIR)$(docdir)/
 	$(INSTALL) COPYING			$(DESTDIR)$(docdir)/
 	$(INSTALL) DISCLAIMER			$(DESTDIR)$(docdir)/
 

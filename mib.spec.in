@@ -67,7 +67,7 @@ rm -rf $RPM_BUILD_ROOT
 
 %files
 %defattr(-,root,root)
-%doc README TODO ChangeLog
+%doc /usr/share/doc/%{name}-%{version}
 
 /usr/bin/mib
 /usr/man/man1/*
@@ -75,10 +75,12 @@ rm -rf $RPM_BUILD_ROOT
 
 %files tools
 /var/lustredata/scripts/*
-/var/lustredata/mib-parms/*
+
 
 
 %changelog
+* Mon Mar 27 2006 Andrew C. Uselton <auselton@alci> 
+- Fixed build system to do documentation correctly
 * Thu Mar 9 2006 Andrew C. Uselton <auselton@alci> 
 - Substantial changes, relocated to subversion, rewritten from scratch
 * Thu Feb 10 2005 Andrew C. Uselton <auselton@alci> 
