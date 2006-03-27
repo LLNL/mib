@@ -65,7 +65,10 @@ all: mib
 mib: $(OBJECTS) $(HEADERS)
 	$(CC) $(LDFLAGS) $(LIBDIRS) $(OBJECTS) -o $@ $(LIBS)
 
-doc:
+# You have to use a dummy target because there really is a "doc" driectory
+doc: doc_dummy
+
+doc_dummy:
 	$(MAKE) -C doc
 
 tools:
