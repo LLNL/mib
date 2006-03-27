@@ -1,14 +1,16 @@
 #!/bin/bash
 
 BIN="$HOME/bin"
+TOOLS=/var/lustredata/scripts
 TARGET="-t /p/ti1/lustre-test/mib/crunchy"
 ONE_NODE="adev2"
 NO_FILES="-t /p/ti1/lustre-test/mib/nofiles"
-MIB=/home/auselton/adev/mib-1.9-try
+MIB=`which mib`
 SRUN="srun --core=light"
+#N.B. This is not distributed with mib:
 LWATCH="$BIN/lwatch.py"
 FS_MONITOR="http://ilci:50538"
-COMPOSITE=$BIN/composite.pl
+COMPOSITE=$TOOLS/composite.pl
 PROFILE_DIR="$HOME/tmp/testing"
 
 echo "===>test a version request"

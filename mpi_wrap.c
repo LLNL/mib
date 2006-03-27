@@ -82,8 +82,6 @@ mpi_abort(MPI_Comm comm, int errorcode)
 {
   if( USE_MPI )
     {
-      printf("About to MPI_Abort\n");
-      fflush(stdout);
       (*pMPI_Abort)(comm, errorcode);
     }
   else
