@@ -1,0 +1,673 @@
+===>test a version request
+mib-1.9
+===>test a help request
+usage: mib [ab::EFIhHl:L:Mnp:PrRs:St:VW]
+    -a              :  Use average profile times accross node.
+    -b [<gran>]     :  Random seeks (optional granularity) before each read
+                    :  seek(fd, gran*file_size*rand()/RAND_MAX, SEEK_SET
+    -E              :  Show environment of test in output.
+    -I              :  Show intermediate values in output.
+    -h              :  This message
+    -H              :  Show headers in output.
+    -l <call_limit> :  Issue no more than this many system calls.
+    -L <time_limit> :  Do not issue new system calls after this many
+                    :    seconds (limits are per phase for write and
+                    :    read phases).
+    -M              :  Do not use MPI even if it is available.
+    -n              :  Create new files if files were already present
+                    :    (will always create new files if none were
+                    :    present).
+    -p <profiles>   :  Output system call timing profiles to 
+                    :    <profiles>,write and <profiles>.read.
+    -P              :  Show progress bars during testing.
+    -r              :  Remove files when done.
+    -R              :  Only perform the read test.
+    -s <call_size>  :  Use system calls of this size (default 512k).
+                    :    Numbers may use abreviations k, K, m, or M.
+    -S              :  Show signon message, including date, program
+                    :    name, and version number.
+    -t <test_dir>   :  Required. I/O transactions to and from this
+                    :    directory
+    -V              :  Print the version and exit
+    -W              :  Only perform the write test
+                    :    (if -R and -W are both present both tests 
+                    :     will run, but that's the default anyway)
+===>test a normal one node run using MPI
+Testing a file system of type "S_MAGIC_LUSTRE" (f_type = 0xbd00bd0)
+Using MPI
+
+
+mib-1.9  Sat Mar 25 21:24:05 2006
+
+cluster                  = adev
+new                      = false
+remove                   = false
+nodes                    = 1
+testdir                  = /p/ti1/lustre-test/mib/crunchy
+call_limit               = 1024
+call_size                = 4194304
+time_limit               = 60
+tasks                    = 1
+write_only               = false
+read_only                = false
+profiles                 = no
+use_node_aves            = false
+show_signon              = true
+show_headers             = true
+show_environment         = true
+show_progress            = false
+show_intermediate_values = false
+===>test a version request
+mib-1.9
+===>test a help request
+usage: mib [ab::EFIhHl:L:Mnp:PrRs:St:VW]
+    -a              :  Use average profile times accross node.
+    -b [<gran>]     :  Random seeks (optional granularity) before each read
+                    :  seek(fd, gran*file_size*rand()/RAND_MAX, SEEK_SET
+    -E              :  Show environment of test in output.
+    -I              :  Show intermediate values in output.
+    -h              :  This message
+    -H              :  Show headers in output.
+    -l <call_limit> :  Issue no more than this many system calls.
+    -L <time_limit> :  Do not issue new system calls after this many
+                    :    seconds (limits are per phase for write and
+                    :    read phases).
+    -M              :  Do not use MPI even if it is available.
+    -n              :  Create new files if files were already present
+                    :    (will always create new files if none were
+                    :    present).
+    -p <profiles>   :  Output system call timing profiles to 
+                    :    <profiles>,write and <profiles>.read.
+    -P              :  Show progress bars during testing.
+    -r              :  Remove files when done.
+    -R              :  Only perform the read test.
+    -s <call_size>  :  Use system calls of this size (default 512k).
+                    :    Numbers may use abreviations k, K, m, or M.
+    -S              :  Show signon message, including date, program
+                    :    name, and version number.
+    -t <test_dir>   :  Required. I/O transactions to and from this
+                    :    directory
+    -V              :  Print the version and exit
+    -W              :  Only perform the write test
+                    :    (if -R and -W are both present both tests 
+                    :     will run, but that's the default anyway)
+===>test a normal one node run using MPI
+Testing a file system of type "S_MAGIC_LUSTRE" (f_type = 0xbd00bd0)
+Using MPI
+
+
+mib-1.9  Sat Mar 25 21:24:32 2006
+
+cluster                  = adev
+new                      = false
+remove                   = false
+nodes                    = 1
+testdir                  = /p/ti1/lustre-test/mib/crunchy
+call_limit               = 1024
+call_size                = 4194304
+time_limit               = 60
+tasks                    = 1
+write_only               = false
+read_only                = false
+profiles                 = no
+use_node_aves            = false
+show_signon              = true
+show_headers             = true
+show_environment         = true
+show_progress            = false
+show_intermediate_values = false
+          date            tasks  xfer  call  time      write       read
+                                      limit limit       MB/s       MB/s
+------------------------ ------ ----- ----- ----- ---------- ----------
+Sat Mar 25 21:25:32 2006      1    4M  1024    60     220.27      99.06
+===>do the same thing quietly
+Sat Mar 25 21:26:33 2006      1    4M  1024    60     232.18      95.06
+===>and verbosely
+Testing a file system of type "S_MAGIC_LUSTRE" (f_type = 0xbd00bd0)
+Using MPI
+
+
+mib-1.9  Sat Mar 25 21:26:33 2006
+
+cluster                  = adev
+new                      = false
+remove                   = false
+nodes                    = 1
+testdir                  = /p/ti1/lustre-test/mib/crunchy
+call_limit               = 1024
+call_size                = 4194304
+time_limit               = 60
+tasks                    = 1
+write_only               = false
+read_only                = false
+profiles                 = no
+use_node_aves            = false
+show_signon              = true
+show_headers             = true
+show_environment         = true
+show_progress            = true
+show_intermediate_values = true
+
+write phase
+should last about this long---------------------->
+************************************************
+Call 1024 was the last write recorded
+
+After 1024 calls and 17.734591 seconds
+4096.000000 MB written in 17.732700 seconds
+Aggregate write rate =     230.99
+
+read phase
+should last about this long---------------------->
+************************************************
+Call 1024 was the last read recorded
+
+After 1024 calls and 41.351038 seconds
+4096.000000 MB read in 41.349066 seconds
+Aggregate read rate =      99.06
+          date            tasks  xfer  call  time      write       read
+                                      limit limit       MB/s       MB/s
+------------------------ ------ ----- ----- ----- ---------- ----------
+Sat Mar 25 21:27:33 2006      1    4M  1024    60     230.99      99.06
+===>Just write
+Testing a file system of type "S_MAGIC_LUSTRE" (f_type = 0xbd00bd0)
+Using MPI
+
+
+mib-1.9  Sat Mar 25 21:27:33 2006
+
+cluster                  = adev
+new                      = false
+remove                   = false
+nodes                    = 1
+testdir                  = /p/ti1/lustre-test/mib/crunchy
+call_limit               = 1024
+call_size                = 4194304
+time_limit               = 60
+tasks                    = 1
+write_only               = true
+read_only                = false
+profiles                 = no
+use_node_aves            = false
+show_signon              = true
+show_headers             = true
+show_environment         = true
+show_progress            = false
+show_intermediate_values = false
+          date            tasks  xfer  call  time      write       read
+                                      limit limit       MB/s       MB/s
+------------------------ ------ ----- ----- ----- ---------- ----------
+Sat Mar 25 21:27:51 2006      1    4M  1024    60     230.26       0.00
+===>Just read
+Testing a file system of type "S_MAGIC_LUSTRE" (f_type = 0xbd00bd0)
+Using MPI
+
+
+mib-1.9  Sat Mar 25 21:27:51 2006
+
+cluster                  = adev
+new                      = false
+remove                   = false
+nodes                    = 1
+testdir                  = /p/ti1/lustre-test/mib/crunchy
+call_limit               = 1024
+call_size                = 4194304
+time_limit               = 60
+tasks                    = 1
+write_only               = false
+read_only                = true
+profiles                 = no
+use_node_aves            = false
+show_signon              = true
+show_headers             = true
+show_environment         = true
+show_progress            = false
+show_intermediate_values = false
+          date            tasks  xfer  call  time      write       read
+                                      limit limit       MB/s       MB/s
+------------------------ ------ ----- ----- ----- ---------- ----------
+Sat Mar 25 21:28:31 2006      1    4M  1024    60       0.00     100.46
+===>test random reads, byte granularity
+Testing a file system of type "S_MAGIC_LUSTRE" (f_type = 0xbd00bd0)
+Using MPI
+
+
+mib-1.9  Sat Mar 25 21:28:32 2006
+
+cluster                  = adev
+new                      = false
+remove                   = false
+nodes                    = 1
+testdir                  = /p/ti1/lustre-test/mib/crunchy
+call_limit               = 1024
+call_size                = 4194304
+time_limit               = 60
+tasks                    = 1
+write_only               = false
+read_only                = false
+profiles                 = no
+use_node_aves            = false
+random_reads             = 1
+show_signon              = true
+show_headers             = true
+show_environment         = true
+show_progress            = false
+show_intermediate_values = false
+          date            tasks  xfer  call  time      write       read
+                                      limit limit       MB/s       MB/s
+------------------------ ------ ----- ----- ----- ---------- ----------
+Sat Mar 25 21:29:50 2006      1    4M  1024    60     220.28      45.67
+===>test random reads, 4k granularity
+Testing a file system of type "S_MAGIC_LUSTRE" (f_type = 0xbd00bd0)
+Using MPI
+
+
+mib-1.9  Sat Mar 25 21:29:51 2006
+
+cluster                  = adev
+new                      = false
+remove                   = false
+nodes                    = 1
+testdir                  = /p/ti1/lustre-test/mib/crunchy
+call_limit               = 1024
+call_size                = 4194304
+time_limit               = 60
+tasks                    = 1
+write_only               = false
+read_only                = false
+profiles                 = no
+use_node_aves            = false
+random_reads             = 4096
+show_signon              = true
+show_headers             = true
+show_environment         = true
+show_progress            = false
+show_intermediate_values = false
+          date            tasks  xfer  call  time      write       read
+                                      limit limit       MB/s       MB/s
+------------------------ ------ ----- ----- ----- ---------- ----------
+Sat Mar 25 21:30:20 2006      1    4M  1024    60     229.73     363.76
+===>Remove the file(s) at the end
+Testing a file system of type "S_MAGIC_LUSTRE" (f_type = 0xbd00bd0)
+Using MPI
+
+
+mib-1.9  Sat Mar 25 21:30:20 2006
+
+cluster                  = adev
+new                      = false
+remove                   = true
+nodes                    = 1
+testdir                  = /p/ti1/lustre-test/mib/crunchy
+call_limit               = 1024
+call_size                = 4194304
+time_limit               = 60
+tasks                    = 1
+write_only               = false
+read_only                = false
+profiles                 = no
+use_node_aves            = false
+show_signon              = true
+show_headers             = true
+show_environment         = true
+show_progress            = false
+show_intermediate_values = false
+          date            tasks  xfer  call  time      write       read
+                                      limit limit       MB/s       MB/s
+------------------------ ------ ----- ----- ----- ---------- ----------
+Sat Mar 25 21:31:23 2006      1    4M  1024    60     223.52      99.26
+===>Create new file(s)
+Testing a file system of type "S_MAGIC_LUSTRE" (f_type = 0xbd00bd0)
+Using MPI
+
+
+mib-1.9  Sat Mar 25 21:31:23 2006
+
+cluster                  = adev
+new                      = true
+remove                   = false
+nodes                    = 1
+testdir                  = /p/ti1/lustre-test/mib/crunchy
+call_limit               = 1024
+call_size                = 4194304
+time_limit               = 60
+tasks                    = 1
+write_only               = false
+read_only                = false
+profiles                 = no
+use_node_aves            = false
+show_signon              = true
+show_headers             = true
+show_environment         = true
+show_progress            = false
+show_intermediate_values = false
+          date            tasks  xfer  call  time      write       read
+                                      limit limit       MB/s       MB/s
+------------------------ ------ ----- ----- ----- ---------- ----------
+Sat Mar 25 21:32:18 2006      1    4M  1024    60     246.67     106.86
+===>Create new file(s) in place of existing ones
+Testing a file system of type "S_MAGIC_LUSTRE" (f_type = 0xbd00bd0)
+Using MPI
+
+
+mib-1.9  Sat Mar 25 21:32:19 2006
+
+cluster                  = adev
+new                      = true
+remove                   = false
+nodes                    = 1
+testdir                  = /p/ti1/lustre-test/mib/crunchy
+call_limit               = 1024
+call_size                = 4194304
+time_limit               = 60
+tasks                    = 1
+write_only               = false
+read_only                = false
+profiles                 = no
+use_node_aves            = false
+show_signon              = true
+show_headers             = true
+show_environment         = true
+show_progress            = false
+show_intermediate_values = false
+          date            tasks  xfer  call  time      write       read
+                                      limit limit       MB/s       MB/s
+------------------------ ------ ----- ----- ----- ---------- ----------
+Sat Mar 25 21:33:22 2006      1    4M  1024    60     230.94      97.08
+===>Try to read where there are no files, this should fail
+Testing a file system of type "S_MAGIC_LUSTRE" (f_type = 0xbd00bd0)
+Using MPI
+
+
+mib-1.9  Sat Mar 25 21:33:24 2006
+
+cluster                  = adev
+new                      = false
+remove                   = false
+nodes                    = 1
+testdir                  = /p/ti1/lustre-test/mib/nofiles
+call_limit               = 1024
+call_size                = 4194304
+time_limit               = 60
+tasks                    = 1
+write_only               = false
+read_only                = true
+profiles                 = no
+use_node_aves            = false
+show_signon              = true
+show_headers             = true
+show_environment         = true
+show_progress            = false
+show_intermediate_values = false
+No file: /p/ti1/lustre-test/mib/nofiles/mibData.00000000
+About to MPI_Abort
+===>Forget to give target, should fail
+Mib requires a "-t <test_dir>" argument.
+===>test suppressing MPI
+Testing a file system of type "S_MAGIC_LUSTRE" (f_type = 0xbd00bd0)
+Command line forbade the use of MPI
+
+
+mib-1.9  Sat Mar 25 21:33:24 2006
+
+cluster                  = adev
+new                      = false
+remove                   = false
+nodes                    = 1
+testdir                  = /p/ti1/lustre-test/mib/crunchy
+call_limit               = 1024
+call_size                = 4194304
+time_limit               = 60
+tasks                    = 1
+write_only               = false
+read_only                = false
+profiles                 = no
+use_node_aves            = false
+show_signon              = true
+show_headers             = true
+show_environment         = true
+show_progress            = false
+show_intermediate_values = false
+  task           date            tasks  xfer  call  time      write       read
+                                             limit limit       MB/s       MB/s
+------ ------------------------ ------ ----- ----- ----- ---------- ----------
+     0 Sat Mar 25 21:34:27 2006      1    4M  1024    60     227.56      91.02
+===>test without SLURM
+adev2: Testing a file system of type "S_MAGIC_LUSTRE" (f_type = 0xbd00bd0)
+adev2: Command line forbade the use of MPI
+adev2: 
+adev2: 
+adev2: mib-1.9  Sat Mar 25 21:34:27 2006
+adev2: 
+adev2: cluster                  = 
+adev2: new                      = false
+adev2: remove                   = false
+adev2: nodes                    = 1
+adev2: testdir                  = /p/ti1/lustre-test/mib/crunchy
+adev2: call_limit               = 1024
+adev2: call_size                = 4194304
+adev2: time_limit               = 60
+adev2: tasks                    = 1
+adev2: write_only               = false
+adev2: read_only                = false
+adev2: profiles                 = no
+adev2: use_node_aves            = false
+adev2: show_signon              = true
+adev2: show_headers             = true
+adev2: show_environment         = true
+adev2: show_progress            = false
+adev2: show_intermediate_values = false
+adev2:   task           date            tasks  xfer  call  time      write       read
+adev2:                                              limit limit       MB/s       MB/s
+adev2: ------ ------------------------ ------ ----- ----- ----- ---------- ----------
+adev2:      2 Sat Mar 25 21:35:26 2006      1    4M  1024    60     227.56      99.90
+===>Check that it figures out there's no MPI even without being told
+adev2: Testing a file system of type "S_MAGIC_LUSTRE" (f_type = 0xbd00bd0)
+adev2: No SLURM, no MPI
+adev2: 
+adev2: 
+adev2: mib-1.9  Sat Mar 25 21:35:26 2006
+adev2: 
+adev2: cluster                  = 
+adev2: new                      = false
+adev2: remove                   = false
+adev2: nodes                    = 1
+adev2: testdir                  = /p/ti1/lustre-test/mib/crunchy
+adev2: call_limit               = 1024
+adev2: call_size                = 4194304
+adev2: time_limit               = 60
+adev2: tasks                    = 1
+adev2: write_only               = false
+adev2: read_only                = false
+adev2: profiles                 = no
+adev2: use_node_aves            = false
+adev2: show_signon              = true
+adev2: show_headers             = true
+adev2: show_environment         = true
+adev2: show_progress            = false
+adev2: show_intermediate_values = false
+adev2:   task           date            tasks  xfer  call  time      write       read
+adev2:                                              limit limit       MB/s       MB/s
+adev2: ------ ------------------------ ------ ----- ----- ----- ---------- ----------
+adev2:      2 Sat Mar 25 21:36:25 2006      1    4M  1024    60     227.56      99.90
+===>run locally to NFS home directory, this one should fail
+Mib will not write to a file system of type "NFS_SUPER_MAGIC" (f_type = 0x6969) unless you use the "-F" (--force) option 
+===>run locally to NFS home directory, force it to do even though it's
+a bad idea
+Testing a file system of type "NFS_SUPER_MAGIC" (f_type = 0x6969)
+No SLURM, no MPI
+
+
+mib-1.9  Sat Mar 25 21:36:29 2006
+
+cluster                  = 
+new                      = false
+remove                   = false
+nodes                    = 1
+testdir                  = .
+call_limit               = 512
+call_size                = 524288
+time_limit               = 60
+tasks                    = 1
+write_only               = false
+read_only                = false
+profiles                 = no
+use_node_aves            = false
+show_signon              = true
+show_headers             = true
+show_environment         = true
+show_progress            = false
+show_intermediate_values = false
+  task           date            tasks  xfer  call  time      write       read
+                                             limit limit       MB/s       MB/s
+------ ------------------------ ------ ----- ----- ----- ---------- ----------
+     0 Sat Mar 25 21:37:02 2006      1  512k   512    60       7.76       0.00
+===>test with two tasks per node
+Testing a file system of type "S_MAGIC_LUSTRE" (f_type = 0xbd00bd0)
+Using MPI
+
+
+mib-1.9  Sat Mar 25 21:36:58 2006
+
+cluster                  = adev
+new                      = false
+remove                   = false
+nodes                    = 1
+testdir                  = /p/ti1/lustre-test/mib/crunchy
+call_limit               = 1024
+call_size                = 4194304
+time_limit               = 60
+tasks                    = 2
+write_only               = false
+read_only                = false
+profiles                 = no
+use_node_aves            = false
+show_signon              = true
+show_headers             = true
+show_environment         = true
+show_progress            = false
+show_intermediate_values = false
+          date            tasks  xfer  call  time      write       read
+                                      limit limit       MB/s       MB/s
+------------------------ ------ ----- ----- ----- ---------- ----------
+Sat Mar 25 21:38:54 2006      2    4M  1024    60     147.00     132.15
+===>test with more nodes
+Testing a file system of type "S_MAGIC_LUSTRE" (f_type = 0xbd00bd0)
+Using MPI
+
+
+mib-1.9  Sat Mar 25 21:38:54 2006
+
+cluster                  = adev
+new                      = false
+remove                   = false
+nodes                    = 2
+testdir                  = /p/ti1/lustre-test/mib/crunchy
+call_limit               = 1024
+call_size                = 4194304
+time_limit               = 60
+tasks                    = 4
+write_only               = false
+read_only                = false
+profiles                 = no
+use_node_aves            = false
+show_signon              = true
+show_headers             = true
+show_environment         = true
+show_progress            = false
+show_intermediate_values = false
+          date            tasks  xfer  call  time      write       read
+                                      limit limit       MB/s       MB/s
+------------------------ ------ ----- ----- ----- ---------- ----------
+Sat Mar 25 21:40:55 2006      4    4M  1024    60     233.75     182.88
+===>test profiling
+Testing a file system of type "S_MAGIC_LUSTRE" (f_type = 0xbd00bd0)
+Using MPI
+
+
+mib-1.9  Sat Mar 25 21:40:55 2006
+
+cluster                  = adev
+new                      = false
+remove                   = false
+nodes                    = 2
+testdir                  = /p/ti1/lustre-test/mib/crunchy
+call_limit               = 1024
+call_size                = 4194304
+time_limit               = 60
+tasks                    = 4
+write_only               = false
+read_only                = false
+profiles                 = /home/auselton/tmp/testing/profile
+use_node_aves            = false
+show_signon              = true
+show_headers             = true
+show_environment         = true
+show_progress            = false
+show_intermediate_values = false
+          date            tasks  xfer  call  time      write       read
+                                      limit limit       MB/s       MB/s
+------------------------ ------ ----- ----- ----- ---------- ----------
+Sat Mar 25 21:42:55 2006      4    4M  1024    60     232.66     184.58
+===>test node averaging behavior
+Testing a file system of type "S_MAGIC_LUSTRE" (f_type = 0xbd00bd0)
+Using MPI
+
+
+mib-1.9  Sat Mar 25 21:42:56 2006
+
+cluster                  = adev
+new                      = false
+remove                   = false
+nodes                    = 2
+testdir                  = /p/ti1/lustre-test/mib/crunchy
+call_limit               = 1024
+call_size                = 4194304
+time_limit               = 60
+tasks                    = 4
+write_only               = false
+read_only                = false
+profiles                 = /home/auselton/tmp/testing/profile
+use_node_aves            = true
+show_signon              = true
+show_headers             = true
+show_environment         = true
+show_progress            = false
+show_intermediate_values = false
+          date            tasks  xfer  call  time      write       read
+                                      limit limit       MB/s       MB/s
+------------------------ ------ ----- ----- ----- ---------- ----------
+Sat Mar 25 21:44:56 2006      4    4M  1024    60     216.74     179.93
+===>test composite file generation
+Testing a file system of type "S_MAGIC_LUSTRE" (f_type = 0xbd00bd0)
+Using MPI
+
+
+mib-1.9  Sat Mar 25 21:44:56 2006
+
+cluster                  = adev
+new                      = false
+remove                   = false
+nodes                    = 2
+testdir                  = /p/ti1/lustre-test/mib/crunchy
+call_limit               = 1024
+call_size                = 4194304
+time_limit               = 60
+tasks                    = 4
+write_only               = false
+read_only                = false
+profiles                 = /home/auselton/tmp/testing/profile
+use_node_aves            = false
+show_signon              = true
+show_headers             = true
+show_environment         = true
+show_progress            = false
+show_intermediate_values = false
+          date            tasks  xfer  call  time      write       read
+                                      limit limit       MB/s       MB/s
+------------------------ ------ ----- ----- ----- ---------- ----------
+Sat Mar 25 21:46:57 2006      4    4M  1024    60     231.91     185.27
+===>run this as non-root so gnuplot can get at X:
+/home/auselton/bin/composite.pl -d /home/auselton/tmp/testing
+
+===>Done

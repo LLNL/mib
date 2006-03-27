@@ -26,7 +26,7 @@
 
 
 PROJECT=mib
-VERSION=1.9
+VERSION=%VERSION%
 MAKE=    /usr/bin/make
 SRCS = 
 OBJS = 
@@ -52,4 +52,5 @@ clean:
 .c.o:
 	$(CC) $(CCFLAGS) -c $<
 
-
+distclean: clean
+	rm Makefile	

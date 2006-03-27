@@ -105,4 +105,6 @@ clean:
 	rm -f *.o mib *~
 
 distclean: clean
+	$(MAKE) -C doc distclean
+	$(MAKE) -C tools distclean
 	rm Makefile version.h mib.spec

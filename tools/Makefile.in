@@ -46,3 +46,7 @@ all:
 
 clean: 
 	rm -f *.o *~
+
+distclean: clean
+	rm Makefile
+
