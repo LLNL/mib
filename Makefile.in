@@ -65,7 +65,7 @@ all: mib
 mib: $(OBJECTS) $(HEADERS)
 	$(CC) $(LDFLAGS) $(LIBDIRS) $(OBJECTS) -o $@ $(LIBS)
 
-doc : mib
+doc : 
 	$(MAKE) -C doc
 
 tools :

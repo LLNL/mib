@@ -41,7 +41,7 @@ all : mib.pdf
 
 composite.png : 
 	rm -f composite.png
-	../tools/composite.pl -d sample -p composite
+	../tools/composite.pl -d sample -p sample
 
 %.eps : %.fig
 	fig2dev -L eps $< $@
