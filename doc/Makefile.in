@@ -34,7 +34,7 @@ DOC =
 
 all : mib.pdf
 
-%.pdf : %.tex composite.png
+%.pdf : %.tex sample.png
 	rm -f $@
 	pdflatex $<
 	pdflatex $<
