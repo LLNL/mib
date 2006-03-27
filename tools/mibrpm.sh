@@ -49,20 +49,23 @@ VERSION=${VERSION// /}
 [ X"$VERSION" != X ] ||  usage "The META file did not yield a version"
 cd ..
 mkdir -p mib-$VERSION/aux
-mkdir -p mib-$VERSION/mib-parms
 mkdir -p mib-$VERSION/tools
+mkdir -p mib-$VERSION/doc/sample
 cp mib/* mib-$VERSION/
 rm mib-$VERSION/*.in
 rm mib-$VERSION/configure
 rm mib-$VERSION/META
 cp mib/aux/* mib-$VERSION/aux
-cp mib/mib-parms/* mib-$VERSION/mib-parms
 cp mib/tools/* mib-$VERSION/tools
+cp mib/doc/* mib-$VERSION/doc
+cp mib/doc/sample/* mib-$VERSION/doc/sample
 rm mib-$VERSION/tools/mibrpm.sh
+rm mib-$VERSION/tools/Makefile.in
+rm mib-$VERSION/doc/Makefile.in
 rm -rf mib
 tar cvfz $HOME/rpm/SOURCES/mib-$VERSION.tar.gz mib-$VERSION
 cp mib-$VERSION/mib.spec $HOME/rpm/SPECS
 rm -rf mib-$VERSION
 cd $HOME/rpm/SPECS
 mkdir -p $HOME/rpm/TMP/mib-$VERSION
-rpmbuild -ba --define "_tmppath $HOME/rpm/TMP/mib-$VERSION" --define "_topdir $HOME/rpm" mib.spec 
+rpmbuild -bb --define "_tmppath $HOME/rpm/TMP/mib-$VERSION" --define "_topdir $HOME/rpm" mib.spec 
