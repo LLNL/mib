@@ -61,11 +61,15 @@ SOURCES = mib.c mpi_wrap.c sys_wrap.c miberr.c options.c mib_timer.c slurm.c
 OBJECTS = $(SOURCES:.c=.o)
 
 all: mib 
-	$(MAKE) -C doc
-	$(MAKE) -C tools
 
 mib: $(OBJECTS) $(HEADERS)
 	$(CC) $(LDFLAGS) $(LIBDIRS) $(OBJECTS) -o $@ $(LIBS)
+
+doc : mib
+	$(MAKE) -C doc
+
+tools :
+	$(MAKE) -C tools
 
 install: all
 	$(mkinstalldirs) 			$(DESTDIR)$(bindir)
