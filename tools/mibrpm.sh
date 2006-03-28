@@ -50,7 +50,12 @@ cd $HOME/tmp
 rm -rf mib
 svn co https://eris.llnl.gov/svn/chaos/private/mib/trunk mib
 cd mib
-[ ./configure ] || usage "config failed"
+if ./configure 
+then
+    echo "configuredd"
+else
+    usage "config failed"
+fi
 
 VERSION=`grep VERSION META | cut -d':' -f2`
 VERSION=${VERSION// /}
