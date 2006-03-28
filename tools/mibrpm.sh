@@ -27,6 +27,13 @@
 # mibrpm.sh 
 #   Automate the steps to build a mib rpm.
 
+usage ()
+{
+	[ X"$1" == X ] || { echo "$1"; echo; } 
+	echo "$PROG"
+	exit 1
+}
+
 INSTALL_TARGET="/var/lustredata"
 [ -d $INSTALL_TARGET ] || { echo "The install target $INSTALL_TARGET does not exist.  Are you sure you want to build here?"; exit 1; }
 mkdir -p $HOME/rmp/BUILD
@@ -43,7 +50,8 @@ cd $HOME/tmp
 rm -rf mib
 svn co https://eris.llnl.gov/svn/chaos/private/mib/trunk mib
 cd mib
-./configure
+[ ./configure ] || usage "config failed"
+
 VERSION=`grep VERSION META | cut -d':' -f2`
 VERSION=${VERSION// /}
 [ X"$VERSION" != X ] ||  usage "The META file did not yield a version"
