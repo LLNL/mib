@@ -1,10 +1,28 @@
 #!/bin/bash
 
+CLUSTER=`nodeattr -v cluster`
+case $CLUSTER in
+    adev) 
+	FS="ti1"
+	ONE_NODE="adev2"
+	;;
+    tdev)
+	FS="ti2"
+	ONE_NODE="tdev3"
+	;;
+    alc) 
+	FS="ga2"
+	ONE_NODE="alc68"
+	;;
+    *)
+	echo "I need to know hat File System to test on this cluster"
+	;;
+esac
+
 BIN="$HOME/bin"
 TOOLS=/var/lustredata/scripts
-TARGET="-t /p/ti1/lustre-test/mib/crunchy"
-ONE_NODE="adev2"
-NO_FILES="-t /p/ti1/lustre-test/mib/nofiles"
+TARGET="-t /p/${FS}/lustre-test/mib/crunchy"
+NO_FILES="-t /p/${FS}/lustre-test/mib/nofiles"
 MIB=`which mib`
 SRUN="srun --core=light"
 #N.B. This is not distributed with mib:

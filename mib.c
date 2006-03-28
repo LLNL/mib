@@ -115,7 +115,6 @@ main( int argc, char *argv[] )
   sign_on();
   /* initialze the mib struct */
   mib = Init_Mib(rank, size);
-
   if(verbosity(SHOW_ENVIRONMENT)) show_details();
   if( mib->comm == MPI_COMM_NULL )
     {
@@ -140,8 +139,12 @@ main( int argc, char *argv[] )
 	mpi_comm_free(&(mib->comm));
       mpi_barrier(MPI_COMM_WORLD);
     }
+  printf("About done\n");
   fflush(stdout);
   mpi_finalize();
+  printf("Done\n");
+  fflush(stdout);
+  exit(0);
 }
 
 void
@@ -180,6 +183,7 @@ Init_Mib(int rank, int size)
   mib->size =  USE_MPI ? size : (slurm->use_SLURM ? slurm->NPROCS : 1 );
   mib->base =  USE_MPI ? 0 : (slurm->use_SLURM ? 0 : mib->rank );
   mib->comm = MPI_COMM_WORLD;
+  return(mib);
 }
 
 int
@@ -523,7 +527,7 @@ read_test()
   Results *res = NULL;
   int ret;
   char read_target[MAX_BUF];
-  int read_rank = (mib->rank + (mib->tasks/2)) % mib->tasks;
+  int read_rank = ((mib->rank + (mib->tasks/2)) % mib->tasks) + mib->base;
   int last_read_call;
   off_t offset;
   double gran;
@@ -917,7 +921,6 @@ report(double write, double read)
 		  "%24s %6s %5s %5s %5s %10s %10s\n", "------------------------", "------", "-----", "-----", "-----", "----------", "----------");
       base_report(SHOW_ALL, 
 		  "%s %6d %4d%c %5d %5d %10.2f %10.2f\n", time_str, mib->tasks, xfer, range_ch, opts->call_limit, opts->time_limit, write, read);
-      fflush(stdout);
     }
   else
     {

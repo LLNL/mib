@@ -93,7 +93,7 @@ mpi_abort(MPI_Comm comm, int errorcode)
 void
 mpi_allreduce(void *sendbuf, void *recvbuf, int count, MPI_Datatype datatype, MPI_Op op, MPI_Comm comm)
 {
-  int rc;
+  int rc = 0;
   int size = 1;
 
   if(USE_MPI)
@@ -124,7 +124,7 @@ mpi_allreduce(void *sendbuf, void *recvbuf, int count, MPI_Datatype datatype, MP
 void
 mpi_barrier(MPI_Comm comm)
 {
-  int rc;
+  int rc = 0;
   
   /*
    *   This code no longer checks for delayed error reports.  I'll
@@ -140,7 +140,7 @@ void
 mpi_bcast(void *buffer, int count, MPI_Datatype datatype, 
 	 int root, MPI_Comm comm)
 {
-  int rc;
+  int rc = 0;
 
   if(USE_MPI)
     if((rc = (*pMPI_Bcast)(buffer, count, datatype, root, comm)) != MPI_SUCCESS)
@@ -150,7 +150,7 @@ mpi_bcast(void *buffer, int count, MPI_Datatype datatype,
 void
 mpi_comm_create(MPI_Comm comm, MPI_Group group, MPI_Comm *newcomm)
 {
-  int rc;
+  int rc = 0;
 
   if(USE_MPI)
     if((rc = (*pMPI_Comm_create)(comm, group, newcomm)) != MPI_SUCCESS)
@@ -160,7 +160,7 @@ mpi_comm_create(MPI_Comm comm, MPI_Group group, MPI_Comm *newcomm)
 void
 mpi_comm_free(MPI_Comm *comm)
 {
-  int rc;
+  int rc = 0;
 
   if(USE_MPI)
     if((rc = (*pMPI_Comm_free)(comm)) != MPI_SUCCESS)
@@ -170,7 +170,7 @@ mpi_comm_free(MPI_Comm *comm)
 void
 mpi_comm_group(MPI_Comm comm, MPI_Group *group)
 {
-  int rc;
+  int rc = 0;
 
   if(USE_MPI)
     if((rc = (*pMPI_Comm_group)(comm, group)) != MPI_SUCCESS)
@@ -180,7 +180,7 @@ mpi_comm_group(MPI_Comm comm, MPI_Group *group)
 void
 mpi_comm_rank(MPI_Comm comm, int *rankp)
 {
-  int rc;
+  int rc = 0;
 
   if(USE_MPI)
     {
@@ -192,7 +192,7 @@ mpi_comm_rank(MPI_Comm comm, int *rankp)
 void
 mpi_comm_size(MPI_Comm comm, int *sizep)
 {
-  int rc;
+  int rc = 0;
 
   if(USE_MPI)
     {
@@ -204,7 +204,7 @@ mpi_comm_size(MPI_Comm comm, int *sizep)
 void
 mpi_comm_split(MPI_Comm comm, int color, int key, MPI_Comm *newcomm)
 {
-  int rc;
+  int rc = 0;
 
   if(USE_MPI)
     if((rc = (*pMPI_Comm_split)(comm, color, key, newcomm)) != MPI_SUCCESS)
@@ -214,7 +214,7 @@ mpi_comm_split(MPI_Comm comm, int color, int key, MPI_Comm *newcomm)
 void 
 mpi_errhandler_set(MPI_Comm comm, MPI_Errhandler *errhandler)
 {
-  int rc;
+  int rc = 0;
 
   if(USE_MPI)
     {
@@ -226,7 +226,7 @@ mpi_errhandler_set(MPI_Comm comm, MPI_Errhandler *errhandler)
 void
 mpi_finalize(void)
 {
-  int rc;
+  int rc = 0;
 
   if(USE_MPI)
     {
@@ -234,14 +234,20 @@ mpi_finalize(void)
 	FAIL();
       dlclose(mpi_handle);
       dlclose(mpio_handle);
-      dlclose(elan_handle);
+      /*
+       * There is uglyness in Elan-land.  The elan3-based libraries unload just
+       * fine, but the elan4 libraries do not.  If you just let process termination
+       * sort things out it works fine, too.  This is the end of the program so
+       * it shouldn't make any difference that we don't close libelan ourselves.
+            dlclose(elan_handle);
+      */
     }
 }
 
 void
 mpi_gather(void *sendbuf, int sendcount, MPI_Datatype sendtype, void *recvbuf, int recvcount, MPI_Datatype recvtype, int root, MPI_Comm comm)
 {
-  int rc;
+  int rc = 0;
 
   if(USE_MPI)
     if((rc = (*pMPI_Gather)(sendbuf, sendcount, sendtype, recvbuf, recvcount, recvtype, root, comm)) != MPI_SUCCESS)
@@ -251,7 +257,7 @@ mpi_gather(void *sendbuf, int sendcount, MPI_Datatype sendtype, void *recvbuf, i
 void
 mpi_group_free(MPI_Group *group)
 {
-  int rc;
+  int rc = 0;
 
   if(USE_MPI)
     if((rc = (*pMPI_Group_free)(group)) != MPI_SUCCESS)
@@ -261,7 +267,7 @@ mpi_group_free(MPI_Group *group)
 void
 mpi_group_range_incl(MPI_Group group, int n, int ranges[][3], MPI_Group *newgroup)
 {
-  int rc;
+  int rc = 0;
 
   if(USE_MPI)
     if((rc = (*pMPI_Group_range_incl)(group, n, ranges, newgroup)) != MPI_SUCCESS)
@@ -274,7 +280,7 @@ mpi_init(int *argcp, char ***argvp)
   char mpi[] = "libmpi.so";
   char mpio[] = "libmpio.so";
   char elan[] = "libelan.so";
-  int rc;
+  int rc = 0;
   int flag = RTLD_LAZY | RTLD_GLOBAL;
   char *dlerr;
 
@@ -349,7 +355,7 @@ void
 mpi_recv(void *buf, int count, MPI_Datatype datatype, 
 	 int source, int tag, MPI_Comm comm, MPI_Status *status)
 {
-  int rc;
+  int rc = 0;
 
   if(USE_MPI)
     if((rc = (*pMPI_Recv)(buf, count, datatype, source, tag, comm, status)) != MPI_SUCCESS)
@@ -359,7 +365,7 @@ mpi_recv(void *buf, int count, MPI_Datatype datatype,
 void
 mpi_reduce(void *sendbuf, void *recvbuf, int count, MPI_Datatype datatype, MPI_Op op, int root, MPI_Comm comm)
 {
-  int rc;
+  int rc = 0;
   int size = 1;
 
   if(USE_MPI)
@@ -391,7 +397,7 @@ void
 mpi_send(void *buffer, int count, MPI_Datatype datatype, 
 	 int dest, int tag, MPI_Comm comm)
 {
-  int rc;
+  int rc = 0;
 
   if(USE_MPI)
     if((rc = (*pMPI_Send)(buffer, count, datatype, dest, tag, comm)) != MPI_SUCCESS)

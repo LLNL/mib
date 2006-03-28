@@ -15,6 +15,17 @@
 	NFS unless a "-F" (--force) flag is set.
 
 	* Add a version option that prints the version string and exits.
+
+	* Remove the "options" file code, use command line arguments only
+
+	* Add a unit test "mib-test.sh" to the tools directory
+
+	* Fix Mib_Init, it didn't return(mib) its result
+
+	* When there is no SLURM or MPI we set the rank and base to the 
+	host's index.  That means the read test's file name needs the 
+	base added to its modulo arithmatic.  When we have arbitrary 
+	subcommunicators, if ever, that would also come up.
 	
 2006-03-01 Andrew Uselton <uselton2@llnl.gov>
 	
