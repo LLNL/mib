@@ -312,7 +312,9 @@ check_fs()
   errno = 0;
   if ( (ret = statfs(opts->testdir, &buf) < 0) )
   {
-    base_report(SHOW_ALL, "Could not statfs \"%s\", error: %d\n", opts->testdir, errno);
+    base_report(SHOW_ALL, "Could not statfs \"%s\" (%d): %s\n", 
+		opts->testdir, errno, strerror(errno));
+    exit(1);
   }
   while ( (!found) && (fs_list[index].f_type != 0) )
     {

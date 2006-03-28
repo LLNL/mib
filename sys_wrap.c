@@ -76,16 +76,9 @@ Open(char *name, int flags)
   errno = 0;
   if( (fd = open(name, flags, mode)) < 0 )
     {
-      if(errno == ENOENT) 
-	{
-	  flags |= O_CREAT;
-	  if( (fd = open(name, flags, mode)) < 0 )
-	    {
-	      printf("failed to open %s: %d\n", name, errno);
-	      fflush(stdout);
-	      if (USE_MPI) {FAIL();} else exit(1);
-	    }
-	}
+      printf("failed to open %s: %d\n", name, errno);
+      fflush(stdout);
+      if (USE_MPI) {FAIL();} else exit(1);
     }
   return (fd);
 }

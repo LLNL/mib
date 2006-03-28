@@ -26,6 +26,14 @@
 	host's index.  That means the read test's file name needs the 
 	base added to its modulo arithmatic.  When we have arbitrary 
 	subcommunicators, if ever, that would also come up.
+
+	* "Open" for writes should have O_CREAT, and "Open" for reads
+	should not.  Doing this makes the "Open" implementation straight
+	forward.  
+
+	* If the statfs call fails, which it will if you gave it a bogus
+	target directory, then you need to bail with an error message.
+	I'd left out the "exit(1)".
 	
 2006-03-01 Andrew Uselton <uselton2@llnl.gov>
 	

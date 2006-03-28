@@ -139,11 +139,7 @@ main( int argc, char *argv[] )
 	mpi_comm_free(&(mib->comm));
       mpi_barrier(MPI_COMM_WORLD);
     }
-  printf("About done\n");
-  fflush(stdout);
   mpi_finalize();
-  printf("Done\n");
-  fflush(stdout);
   exit(0);
 }
 
@@ -219,7 +215,7 @@ write_test()
   int last_call;
   char *buf;          /* what gets sent in the system call */
   int wf;             /* the file handle for the writes */
-  int flag = O_WRONLY;/* the flag value for the open */
+  int flag = O_WRONLY | O_CREAT;/* the flag value for the open */
   double time_limit;
   double time;
   double rate = 0;
@@ -247,7 +243,6 @@ write_test()
   if( check_flags(NEW) ) 
     {
       Unlink(write_target);
-      flag |= O_CREAT;
     }
   res->start_open = get_time();
   wf = Open(write_target, flag);
