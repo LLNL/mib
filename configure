@@ -35,8 +35,8 @@ case $CLUSTER in
 	  ;;
 	gauss) CC=gcc
 	  ;;
-#	odev) CC=gcc
-#	  ;;
+	odev) CC=gcc
+	  ;;
 	tdev) CC=gcc
 	  ;;
 	*) usage "This script needs to know what compiler to use for luster $CLUSTER"

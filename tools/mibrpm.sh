@@ -27,6 +27,8 @@
 # mibrpm.sh 
 #   Automate the steps to build a mib rpm.
 
+PROG=$(basename $0)
+
 usage ()
 {
 	[ X"$1" == X ] || { echo "$1"; echo; } 
