@@ -17,11 +17,11 @@ usage ()
 	echo "$PROG"
 	echo "Set up for a compile if possible"
 	echo "Print an error message otherwise"
-	echo "This scrip establishes the compiler to use the makefile based on the"
+	echo "This script establishes the compiler to use in the makefile based on the"
 	echo "cluster as returned by \"nodeattr -v cluster\", and sets the version,"
 	echo "based on the value of VERSION in the \"META\" file, in the source at"
 	echo "\"mib.c\" and the spec file \"mib.spec\"."
-	exit 0
+	exit(0)
 }
 
 [ X"$1" != X"-h" ] || usage
@@ -34,6 +34,8 @@ case $CLUSTER in
 	bgl) CC=gcc
 	  ;;
 	gauss) CC=gcc
+	  ;;
+	odev) usage "CC=gcc"
 	  ;;
 	tdev) CC=gcc
 	  ;;
