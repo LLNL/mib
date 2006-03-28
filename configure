@@ -21,7 +21,7 @@ usage ()
 	echo "cluster as returned by \"nodeattr -v cluster\", and sets the version,"
 	echo "based on the value of VERSION in the \"META\" file, in the source at"
 	echo "\"mib.c\" and the spec file \"mib.spec\"."
-	exit(0)
+	exit
 }
 
 [ X"$1" != X"-h" ] || usage
