@@ -36,12 +36,19 @@ usage ()
 	exit 1
 }
 
-ARCH=`uname -m`
-[ X"$ARCH" == X ] && usage "Failed to detect architecture"
-[ "$ARCH" == "i686" -o "$ARCH" == "i586" -o "$ARCH" == "i486" ] && ARCH="i386"
- 
-INSTALL_TARGET="/var/lustredata"
-[ -d $INSTALL_TARGET ] || { echo "The install target $INSTALL_TARGET does not exist.  Are you sure you want to build here?"; exit 1; }
+if [ X"$ARCH" == X ]
+    then
+    ARCH=`uname -m`
+    [ X"$ARCH" == X ] && usage "Failed to detect architecture"
+    [ "$ARCH" == "i686" -o "$ARCH" == "i586" -o "$ARCH" == "i486" ] && ARCH="i386"
+fi
+# We want to get /var/lustredata mounted on bgldev and ubgl, but it's 
+# not there yet.
+if [ X"$ARCH" != X"ppc64" ]
+then 
+    INSTALL_TARGET="/var/lustredata"
+    [ -d $INSTALL_TARGET ] || { echo "The install target $INSTALL_TARGET does not exist.  Are you sure you want to build here?"; exit 1; }
+fi
 mkdir -p $HOME/rmp/BUILD
 mkdir -p $HOME/rmp/RPMS/$ARCH
 mkdir -p $HOME/rmp/RPMS/pseries64

@@ -33,13 +33,17 @@ case $CLUSTER in
 	  ;;
 	bgl) CC=gcc
 	  ;;
+	bgldev) CC=gcc
+	  ;;
 	gauss) CC=gcc
 	  ;;
 	odev) CC=gcc
 	  ;;
 	tdev) CC=gcc
 	  ;;
-	*) usage "This script needs to know what compiler to use for luster $CLUSTER"
+	uxbgl) CC=gcc
+	  ;;
+	*) usage "This script needs to know what compiler to use for cluster $CLUSTER"
 	  ;;
 esac 
 echo "Cluster $CLUSTER with compiler $CC"
