@@ -8,8 +8,12 @@ PROG=$(basename $0)
 
 NODEATTR=`/usr/bin/which nodeattr 2>/dev/null`
 [ X"$NODEATTR" == X ] && { echo "This script expects a cluster with the Genders \"nodeattr\" function installed"; exit 1; } 
-CLUSTER=`nodeattr -v cluster`
-[ X"$CLUSTER" == X ] && { echo "\"nodeattr -v cluster\" failed to determine the cluster were on, if any"; exit 1; }
+if [ X"$ARCH" == X ]
+    then
+    ARCH=`uname -m`
+    [ X"$ARCH" == X ] && usage "Failed to detect architecture"
+    [ "$ARCH" == "i686" -o "$ARCH" == "i586" -o "$ARCH" == "i486" ] && ARCH="i386"
+fi
 
 usage ()
 {
@@ -26,22 +30,14 @@ usage ()
 
 [ X"$1" != X"-h" ] || usage
  
-case $CLUSTER in
-	adev) CC=gcc
+case $ARCH in
+	i386) CC=gcc
 	  ;;
-	alc) CC=gcc
+	bgl) CC=mpgcc
 	  ;;
-	bgl) CC=gcc
+	x86_64) CC=gcc
 	  ;;
-	bgldev) CC=gcc
-	  ;;
-	gauss) CC=gcc
-	  ;;
-	odev) CC=gcc
-	  ;;
-	tdev) CC=gcc
-	  ;;
-	uxbgl) CC=gcc
+	ia64) CC=gcc
 	  ;;
 	*) usage "This script needs to know what compiler to use for cluster $CLUSTER"
 	  ;;

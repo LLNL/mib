@@ -42,6 +42,7 @@ if [ X"$ARCH" == X ]
     [ X"$ARCH" == X ] && usage "Failed to detect architecture"
     [ "$ARCH" == "i686" -o "$ARCH" == "i586" -o "$ARCH" == "i486" ] && ARCH="i386"
 fi
+export ARCH
 # We want to get /var/lustredata mounted on bgldev and ubgl, but it's 
 # not there yet.
 if [ X"$ARCH" != X"ppc64" ]
