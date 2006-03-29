@@ -8,6 +8,8 @@ PROG=$(basename $0)
 
 NODEATTR=`/usr/bin/which nodeattr 2>/dev/null`
 [ X"$NODEATTR" == X ] && { echo "This script expects a cluster with the Genders \"nodeattr\" function installed"; exit 1; } 
+CLUSTER=`$NODEATTR -v cluster`
+
 if [ X"$ARCH" == X ]
     then
     ARCH=`uname -m`
@@ -29,23 +31,26 @@ usage ()
 }
 
 [ X"$1" != X"-h" ] || usage
- 
+CC="gcc"
+LIBS="-ldl"
 case $ARCH in
-	i386) CC=gcc
+	i386) 
 	  ;;
-	bgl) CC=mpgcc
+	bgl) 
+	CC="mpgcc"
+	LIBS=""
 # Truely unfortunate hack to get BGL to work at all.  There is no dlfcn.h 
 # for the mpgcc cross compiler.
 	cp bgl_mpi_wrap.c mpi_wrap.c
 	  ;;
-	x86_64) CC=gcc
+	x86_64) 
 	  ;;
-	ia64) CC=gcc
+	ia64)
 	  ;;
-	*) usage "This script needs to know what compiler to use for cluster $CLUSTER"
+	*) usage "This script needs to know what compiler to use for architecture $ARCH"
 	  ;;
 esac 
-echo "Cluster $CLUSTER with compiler $CC"
+echo "Cluster $CLUSTER (architecture $ARCH) with compiler $CC"
 
 MAKEFILE="Makefile"
 [ -f $MAKEFILE.in ] || usage "There is no file $MAKEFILE.in here"
@@ -61,13 +66,14 @@ VERSION=${VERSION// /}
 rm -f $CONFIG_H >/dev/null 2>&1
 echo "#ifndef CONFIG_H" >$CONFIG_H
 echo "#define MIB_VERSION \"$VERSION\"" >> $CONFIG_H
+echo "#define MIB_ARCH \"$ARCH\"" >> $CONFIG_H
 MPI_H="/usr/lib/mpi/include/mpi.h"
 MPI_DIR="/usr/lib/mpi"
 [ -f $MPI_H -o -d $MPI_DIR ] || echo "#define MPI_NOT_INSTALLED" >> $CONFIG_H
 echo "#endif /* CONFIG_H */" >> $CONFIG_H
 
 rm -f $MAKEFILE >/dev/null 2>&1
-cat $MAKEFILE.in  | sed "s/%CC%/$CC/" | sed "s/%VERSION%/$VERSION/" > $MAKEFILE
+cat $MAKEFILE.in  | sed "s/%CC%/$CC/" | sed "s/%LIBS%/$LIBS/" | sed "s/%VERSION%/$VERSION/" > $MAKEFILE
 
 cd tools
 rm -f $MAKEFILE >/dev/null 2>&1

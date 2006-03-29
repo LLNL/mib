@@ -85,6 +85,7 @@ void base_report(int verb, char *fmt, ...);
 
 Mib  *mib = NULL;
 char *version=MIB_VERSION;
+char *arch=MIB_ARCH;
 
 extern Options *opts;
 extern SLURM   *slurm;
@@ -155,7 +156,7 @@ sign_on()
   p = time_str;
   while( (*p != '\0') && (*p != '\n') && (p - time_str < MAX_BUF) )p++;
   if( *p == '\n' ) *p = '\0';
-  sprintf(signon, "\n\nmib-%s  %s\n\n", version, time_str);
+  sprintf(signon, "\n\nmib-%s-%s  %s\n\n", version, arch, time_str);
   base_report(SHOW_SIGNON, signon);
 }
 

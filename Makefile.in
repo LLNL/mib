@@ -37,7 +37,7 @@ CCFLAGS = ${MPI_CCFLAGS} -g -D_LARGEFILE64_SOURCE -D_FILE_OFFSET_BITS=64 -rdynam
 # I don't think it turned out to need the following:
 LDFLAGS = #-Wl,-rpath-link -Wl,/usr/lib/mpi/mpi_intel/lib 
 LIBDIRS = #-L/usr/lib/mpi/mpi_intel/lib 
-LIBS = -ldl
+LIBS = %LIBS%
 MPI_INCDIR = -I/usr/lib/mpi/include
 INCDIR = ${MPI_INCDIR}
 DEBUG = # Put 'DEBUG="-DDEBUG_CODE=1"' on the command line if you want 
