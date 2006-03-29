@@ -34,6 +34,13 @@
 	* If the statfs call fails, which it will if you gave it a bogus
 	target directory, then you need to bail with an error message.
 	I'd left out the "exit(1)".
+
+	* Convert to using config.h, which is created by configure, to
+	detect if MPI is present on the build host, and skip using it if
+	so.
+
+	* Set the correct include directory: /usr/lib/mpi/include in the
+	Makefile.in
 	
 2006-03-01 Andrew Uselton <uselton2@llnl.gov>
 	

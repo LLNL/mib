@@ -44,7 +44,6 @@ INSTALL_TARGET="/var/lustredata"
 [ -d $INSTALL_TARGET ] || { echo "The install target $INSTALL_TARGET does not exist.  Are you sure you want to build here?"; exit 1; }
 mkdir -p $HOME/rmp/BUILD
 mkdir -p $HOME/rmp/RPMS/$ARCH
-mkdir -p $HOME/rmp/RPMS/x86_64
 mkdir -p $HOME/rmp/RPMS/pseries64
 mkdir -p $HOME/rmp/SOURCES
 mkdir -p $HOME/rmp/SPECS
