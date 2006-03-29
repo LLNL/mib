@@ -34,9 +34,12 @@ typedef int MPI_Status;
 #define MPI_COMM_WORLD ((MPI_Comm)1)
 #define MPI_COMM_NULL ((MPI_Comm)0)
 /* MPI_Datatype objects */
-#define MPI_INT 1
-#define MPI_DOUBLE 2
+#define MPI_INT    ((MPI_Datatype)1)
+#define MPI_DOUBLE ((MPI_Datatype)2)
+#define MPI_CHAR ((MPI_Datatype)3)
 /* MPI_Op objects */
-#define MPI_MAX 1
-#define MPI_MIN 1
-#define MPI_SUM 1
+#define MPI_MAX ((MPI_Op)1)
+#define MPI_MIN ((MPI_Op)2)
+#define MPI_SUM ((MPI_Op)3)
+/* MPI_Status objects */
+#define MPI_SUCCESS ((MPI_Status)1)
