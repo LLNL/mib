@@ -45,7 +45,7 @@ fi
 export ARCH
 # We want to get /var/lustredata mounted on bgldev and ubgl, but it's 
 # not there yet.
-if [ X"$ARCH" != X"ppc64" ]
+if [ X"$ARCH" != X"ppc64" -a X"$ARCH" != X"bgl" ]
 then 
     INSTALL_TARGET="/var/lustredata"
     [ -d $INSTALL_TARGET ] || { echo "The install target $INSTALL_TARGET does not exist.  Are you sure you want to build here?"; exit 1; }
