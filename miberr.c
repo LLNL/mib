@@ -25,6 +25,7 @@
 \*****************************************************************************/
 #include <stdio.h>
 #include "config.h"
+#include "mpi_wrap.h"
 #include "miberr.h"
 
 
