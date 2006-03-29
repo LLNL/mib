@@ -189,12 +189,7 @@ mpi_group_range_incl(MPI_Group group, int n, int ranges[][3], MPI_Group *newgrou
 void
 mpi_init(int *argcp, char ***argvp)
 {
-  char mpi[] = "libmpi.so";
-  char mpio[] = "libmpio.so";
-  char elan[] = "libelan.so";
   int rc = 0;
-  int flag = RTLD_LAZY | RTLD_GLOBAL;
-  char *dlerr;
 
   if( use_mpi == FORCE_NO_MPI )
     {
@@ -204,7 +199,7 @@ mpi_init(int *argcp, char ***argvp)
   if( ! slurm->use_SLURM )
     {
       base_report(SHOW_ENVIRONMENT, "No SLURM, no MPI\n");
-      return;
+      exit(1);
     }
   if((rc = MPI_Init(argcp, argvp)) == MPI_SUCCESS)
     {
@@ -213,8 +208,8 @@ mpi_init(int *argcp, char ***argvp)
     }
   else
     {
-      base_report(SHOW_ENVIRONMENT, "No MPI - MPI_Init failed, attempting to proceed without\n");
-      return;
+      base_report(SHOW_ENVIRONMENT, "No MPI - MPI_Init failed.  Bailing\n");
+      exit(1);
     }
 }
 
