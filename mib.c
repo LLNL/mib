@@ -62,15 +62,14 @@
 #include <errno.h>
 #include <time.h>
 #include <stdarg.h>    /* varargs */
-#include <mpi.h>
+#include "config.h"
+#include "mpi_wrap.h"
 #include "mib.h"
 #include "miberr.h"
-#include "mpi_wrap.h"
 #include "options.h"
 #include "slurm.h"
 #include "mib_timer.h"
 #include "sys_wrap.h"
-#include "version.h"
 
 void sign_on();
 Mib *Init_Mib(int rank, int size);

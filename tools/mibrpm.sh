@@ -36,11 +36,14 @@ usage ()
 	exit 1
 }
 
+ARCH=`uname -m`
+[ X"$ARCH" == X ] && usage "Failed to detect architecture"
+[ "$ARCH" == "i686" -o "$ARCH" == "i586" -o "$ARCH" == "i486" ] && ARCH="i386"
+ 
 INSTALL_TARGET="/var/lustredata"
 [ -d $INSTALL_TARGET ] || { echo "The install target $INSTALL_TARGET does not exist.  Are you sure you want to build here?"; exit 1; }
 mkdir -p $HOME/rmp/BUILD
-mkdir -p $HOME/rmp/RPMS/i386
-mkdir -p $HOME/rmp/RPMS/ia_64
+mkdir -p $HOME/rmp/RPMS/$ARCH
 mkdir -p $HOME/rmp/RPMS/x86_64
 mkdir -p $HOME/rmp/RPMS/pseries64
 mkdir -p $HOME/rmp/SOURCES
@@ -54,7 +57,7 @@ svn co https://eris.llnl.gov/svn/chaos/private/mib/trunk mib
 cd mib
 if ./configure 
 then
-    echo "configuredd"
+    echo "configured"
 else
     usage "config failed"
 fi
@@ -83,4 +86,5 @@ cp mib-$VERSION/mib.spec $HOME/rpm/SPECS
 rm -rf mib-$VERSION
 cd $HOME/rpm/SPECS
 mkdir -p $HOME/rpm/TMP/mib-$VERSION
+echo "rpmbuild -ba --define \"_tmppath $HOME/rpm/TMP/mib-$VERSION\" --define \"_topdir $HOME/rpm\" mib.spec "
 rpmbuild -ba --define "_tmppath $HOME/rpm/TMP/mib-$VERSION" --define "_topdir $HOME/rpm" mib.spec 

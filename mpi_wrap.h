@@ -24,6 +24,12 @@
  *  59 Temple Place, Suite 330, Boston, MA  02111-1307  USA.
 \*****************************************************************************/
 
+#ifndef MPI_NOT_INSTALLED
+#include <mpi.h>
+#else
+#include "mpi_stubs.h"
+#endif
+
 #ifndef BOOL_DEF
 typedef enum {FALSE, TRUE} BOOL;
 #define BOOL_DEF

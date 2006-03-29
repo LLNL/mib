@@ -33,6 +33,7 @@
 #include <time.h>
 #include <unistd.h>
 #include <stdarg.h>
+#include "config.h"
 #include "sys_wrap.h"
 #include "slurm.h"
 

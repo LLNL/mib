@@ -38,7 +38,7 @@ CCFLAGS = ${MPI_CCFLAGS} -g -D_LARGEFILE64_SOURCE -D_FILE_OFFSET_BITS=64 -rdynam
 LDFLAGS = #-Wl,-rpath-link -Wl,/usr/lib/mpi/mpi_intel/lib 
 LIBDIRS = #-L/usr/lib/mpi/mpi_intel/lib 
 LIBS = -ldl
-MPI_INCDIR = -I/usr/lib/mpi/mpi_gnu/include
+MPI_INCDIR = -I/usr/lib/mpi/include
 INCDIR = ${MPI_INCDIR}
 DEBUG = # Put 'DEBUG="-DDEBUG_CODE=1"' on the command line if you want 
 	# debugging, or you can put it here if you really want to be sure
@@ -56,7 +56,7 @@ packagedir	=	${etcdir}/${PROJECT}
 scriptdir       =       /var/lustredata/scripts
 docdir          =       ${prefix}/share/doc/${PROJECT}-${VERSION}
 
-HEADERS = miberr.h mpi_wrap.h sys_wrap.h options.h mib_timer.h slurm.h
+HEADERS = miberr.h mpi_wrap.h sys_wrap.h options.h mib_timer.h slurm.h config.h
 SOURCES = mib.c mpi_wrap.c sys_wrap.c miberr.c options.c mib_timer.c slurm.c
 OBJECTS = $(SOURCES:.c=.o)
 
@@ -118,4 +118,4 @@ clean:
 distclean: clean
 	$(MAKE) -C doc distclean
 	$(MAKE) -C tools distclean
-	rm Makefile version.h mib.spec
+	rm Makefile config.h mib.spec

@@ -23,14 +23,14 @@
  *  with Mib; if not, write to the Free Software Foundation, Inc.,
  *  59 Temple Place, Suite 330, Boston, MA  02111-1307  USA.
 \*****************************************************************************/
-#include <mpi.h>
 #include <stdio.h>
 #include <time.h>
 #include <string.h>     /* strncpy */
+#include "config.h"
 #include "mpi_wrap.h"
+#include "miberr.h"
 #include "options.h"
 #include "mib_timer.h"
-#include "miberr.h"
 
 #define MAX_BUF 100
 

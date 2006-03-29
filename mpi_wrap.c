@@ -25,13 +25,13 @@
 \*****************************************************************************/
 
 #include <stdio.h>
-#include <mpi.h>
-#include "string.h"     /* for strncpy */
+#include <string.h>     /* for strncpy */
 #include <dlfcn.h>      /* dynamic loader interface */
-#include "slurm.h"
+#include "config.h"
 #include "mpi_wrap.h"
 #include "miberr.h"
 #include "options.h"
+#include "slurm.h"
 
 /*
  * Revisit these and decide which ones necessarily must FAIL, and wich

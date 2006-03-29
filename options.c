@@ -38,13 +38,13 @@
 #include <errno.h>
 #define _GNU_SOURCE
 #include <getopt.h>
-#include <mpi.h>
-#include "sys_wrap.h"
-#include "miberr.h"
-#include "options.h"
+#include "config.h"
 #include "mpi_wrap.h"
-#include "slurm.h"
 #include "mib.h"
+#include "miberr.h"
+#include "sys_wrap.h"
+#include "options.h"
+#include "slurm.h"
 
 Options *Make_Opts();
 void check_fs();

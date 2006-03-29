@@ -40,10 +40,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdarg.h>
-#include <mpi.h>
+#include "config.h"
+#include "mpi_wrap.h"
 #include "mib.h"
 #include "miberr.h"
-#include "mpi_wrap.h"
 #include "sys_wrap.h"
 #include "options.h"
 

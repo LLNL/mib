@@ -46,8 +46,7 @@ echo "Cluster $CLUSTER with compiler $CC"
 
 MAKEFILE="Makefile"
 [ -f $MAKEFILE.in ] || usage "There is no file $MAKEFILE.in here"
-VERSION_H="version.h"
-[ -f $VERSION_H.in ] || usage "There is no file $VERSION_H.in here"
+CONFIG_H="config.h"
 MIB_SPEC="mib.spec"
 [ -f $MIB_SPEC.in ] || usage "There is no file $MIB_SPEC.in here"
 [ -f META ] || usage "There is no file META here"
@@ -56,19 +55,26 @@ VERSION=`grep VERSION META | cut -d':' -f2`
 VERSION=${VERSION// /}
 [ X"$VERSION" != X ] ||  usage "The META file did not yield a version"
 
+rm -f $CONFIG_H >/dev/null 2>&1
+echo "#ifndef CONFIG_H" >$CONFIG_H
+echo "#define MIB_VERSION \"$VERSION\"" >> $CONFIG_H
+MPI_H="/usr/lib/mpi/include/mpi.h"
+MPI_DIR="/usr/lib/mpi"
+[ -f $MPI_H -o -d $MPI_DIR ] || echo "#define MPI_NOT_INSTALLED" >> $CONFIG_H
+echo "#endif /* CONFIG_H */" >> $CONFIG_H
+
 rm -f $MAKEFILE >/dev/null 2>&1
 cat $MAKEFILE.in  | sed "s/%CC%/$CC/" | sed "s/%VERSION%/$VERSION/" > $MAKEFILE
+
 cd tools
 rm -f $MAKEFILE >/dev/null 2>&1
 cat $MAKEFILE.in  | sed "s/%CC%/$CC/" | sed "s/%VERSION%/$VERSION/" > $MAKEFILE
 cd ..
+
 cd doc
 rm -f $MAKEFILE >/dev/null 2>&1
 cat $MAKEFILE.in  | sed "s/%VERSION%/$VERSION/" > $MAKEFILE
 cd ..
-
-rm -f $VERSION_H >/dev/null 2>&1
-cat $VERSION_H.in  | sed "s/%VERSION%/$VERSION/" > $VERSION_H
 
 rm -f $MIB_SPEC >/dev/null 2>&1
 cat $MIB_SPEC.in  | sed "s/%VERSION%/$VERSION/" > $MIB_SPEC
