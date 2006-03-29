@@ -34,6 +34,9 @@ case $ARCH in
 	i386) CC=gcc
 	  ;;
 	bgl) CC=mpgcc
+# Truely unfortunate hack to get BGL to work at all.  There is no dlfcn.h 
+# for the mpgcc cross compiler.
+	cp bgl_mpi_wrap.c mpi_wrap.c
 	  ;;
 	x86_64) CC=gcc
 	  ;;
