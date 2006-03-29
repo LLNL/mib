@@ -75,6 +75,10 @@ rm -f $MAKEFILE >/dev/null 2>&1
 cat $MAKEFILE.in  | sed "s/%CC%/$CC/" | sed "s/%VERSION%/$VERSION/" > $MAKEFILE
 cd ..
 
+# Suppress making the pdf documentation if the pdflatex executable is 
+# not available.  Later I could split this out to just latex without dvi2pdf.
+PDFLATEX=`which pdflatex`
+[ X"$PDFLATEX" != X ] || touch doc_dummy 
 cd doc
 rm -f $MAKEFILE >/dev/null 2>&1
 cat $MAKEFILE.in  | sed "s/%VERSION%/$VERSION/" > $MAKEFILE
