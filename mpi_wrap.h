@@ -63,7 +63,7 @@ void mpi_comm_size(MPI_Comm comm, int *sizep);
 
 void mpi_comm_split(MPI_Comm comm, int color, int key, MPI_Comm *newcomm);
 
-void mpi_errhandler_set(MPI_Comm comm, MPI_Errhandler *errhandler);
+void mpi_errhandler_set(MPI_Comm comm, MPI_Errhandler errhandler);
 
 void mpi_finalize(void);
 

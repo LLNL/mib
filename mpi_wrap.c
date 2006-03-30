@@ -59,7 +59,7 @@ int (*pMPI_Comm_group)(MPI_Comm comm, MPI_Group *group);
 int (*pMPI_Comm_rank)(MPI_Comm comm, int *rankp);
 int (*pMPI_Comm_size)(MPI_Comm comm, int *sizep);
 int (*pMPI_Comm_split)(MPI_Comm comm, int color, int key, MPI_Comm *newcomm);
-int (*pMPI_Errhandler_set)(MPI_Comm comm, MPI_Errhandler *errhandler);
+int (*pMPI_Errhandler_set)(MPI_Comm comm, MPI_Errhandler errhandler);
 int (*pMPI_Finalize)(void);
 int (*pMPI_Gather)(void *sendbuf, int sendcount, MPI_Datatype sendtype, void *recvbuf, 
 		    int recvcount, MPI_Datatype recvtype, int root, MPI_Comm comm);
@@ -212,7 +212,7 @@ mpi_comm_split(MPI_Comm comm, int color, int key, MPI_Comm *newcomm)
 }
 
 void 
-mpi_errhandler_set(MPI_Comm comm, MPI_Errhandler *errhandler)
+mpi_errhandler_set(MPI_Comm comm, MPI_Errhandler errhandler)
 {
   int rc = 0;
 
