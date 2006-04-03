@@ -15,18 +15,19 @@ case $CLUSTER in
 	ONE_NODE="alc68"
 	;;
     *)
-	echo "I need to know hat File System to test on this cluster"
+	echo "I need to know what File System to test on this cluster"
 	;;
 esac
 
-BIN="$HOME/bin"
+[ X"$HOME" == X ] && { echo "You want to set \$HOME before proceeding"; exit 1; }
+[ -w $HOME ] || { echo "You will want \$HOME set to something you have permissions in"; exit 1; }
 TOOLS=/var/lustredata/scripts
 TARGET="-t /p/${FS}/lustre-test/mib/crunchy"
 NO_FILES="-t /p/${FS}/lustre-test/mib/nofiles"
 MIB=`which mib`
 SRUN="srun --core=light"
 #N.B. This is not distributed with mib:
-LWATCH="$BIN/lwatch.py"
+LWATCH="$HOME/bin/lwatch.py"
 FS_MONITOR="http://ilci:50538"
 COMPOSITE=$TOOLS/composite.pl
 PROFILE_DIR="$HOME/tmp/testing"
@@ -42,6 +43,9 @@ $SRUN -N1 -n1 $MIB $TARGET -L60 -l1024 -s 4m -SHE
 
 echo "===>do the same thing quietly"
 $SRUN -N1 -n1 $MIB $TARGET -L60 -l1024 -s 4m
+
+echo "===>just use the defaults"
+$SRUN -N1 -n1 $MIB $TARGET
 
 echo "===>and verbosely"
 $SRUN -N1 -n1 $MIB $TARGET -L60 -l1024 -s 4m -SHEIP
@@ -67,17 +71,21 @@ $SRUN -N1 -n1 $MIB $TARGET -L60 -l1024 -s 4m -SHE -n
 echo "===>Create new file(s) in place of existing ones"
 $SRUN -N1 -n1 $MIB $TARGET -L60 -l1024 -s 4m -SHE -n
 
-echo "===>Try to read where there are no files, this should fail"
-#Don't use a shell variable in the following.  A typo could lead to 
-#disaster
-pdsh -w $ONE_NODE rm -f /p/ti1/lustre-test/mib/nofiles/*
-$SRUN -N1 -n1 $MIB $NO_FILES -L60 -l1024 -s 4m -SHE -R
-#clean up the core files
-rm -f *core
+echo "===>Try to read where there are no files, This should fail"
+[ -d $NO_FILES ] && { echo "The \$NO_FILES target $NO_FILES needs to be removed before this test will work"; exit 1 }
+if mkdir $NO_FILES
+    then 
+    $SRUN -N1 -n1 $MIB $NO_FILES -L60 -l1024 -s 4m -SHE -R
+#clean up the core files, if any
+    rm -f *core
+else
+    echo "Looks like we do not have permissiion to create the \$NO_FILES target $NO_FILES"
+    exit 1
+fi
 
 echo "===>Forget to give target, should fail"
 $SRUN -N1 -n1 $MIB -L60 -l1024 -s 4m -SHE
-#clean up the core files
+#clean up the core files, if any
 rm -f *core
 
 echo "===>test suppressing MPI"
@@ -87,12 +95,12 @@ echo "===>test without SLURM"
 pdsh -w $ONE_NODE $MIB $TARGET -L60 -l1024 -s 4m -SHE -M
 
 echo "===>Check that it figures out there's no MPI even without being told"
-#(no -M)
+#(i.e. no -M)
 pdsh -w $ONE_NODE $MIB $TARGET -L60 -l1024 -s 4m -SHE
 
 echo "===>run locally to NFS home directory, this one should fail"
 $MIB -t "." -L60 -l512 -s 512k -SHE
-#clean up the core files (are there any?)
+#clean up the core files, if any
 rm -f *core
 
 echo "===>run locally to NFS home directory, force it to do even though it's"
@@ -103,18 +111,17 @@ echo "===>test with two tasks per node"
 $SRUN -N1 -n2 $MIB $TARGET -L60 -l1024 -s 4m -SHE
 
 echo "===>test with more nodes"
+# Modify this to include as many nodes as you can
 $SRUN -N2 -n4 $MIB $TARGET -L60 -l1024 -s 4m -SHE
 
+[ -d $PROFILE_DIR -a -w $PROFILE_DIR ] || { echo "The is no $PROFILE_DIR for profiling output so we will just quit here"; exit 1; }
 echo "===>test profiling"
-#Don't use a shell variable in the following.  A typo could lead to 
-#disaster
-rm -rf tmp/testing
-mkdir -p $PROFILE_DIR
 $SRUN -N2 -n4 $MIB $TARGET -L60 -l1024 -s 4m -SHE -p $PROFILE_DIR/profile
 
 echo "===>test node averaging behavior"
 $SRUN -N2 -n4 $MIB $TARGET -L60 -l1024 -s 4m -SHE -p $PROFILE_DIR/profile -a
 
+[ -f $LWATCH -a -x $LWATCH ] || { echo "There is no $LWATCH so we will just quit here"; exit 1; }
 echo "===>test composite file generation"
 nohup $LWATCH -f $FS_MONITOR > $PROFILE_DIR/lwatch 2>&1 &
 LWATCH_PID=$!

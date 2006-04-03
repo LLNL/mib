@@ -30,15 +30,29 @@ typedef enum {FALSE, TRUE} BOOL;
 
 #define MAX_BUF 100
 
+/* defines for the Options_Struc "flags" field */
 #define DEFAULTS      0
 #define NEW           (1 << 0)
 #define REMOVE        (1 << 1)
 #define READ_ONLY     (1 << 2)
 #define WRITE_ONLY    (1 << 3)
-#define USE_NODE_AVES (1 << 4)
-#define RANDOM_READS  (1 << 5)
-#define FORCE         (1 << 6)
+#define RANDOM_READS  (1 << 4)
+#define FORCE         (1 << 5)
+#define check_flags(mask)  (opts->flags & mask)
 
+/*
+ * Defines for the Options_Struct "verbosity. " field
+ *  I made "QUIET" have a non-zero value above the others so that 
+ * the verbosity macro will return a TRUE for the SHOW_ALL level.
+ */
+#define SHOW_SIGNON               (1 << 0)
+#define SHOW_HEADERS              (1 << 1)
+#define SHOW_ENVIRONMENT          (1 << 2)
+#define SHOW_PROGRESS             (1 << 3)
+#define SHOW_INTERMEDIATE_VALUES  (1 << 4)
+#define QUIET                     (1 << 5)
+#define SHOW_ALL                  (~0)
+#define verbosity(mask)    (opts->verbosity & mask)
 
 typedef struct Options_Struct {
   char *profiles;      /* = /home/auselton/testing/<date> */
@@ -51,24 +65,9 @@ typedef struct Options_Struct {
   int verbosity;
 }Options;
 
-/*
- *  I made "QUIET" have a non-zero value above the others so that 
- * the verbosity macro will return a TRUE for the SHOW_ALL level.
- */
-#define SHOW_SIGNON               (1 << 0)
-#define SHOW_HEADERS              (1 << 1)
-#define SHOW_ENVIRONMENT          (1 << 2)
-#define SHOW_PROGRESS             (1 << 3)
-#define SHOW_INTERMEDIATE_VALUES  (1 << 4)
-#define QUIET                     (1 << 5)
-#define SHOW_ALL                  (~0)
-
-
 void command_line(int *argcp, char **argvp[]);
 void Free_Opts();
 void usage( void );
 void show_details();
 
-#define check_flags(mask)  (opts->flags & mask)
-#define verbosity(mask)    (opts->verbosity & mask)
 

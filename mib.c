@@ -173,7 +173,6 @@ Init_Mib(int rank, int size)
    */
   mib->nodes = slurm->use_SLURM ? slurm->NNODES : 1;
   mib->tasks = slurm->use_SLURM ? slurm->NPROCS : 1;
-  if( mib->tasks == mib->nodes ) opts->flags &= ~USE_NODE_AVES;
 
   mib->rank =  USE_MPI ? rank : (slurm->use_SLURM ? slurm->PROCID : get_host_index());
   mib->size =  USE_MPI ? size : (slurm->use_SLURM ? slurm->NPROCS : 1 );
@@ -751,134 +750,30 @@ profiles(double *array,   int count, char *io_direction)
    * associated with each NODE.  The task = 0 task in each 
    * subcommunicator is the base to which the others send their data.
    */
-  if ( ! check_flags(USE_NODE_AVES) )
+  node = mib->rank;
+  task = mib->rank;
+  BUF_LIMIT = 20*mib->tasks;
+  buffer = Malloc(BUF_LIMIT);
+  DEBUG("Table\n");
+  base_report(SHOW_INTERMEDIATE_VALUES, 
+	      "Table of %d tasks with up to %d system calls\n", mib->tasks, count);
+  table = (double *)Malloc(mib->tasks*sizeof(double));
+  for(call = 0; call < count; call++)
     {
-      node = mib->rank;
-      task = mib->rank;
-      BUF_LIMIT = 20*mib->tasks;
-      buffer = Malloc(BUF_LIMIT);
-      DEBUG("Table\n");
-      base_report(SHOW_INTERMEDIATE_VALUES, 
-		  "Table of %d tasks with up to %d system calls\n", mib->tasks, count);
-      table = (double *)Malloc(mib->tasks*sizeof(double));
-      for(call = 0; call < count; call++)
+      mpi_gather(&(array[call]), 1, MPI_DOUBLE, table, 1, MPI_DOUBLE, mib->base, mib->comm);
+      if( mib->rank == mib->base )
 	{
-	  mpi_gather(&(array[call]), 1, MPI_DOUBLE, table, 1, MPI_DOUBLE, mib->base, mib->comm);
-	  if( mib->rank == mib->base )
+	  ip = buffer;
+	  for(i = 0; i < mib->tasks; i++)
 	    {
-	      ip = buffer;
-	      for(i = 0; i < mib->tasks; i++)
-		{
-		  /* N.B.  the following can only have one double,
-		     since varargs doesn't work.  */
-		  ret = Snprintf(ip, BUF_LIMIT - (ip - buffer), "%f\t", table[i]);
-		  ip += ret;
-		  *ip = '\0';
-		}
-	      Fprintf(lfd, "%s\n", buffer);
+	      /* N.B.  the following can only have one double,
+		 since varargs doesn't work.  */
+	      ret = Snprintf(ip, BUF_LIMIT - (ip - buffer), "%f\t", table[i]);
+	      ip += ret;
+	      *ip = '\0';
 	    }
+	  Fprintf(lfd, "%s\n", buffer);
 	}
-    }
-  else
-    {
-      node = mib->rank/tasks_per_node;
-      task = mib->rank % tasks_per_node;
-
-      BUF_LIMIT = 20*mib->nodes;
-      buffer = Malloc(BUF_LIMIT);
-      DEBUG("About to execute the first split.\n");
-      mpi_comm_split(mib->comm, node, task, &node_comm);
-      
-      /*
-       *   The primary goal of this exercise is to get the avearge
-       * behavior accross each NODE and send that array of averages 
-       * to the MPI_WORLD base task for output to NFS.
-       *   Prior to send the averages this code makes a quick check
-       * to see that, within the set of sibling tasks, the timings are
-       * in lock step, or close to it.
-       */
-      node_min = (double *) Malloc(count*sizeof(double));
-      node_max = (double *) Malloc(count*sizeof(double));
-      node_ave = (double *) Malloc(count*sizeof(double));
-      DEBUG("About to reduce the sum, max, and min of the call values.\n");
-      /* Get the NODEs' min, max, and ave at each step */
-      for(call = 0; call < count; call++)
-	{
-	  mpi_reduce(&(array[call]), &(node_min[call]), 1, MPI_DOUBLE, MPI_MIN, node_base, node_comm);
-	  mpi_reduce(&(array[call]), &(node_max[call]), 1, MPI_DOUBLE, MPI_MAX, node_base, node_comm);
-	  mpi_reduce(&(array[call]), &(node_ave[call]), 1, MPI_DOUBLE, MPI_SUM, node_base, node_comm);
-	}
-      if(task == node_base)
-	{
-	  gap = 0;
-	  for(call = count - 1; call >= 0; call--)
-	    {
-	      /* 
-	       *   We want two things here.  1)   The largest gap on the NODE 
-	       * where one task has completed n syscalls and a sibling has 
-	       * completed no more then n - gap.
-	       *   2)  If some tasks never got to call n then don't record any
-	       * average value for that step on that NODE (i.e., set it to 0).
-	       */
-	      while( (node_min[call] > 0) &&((call - gap) > 1) && 
-		     (node_max[call - gap - 1] > node_min[call]) ) gap++;
-	      if(node_min[call] == 0)
-		node_ave[call] = 0;
-	      else
-		node_ave[call] /= tasks_per_node;
-	    }
-	}
-      free(node_min);
-      free(node_max);
-      mpi_comm_free(&node_comm);
-
-      DEBUG("Have the NODE averages, now about the table...\n");
-
-      /*
-       *    Now we've got the average per call, and gap values for each
-       * NODE on its base node.  We'll want to make a communicator of base
-       * nodes and gather in all that data.
-       */
-      
-      DEBUG("Done with first subcommunicator.  About to create the second.\n");
-      mpi_comm_split(mib->comm, task, node, &node_comm);
-      mpi_comm_size(node_comm, &node_size );
-      mpi_comm_rank(node_comm, &node_rank );
-      table = (double *)Malloc(mib->nodes*sizeof(double));
-      if( task == node_group )
-	{
-	  DEBUG("Table\n");
-	  for(call = 0; call < count; call++)
-	    {
-	      mpi_gather(&(node_ave[call]), 1, MPI_DOUBLE, table, 1, MPI_DOUBLE, node_base, node_comm);
-	      if( node_rank == node_base )
-		{
-		  ip = buffer;
-		  for(i = 0; i < mib->nodes; i++)
-		    {
-		      /* N.B.  the following can only have one double,
-			 since varargs doesn't work.  */
-		      ret = Snprintf(ip, BUF_LIMIT - (ip - buffer), "%f\t", table[i]);
-		      ip += ret;
-		      *ip = '\0';
-		    }
-		  Fprintf(lfd, "%s\n", buffer);
-		}
-	    }
-	  DEBUG("\n\nAbout to reduce the gap values.\n");
-	  mpi_reduce(&gap, &max_gap, 1, MPI_INT, MPI_MAX, node_base, node_comm);
-	  mpi_reduce(&gap, &min_gap, 1, MPI_INT, MPI_MIN, node_base, node_comm);
-	  mpi_reduce(&gap, &ave_gap, 1, MPI_INT, MPI_SUM, node_base, node_comm);
-	  if(node == node_base) ave_gap /= mib->nodes;
-	}
-      free(node_ave);
-      free(table);
-      free(buffer);
-      mpi_comm_free(&node_comm);
-      base_report(SHOW_INTERMEDIATE_VALUES, "%s%s\t\t%d\t%d\t%d\n", 
-			    "\tNODEs' syscalls gaps (i.e dispersion or unevenness)\n",
-			    "\t\taverage\tmin\tmax\n",
-			    ave_gap, min_gap, max_gap);
     }
   if(mib->rank == mib->base)
     fclose(lfd);

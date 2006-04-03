@@ -1,3 +1,18 @@
+2006-04-3 Andrew Uselton <uselton2@llnl.gov>
+
+	* Tag 1.9.2
+
+	* Take out the node averaging.  The BGL code has entirely forked
+	and node averaging is only an issue there.  It is also less reasonable
+	on non-BGL clusters because the tasks do not stay coordinated across 
+	a node like they do on BGL.
+
+2006-03-24 Andrew Uselton <uselton2@llnl.gov>
+
+	* Tag 1.9.1
+
+	* Add the architecture to the version string
+
 2006-03-17 Andrew Uselton <uselton2@llnl.gov>
 
 	* Tag 1.9

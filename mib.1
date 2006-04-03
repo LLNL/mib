@@ -25,7 +25,7 @@
 \."  59 Temple Place, Suite 330, Boston, MA  02111-1307  USA.
 \."#################################################################
 .\"
-.TH Mib 1 "Release 1.8" "LLNL" "Mib"
+.TH Mib 1 "Release 1.9" "LLNL" "Mib"
 .SH NAME
 mib \- An MPI I/O Benchmark
 .SH SYNOPSIS
@@ -37,15 +37,24 @@ Perform I/O and report on the rates observed.
 .TP
 .I "-a, --use_node_aves"
 Use average of task profile times accross each node, if there is
-more than one task per node (default off).
+more than one task per node (default false).
 .TP
-.I "-d <dir>, --log_dir <dir>"
-parameters file 
-.I <dir>/options
-and profiles files here, if any (default is cwd).
+.I "-b [<granularity>], --random_read [<granularity>]s"
+Perform a seek to a random location in the file before each read.  The optional
+ganularity constrains the targets of the seek to offsets in the file equal to
+multiples of that value (default no seeks).  
 .TP
 .I "-E, --show_environment"
 Show environment of test in output (default false).
+.TP
+.I "-F, --force"
+By default,
+.B mib
+will not perform I/O to any file system type (as returned by statfs in the f_type 
+field) but Lustre.  This is a safety feature.  Sending benchmark I/O, especially 
+inadvertently, to an NFS mounted home directory can amount to a denial of service
+attack and make the perpetrator very unpopular.  If that is really what is wanted
+then this option will turn off the safety check.
 .TP
 .I "-I, --show_intermediate_values"
 Show intermediate values in output (default false).
@@ -54,26 +63,47 @@ Show intermediate values in output (default false).
 Print a help message and exit.
 .TP
 .I "-H, --show_headers"
-Show headers in output (default false).
+Show headers for the fields in the results line (default false).
 .TP
 .I "-l <count>, --call_limit <count>"
-Issue no more than <count> system calls (default 4096).
+Issue no more than <count> system calls (default 4096).  The limit is separately 
+enforced for the write phase and the read phase.
 .TP
 .I "-L <seconds>, --time_limit <seconds>"
-Do not issue new system calls after <seconds> seconds (limits are per phase 
-for write and read phases - default 60 seconds) .
+Do not issue new system calls after <seconds> seconds. Again, limits are per phase 
+for write and read phases (default 60 seconds).
+.TP
+.I "-M, --no_mpi "
+.B mib
+is usually run under a resource manager (eg. SLURM) that sets up an MPI context.  
+It will run without, though, either locally or via a remote launcher (eg. pdsh).
+.B mib
+detects if MPI is available and uses it if it is.  If MPI is available and one wants
+to test the non-MPI behavior this switch will do that.
 .TP
 .I "-n, --new "
-Create new files if files were already present (will always create new files 
-if none were present - default false, i.e. reuse any files that already exist).
+Create new files if files were already present.  It will always create new files 
+if none were present (default false, i.e. reuse any files that already exist).
 .TP
-.I "-p, --profiles"
+.I "-p <profile>, --profiles <profile>"
 Output system call timing profiles to 
-.I log_dir
-(default off).
+.I <profile>.write
+and 
+.I <profile>.read 
+(default off).  A profile is a text file with one line per system call issued and 
+one column per task.  Each entry is the MPI global clock reading for the time when
+the given system call returned in the given task.  All timing values are relative 
+to a barrier-coordinated moment at the beginning of the test.  Since some tasks may
+issue more system calls than others the remaining entries are set to zero.  At this 
+time, 
+.B mib
+will not generate profile files without MPI.
 .TP
 .I "-P, --show_progress"
-Show progress bars during testing (default false).
+Show progress bars during testing (default false).  This just prints a series of 
+asterisk characters in a best effort to show the progress of the test.  Due to 
+delays in the system calls and buffering from the remote tasks the bars may or 
+may not follow the progress closely.
 .TP
 .I "-r, --remove"
 Remove files when done (default false).
@@ -83,18 +113,27 @@ Only perform the read test (default false).
 .TP
 .I "-s <size>, --call_size <size>"
 Use system calls of this size (default 512k).  Numbers may use abreviations 
-k, K, m, or M.
+k, K, m, or M.  Both k and K are interpreted as 1024, and m and M are k*k.
 .TP
 .I "-S, --show_signon"
 Show signon message, including date, program name, and version number.
 .TP
 .I "-t <dir>, --test_dir <dir>"
-I/O transactions to and from <dir> (default is current working 
-directory).
+Required. I/O transactions to and from files in <dir>.  If a task number is 
+available from MPI or SLURM that value is used as the <index> in the target 
+file name for the task as follows: <dir>/mibData.<index>.  If no <index> can
+be discerned an attempt is made to use the hostname in a similar fashion.  For
+writes, the <index> directly corresponds to the task number.  For reads, a 
+formula attempts to make the read target as distant as possible from the 
+write target.  This make the reads exercise lock acquisition and release and
+cache flushing.
+.TP
+.I "-V, --version"
+Print the version and exit.
 .TP
 .I "-W, --write_only"
-Only perform the write test (if -R and -W are both present both tests 
-will run, but that's the default anyway - default false).
+Only perform the write test.  If -R and -W are both present both tests 
+will run, but that's the default anyway (default false).
 
 .SH OPERATION
 When invoked with a context enabling MPI operations (via 
@@ -105,23 +144,10 @@ writes and the reads files, one per task, reports on the
 observed data rates, and optionally
 reports on the timings of the system calls.
 
-.SH CONFIGURATION
-All of the command line parameters except 
-.I -d <dir>
-have exquivalent entries in an optional 
-.B mib
-parmaeters file named 
-.I "options"
-in 
-.I "<dir>"
-directory.
-
 .SH FILES
-<dir>/options
+<profile>.write
 .br
-<dir>/write.syscall.aves
-.br
-<dir>/read.syscall.aves
+<profile>.read
 .SH ORIGIN
 Developed by Andrew  Uselton <useton2@llnl.gov> on LLNL's Linux 
 clusters.  This software is open source and distributed under

@@ -83,6 +83,7 @@ rm mib-$VERSION/META
 cp mib/aux/* mib-$VERSION/aux
 cp mib/tools/* mib-$VERSION/tools
 cp mib/doc/* mib-$VERSION/doc
+rm mib-$VERSION/doc/README
 cp mib/doc/sample/* mib-$VERSION/doc/sample
 rm mib-$VERSION/tools/mibrpm.sh
 rm mib-$VERSION/tools/Makefile.in

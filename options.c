@@ -54,7 +54,7 @@ BOOL set_int(char *v, int *nump);
 BOOL set_longlong(char *v, long long *llnump);
 
 Options *opts;
-char *opt_str = "ab::EFIhHl:L:Mnp:PrRs:St:VW";
+char *opt_str = "b::EFIhHl:L:Mnp:PrRs:St:VW";
 
 extern Mib     *mib;
 extern SLURM   *slurm;
@@ -70,7 +70,6 @@ command_line(int *argcp, char **argvp[])
   int idx;
   const struct option long_options[] = 
     {
-      {"use_node_aves", no_argument, NULL, 'a'},
       {"random_reads", optional_argument, NULL, 'b'},
       {"show_environment", no_argument, NULL, 'E'},
       {"force", no_argument, NULL, 'F'},
@@ -87,8 +86,8 @@ command_line(int *argcp, char **argvp[])
       {"call_size", required_argument, NULL, 's'},
       {"show_signon", no_argument, NULL, 'S'},
       {"test_dir", required_argument, NULL, 't'},
-      {"write_only", no_argument, NULL, 'W'},
       {"version", no_argument, NULL, 'V'},
+      {"write_only", no_argument, NULL, 'W'},
       {"help", no_argument, NULL, 'h'},
       {0, 0, 0, 0},
     };
@@ -98,13 +97,9 @@ command_line(int *argcp, char **argvp[])
     {
       switch(opt)
 	{
-	case 'a' : /* use_node_aves */
-	  set_flags("true", &(opts->flags), USE_NODE_AVES);
-	  break;
 	case 'b' : /* random_reads */
 	  set_flags("true", &(opts->flags), RANDOM_READS);
 	  if (optarg) set_longlong(optarg, &(opts->granularity));
-	  break;
 	  break;
 	case 'E' : /* show_environment */
 	  set_flags("true", &(opts->verbosity), SHOW_ENVIRONMENT);
@@ -184,12 +179,13 @@ void
 usage( void )
 {
   printf("usage: mib [%s]\n", opt_str);
-  printf("    -a              :  Use average profile times accross node.\n");
+  printf("See the man page for \"long_opts\" equivalents.\n");
   printf("    -b [<gran>]     :  Random seeks (optional granularity) before each read\n");
-  printf("                    :  seek(fd, gran*file_size*rand()/RAND_MAX, SEEK_SET\n");
   printf("    -E              :  Show environment of test in output.\n");
+  printf("    -F              :  Mib does not normally allow I/O to any FS.\n");
+  printf("                    :  but Lustre.  This overrides the \"safety\".\n");
   printf("    -I              :  Show intermediate values in output.\n");
-  printf("    -h              :  This message\n");
+  printf("    -h              :  Print this message and exit.\n");
   printf("    -H              :  Show headers in output.\n");
   printf("    -l <call_limit> :  Issue no more than this many system calls.\n");
   printf("    -L <time_limit> :  Do not issue new system calls after this many\n");
@@ -200,20 +196,20 @@ usage( void )
   printf("                    :    (will always create new files if none were\n");
   printf("                    :    present).\n");
   printf("    -p <profiles>   :  Output system call timing profiles to \n");
-  printf("                    :    <profiles>,write and <profiles>.read.\n");
+  printf("                    :    <profiles>.write and <profiles>.read.\n");
   printf("    -P              :  Show progress bars during testing.\n");
   printf("    -r              :  Remove files when done.\n");
   printf("    -R              :  Only perform the read test.\n");
   printf("    -s <call_size>  :  Use system calls of this size (default 512k).\n");
   printf("                    :    Numbers may use abreviations k, K, m, or M.\n");
   printf("    -S              :  Show signon message, including date, program\n");
-  printf("                    :    name, and version number.\n");
+  printf("                    :    name, and version.\n");
   printf("    -t <test_dir>   :  Required. I/O transactions to and from this\n");
-  printf("                    :    directory\n");
-  printf("    -V              :  Print the version and exit\n");
+  printf("                    :    directory.\n");
+  printf("    -V              :  Print the version and exit.\n");
   printf("    -W              :  Only perform the write test\n");
   printf("                    :    (if -R and -W are both present both tests \n");
-  printf("                    :     will run, but that's the default anyway)\n");
+  printf("                    :     will run, but that's the default anyway).\n");
   exit(0);
 }
 
@@ -377,7 +373,6 @@ show_details()
       printf("write_only               = %s\n", ((opts->flags & WRITE_ONLY) ? "true" : "false"));
       printf("read_only                = %s\n", ((opts->flags & READ_ONLY) ? "true" : "false"));
       printf("profiles                 = %s\n", ((opts->profiles == NULL) ? "no" : opts->profiles));
-      printf("use_node_aves            = %s\n", ((opts->flags & USE_NODE_AVES) ? "true" : "false"));
       if ( opts->flags & RANDOM_READS )
 	printf("random_reads             = %lld\n", opts->granularity);
       printf("show_signon              = %s\n", ((opts->verbosity & SHOW_SIGNON) ? "true" : "false"));
