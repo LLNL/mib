@@ -7,6 +7,9 @@
 	on non-BGL clusters because the tasks do not stay coordinated across 
 	a node like they do on BGL.
 
+	* The -V option should include the architecture, not just the signon 
+	message.
+
 2006-03-24 Andrew Uselton <uselton2@llnl.gov>
 
 	* Tag 1.9.1

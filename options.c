@@ -56,10 +56,11 @@ BOOL set_longlong(char *v, long long *llnump);
 Options *opts;
 char *opt_str = "b::EFIhHl:L:Mnp:PrRs:St:VW";
 
-extern Mib     *mib;
-extern SLURM   *slurm;
+extern Mib    *mib;
+extern SLURM  *slurm;
 extern int     use_mpi;
 extern char   *version;
+extern char   *arch;
 
 void
 command_line(int *argcp, char **argvp[])
@@ -149,7 +150,7 @@ command_line(int *argcp, char **argvp[])
 	  set_string(optarg, &(opts->testdir));
 	  break;
 	case 'V' : /* version */
-	  printf("mib-%s\n", version);
+	  printf("mib-%s-%s\n", version, arch);
 	  exit(0);
 	case 'W' : /* write_only */
 	  set_flags("true", &(opts->flags), WRITE_ONLY);
