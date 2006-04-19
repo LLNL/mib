@@ -25,7 +25,7 @@
 \."  59 Temple Place, Suite 330, Boston, MA  02111-1307  USA.
 \."#################################################################
 .\"
-.TH Mib 1 "Release 1.9" "LLNL" "Mib"
+.TH Mib 1 "Release 1.9.2" "LLNL" "Mib"
 .SH NAME
 mib \- An MPI I/O Benchmark
 .SH SYNOPSIS
@@ -35,11 +35,7 @@ mib \- An MPI I/O Benchmark
 Perform I/O and report on the rates observed.
 .SH OPTIONS
 .TP
-.I "-a, --use_node_aves"
-Use average of task profile times accross each node, if there is
-more than one task per node (default false).
-.TP
-.I "-b [<granularity>], --random_read [<granularity>]s"
+.I "-b [<granularity>], --random_reads [<granularity>]"
 Perform a seek to a random location in the file before each read.  The optional
 ganularity constrains the targets of the seek to offsets in the file equal to
 multiples of that value (default no seeks).  
@@ -125,7 +121,7 @@ file name for the task as follows: <dir>/mibData.<index>.  If no <index> can
 be discerned an attempt is made to use the hostname in a similar fashion.  For
 writes, the <index> directly corresponds to the task number.  For reads, a 
 formula attempts to make the read target as distant as possible from the 
-write target.  This make the reads exercise lock acquisition and release and
+write target.  This makes the reads exercise lock acquisition and release and
 cache flushing.
 .TP
 .I "-V, --version"
@@ -142,7 +138,9 @@ for intance)
 .B mib
 writes and the reads files, one per task, reports on the 
 observed data rates, and optionally
-reports on the timings of the system calls.
+reports on the timings of the system calls.  For details refer to the 
+discussion in 
+.I /usr/share/doc/mib-<version>/mib.pdf.
 
 .SH FILES
 <profile>.write

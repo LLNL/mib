@@ -33,8 +33,7 @@ Mib is an outgrowth of Lustre (http://www.lustre.org/) benchmarking
 efforts at LLNL, though its operation does not require Lustre.  It
 resembles the IOR benchmark (ftp://ftp.llnl.gov/pub/siop/ior/) in that
 it carries out I/O to a parallel file system from within a coordinated
-parallel MPI application.  Mib has been written entirely from scratch
-and is all-new code.
+parallel MPI application.  
 
   Mib is an MPI I/O test that has each MPI task perform I/O of a
 fixed size per system call.  The tasks first write to and then read
@@ -91,9 +90,9 @@ mib-1.9.2-i386
 $mib -h
 usage: mib [b::EFIhHl:L:Mnp:PrRs:St:VW]
 See the man page for "long_opts" equivalents.
-    -b [<gran>]     :  Random seeks (optional granularity) before each read
+    -b [<gran>]     :  Random seeks (optional granularity) before each read.
     -E              :  Show environment of test in output.
-    -F              :  Mib does not normally allow I/O to any FS.
+    -F              :  Mib does not normally allow I/O to any FS
                     :  but Lustre.  This overrides the "safety".
     -I              :  Show intermediate values in output.
     -h              :  Print this message and exit.
