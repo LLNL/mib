@@ -272,7 +272,7 @@ and unevenly burden one or a few servers making the results skewed
 toward the unlucky tasks.}.  Note that the data rates were a bit
 higher in the second test (with the header), though not double.
 
-The files iall ended up the same size: $17.6GB = 4500 * 4MB$.  That
+The files all ended up the same size: $17.6GB = 4500 * 4MB$.  That
 indicates that every task was able to complete all 4500 transfers in
 the 300 seconds alloted.  If some tasks finish well before others then
 the measurement of the data rate for the whole job can be skewed by
@@ -322,9 +322,9 @@ For parallel benchmarking the foregoing is enough to get results from
   \begin{verbatim}
 usage: mib [b::EFIhHl:L:Mnp:PrRs:St:VW]
 See the man page for "long_opts" equivalents.
-    -b [<gran>]     :  Random seeks (optional granularity) before each read
+    -b [<gran>]     :  Random seeks (optional granularity) before each read.
     -E              :  Show environment of test in output.
-    -F              :  Mib does not normally allow I/O to any FS.
+    -F              :  Mib does not normally allow I/O to any FS
                     :  but Lustre.  This overrides the "safety".
     -I              :  Show intermediate values in output.
     -h              :  Print this message and exit.
@@ -523,7 +523,7 @@ total 72521016
 The files have been created anew.
 
 \pagebreak
-Continuing the example o the previous page a run with ``-n'' recreates
+Continuing the example of the previous page a run with ``-n'' recreates
 the files.  Note the changed timestamps.
 {\small
   \begin{verbatim}
