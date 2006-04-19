@@ -10,6 +10,8 @@
 	* The -V option should include the architecture, not just the signon 
 	message.
 
+	* regularize all the documentation so it all agrees.
+	
 2006-03-24 Andrew Uselton <uselton2@llnl.gov>
 
 	* Tag 1.9.1
