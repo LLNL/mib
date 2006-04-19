@@ -24,9 +24,6 @@
  *  59 Temple Place, Suite 330, Boston, MA  02111-1307  USA.
 \*****************************************************************************/
 
-void get_SLURM_env();
-void show_SLURM_env();
-
 /* 
  * These are the SLURM environment values available to a task.
  * I got them with the command:
@@ -78,4 +75,6 @@ typedef struct SLURM_Struct {
   int  TASK_PID;
   char UMASK[MAX_SLURM_BUF];
 }SLURM;
+
+SLURM *get_SLURM_env();
 

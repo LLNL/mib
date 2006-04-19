@@ -6,9 +6,9 @@
 
 PROG=$(basename $0)
 
-NODEATTR=`/usr/bin/which nodeattr 2>/dev/null`
-[ X"$NODEATTR" == X ] && { echo "This script expects a cluster with the Genders \"nodeattr\" function installed"; exit 1; } 
-CLUSTER=`$NODEATTR -v cluster`
+#NODEATTR=`/usr/bin/which nodeattr 2>/dev/null`
+#[ X"$NODEATTR" == X ] && { echo "This script expects a cluster with the Genders \"nodeattr\" function installed"; exit 1; } 
+#CLUSTER=`$NODEATTR -v cluster`
 
 if [ X"$ARCH" == X ]
     then

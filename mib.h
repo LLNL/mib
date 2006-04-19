@@ -37,6 +37,30 @@ typedef enum {FALSE, TRUE} BOOL;
 #define BOOL_DEF
 #endif
 
+/*
+ *   In normal use the rank, base, and size fields are the important ones.
+ * Rank and size are the MPI values for the current task.  Base refers to
+ * the task designated for sending info to stdout.  Nodes and tasks are
+ * inferred from the SLURM environment if possible.  Tasks should equal size
+ * if there are no subcommunicators (which there aren't in this version).
+ * tasks/nodes may be useful in some circumstances, as when subcommunicaotrs 
+ * reduce the amount of data to be sent to stdout.  this was done on BGL
+ * though it is not implemented int he current version.
+ */
+typedef struct Mib_Struct {
+  int nodes;
+  int tasks;
+  int rank;
+  int size;
+  int base;
+  MPI_Comm comm;
+}Mib;
+
+/* 
+ *   During a test all the timing and counting results are put in this
+ * struct.  Some fields are relevant only to write or only to read tests.
+ * Most apply to both.
+ */
 typedef struct Results_Struct {
   double  before_unlink;
   double  start_open;
@@ -53,13 +77,4 @@ typedef struct Results_Struct {
   double  after_unlink;
   double  end_test;
 }Results;
-
-typedef struct Mib_Struct {
-  int nodes;
-  int tasks;
-  int rank;
-  int size;
-  int base;
-  MPI_Comm comm;
-}Mib;
 

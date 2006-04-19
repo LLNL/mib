@@ -41,6 +41,18 @@ typedef enum {FALSE, TRUE} BOOL;
 #define USE_MPI (use_mpi > NO_MPI)
 #define DO_NOT_USE_MPI (use_mpi < YES_MPI)
 
+/*
+ *   All of these "wrapper" functions correspond directly to their MPI
+ * equivalents, with two exceptions.  If the NO_MPI condition is set
+ * then each one will avoid calling the corresponding MPI function and
+ * will either just return, try to emulate it, or FAIL().  Second, the
+ * mpi_init function loads the MPI libraries which were not linked at
+ * compile time.  This allows operation where there is no MPI.  The
+ * wrappers should be avoided if there is no MPI and mib does so
+ * mostly, but in some cases it relies on the "do nothing" or
+ * emulation behavior.  mpi_wtime() will just return time() in the
+ * absense of MPI.
+ */
 void mpi_abort(MPI_Comm comm, int errorcode);
 
 void mpi_allreduce(void *sendbuf, void *recvbuf, int count, MPI_Datatype datatype, 

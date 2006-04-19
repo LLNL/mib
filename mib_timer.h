@@ -30,8 +30,15 @@ typedef enum {FALSE, TRUE} BOOL;
 #endif
 
 
+/*
+ *   Set the "zero" for the clock and adjust for any skew.
+ */
+void init_timer();
 
-void init_timer(int rank);
-
+/*
+ *   Usually this is just MPI_Wtime, but in the absense of MPI will
+ * devolve to a call to time().  The value is relative to the beginning
+ * of the test.
+ */
 double get_time();
 

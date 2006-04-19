@@ -32,8 +32,17 @@
 #include "options.h"
 #include "mib_timer.h"
 
-#define MAX_BUF 100
-
+/*
+ *   _zero is set for the task at the beginning of the test
+ * immediately after a global barrier.  Since each task may have a
+ * distinct notion of the time an all_reduce gets the least such value
+ * and each node's difference from that minimum is noted as its _skew.
+ * Henceforth, the current time for the task is measured relative to
+ * (_zero - _skew).  This methodology does not account for any
+ * possible drift, but casual observation has confirmend that drift is
+ * not significant in the time scales contemplated.  A check for drift
+ * would be easy to implement if desired.
+ */
 static double _zero;
 static double _skew;
 static int _initialized = 0;
@@ -42,7 +51,7 @@ extern char *version;
 extern int use_mpi;
 
 void
-init_timer(int rank)
+init_timer()
 {
   double start;
 

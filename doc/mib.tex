@@ -6,7 +6,7 @@
 \author{Andrew C. Uselton}
 \title{
   MIB \\
-  The MPI (POSIX) I/O Benchmark
+  An MPI I/O Benchmark
 }
 
 \begin{document}
@@ -24,49 +24,310 @@ No testing has overtaken you that is not common to everyone. \\
 parallel file system.  With it one may profile the timing of all the
 write and read system calls performed during the test.  The level of
 detail provided has been instrumental in identifying performance
-bottlenecks.
+bottlenecks in the Lustre file system.
 \end{abstract}
 
 \section{Introduction}\label{section.introduction}
 
-{\em Mib} is an outgrowth of Lustre\footnote{http://www.lustre.org/}
-benchmarking efforts at LLNL, though its operation does not require
-Lustre.  It resembles the IOR
+
+{\em Mib} is a simple benchmark for testing file system performance,
+especially of parallel file systems.  It resembles the {\em IOR}
 benchmark\footnote{ftp://ftp.llnl.gov/pub/siop/ior/} in that it
-carries out I/O to a parallel file system from within a coordinated
-parallel MPI application.  It is otherwise entirely distinct and
-all-new code.
-
-{\em Mib} has two advantages over IOR.  First, it is very simple.
+carries out I/O from within a coordinated, parallel MPI application.
 Following the idea of ``do only one thing, and do it well,'' {\em mib}
-avoids the complexity and size associated with IOR.  It loads quickly.
-It is easily modified to suit specific local needs.  Second, it will
-optionally produce a {\em profile} of the timing of every system call.
-These timings are synchronized and coordinated across all tasks.
-Post-processing tools (see the ``tools'' subdirectory) can manipulate
-the profiles to give a graphical view of the dynamic behavior of the
-file system under the load provided by {\em mib}.  These graphs have
-proved valuable in isolating performance bottlenecks in Lustre.
+avoids the complexity and size associated with {\em IOR}.  It loads
+quickly and is easily modified to suit specific needs.  Furthermore,
+{\em mib} will produce a {\em profile} of the timing of every system
+call.  These timings are synchronized and coordinated across all
+tasks.  Post-processing tools\footnote{See the ``mib-tools'' RPM.} can
+manipulate the profiles to give a graphical view of the dynamic
+behavior of the file system under the load provided by {\em mib}.
+These graphs have proved valuable in isolating performance
+bottlenecks.
 
-{\em Mib} is characterized by the following:
-\begin{itemize}
-\item Both MPI and non-MPI operation
-\item POSIX system calls only
-\item One file per MPI task
-\item The test runs exactly once with the given parameters
-\end{itemize}
+{\em Mib} is an outgrowth of Lustre\footnote{http://www.lustre.org/}
+benchmarking efforts at LLNL\footnote{http://www.llnl.gov}, though its
+operation does not require Lustre.  The environment that {\em mib}
+uses is that of a Beowulf
+cluster\footnote{http://en.wikipedia.org/wiki/Beowulf\_(computing)} with
+MPI\footnote{http://www.mpi.org} 
+coordinating tasks across the nodes of the cluster.  Each node has
+access to a file syststem with a unified name space, i.e. they all see
+the same files.  At LLNL the GNU/Linux-based clusters are additionally
+controlled by the SLURM\footnote{http://www.llnl.gov/linux/slurm} resource
+manager, and subsequent discussion will refer to SLURM tools
+explicitly.  Other resource managers will operate in a similar
+fashion.  
 
-\begin{verbatim}
-usage: mib [ab::d:EIhHl:L:MnpPrRs:St:W]
-    -a              :  Use average profile times across node.
+{\em Mib} sprang from perceived inadequacies of the {\em IOR}
+benchmark, and it improves upon {\em IOR} in two ways.  First, its
+simplicity allows for easy modification, a clear understanding of its
+semantics, and a quick load time, compared to {\em IOR}.  Second, the
+optional {\em system call profile} can reveal useful insights into
+the dynamic behavior of a file system's I/O path without perturbing
+that I/O.  On the other hand, {\em mib} is not a replacement for {\em
+IOR}.  The latter has many useful modes of operation, including MPIIO
+file system semantics\footnote{{\em Mib} confines itself to standard POSIX file system calls.}, shared file I/O, data
+correctness checking, and scripted operation allowing many tests
+within a single invocation.  {\em Mib} should be thought of as a
+single purpose, precision tool that compliments the generality
+available in {\em IOR}.
+
+The initial development of {\em mib} was on the highly specialized
+BlueGene/L supercomputer, and {\em mib} was instrumental in a
+significant improvement in the bulk I/O performance of Lustre in that
+environment.  Subsequent development has been on more conventional
+i386 GNU/Linux Beowulf clusters, and in its current incarnation {\em
+  mib} works on i386, ia64, x86\_64, powerpc, and ppc64 architectures
+running Linux with Quadrics Elan3 and Elan4 interconnect 
+hardware\footnote{http://www.qsw.com} and associated MPI libraries.
+It is that version that is discussed here.  The BGL variant is under
+continuing development, but is not generally available at this time.
+
+The rest of this paper is organized as follows.
+Section~\ref{section.normal} details the environment in which {\em
+  mib} operates, gives common examples of its operation, and explains
+what the results mean.  Section~\ref{section.usage} gives a
+point-by-point explanation of each of {\em mib}'s options with examples.
+Section~\ref{section.profiles} shows how to generate system call
+profiles, explains what they mean, and gives examples in
+which profiling revealed telling details about the operation of a
+parallel file system.  Finally, Section~\ref{section.conclusion}
+concludes with a summary of plans for its continued improvement.
+
+\section{Mib Under Normal Operation}\label{section.normal}
+
+Though {\em Mib} can run stand-alone on a computer without MPI, its main
+use is to benchmark a parallel file system accessed from a Beowulf
+cluster, in most cases running GNU/Linux.  The ALC cluster at LLNL is
+typical and will be used for the examples that follow.  ALC has 960
+dual-processor i386-based {\em compute nodes} identified as alc0 to
+alc959.  Ranges of nodes are indicated with notation like: alc[0-959].
+The nodes communicate via the QSW Elan3 high-speed interconnect.
+Access to the nodes is controlled with the SLURM resource manager,
+which organizes the compute nodes into resource pools called {\em
+partitions}.  The {\em ltest} partition comprises alc[68-497].
+
+Each node in the ltest partition mounts a Lustre file system with the
+mount point \verb+/p/ga2+.  Access to that file system is provided by
+a set of 16 {\em Portals routers}, alc[4-19], which communicate with
+the compute nodes via the Elan interconnect and with the file system
+servers via 32 GigE links (2 per router).  Each link attaches to a
+Lustre OST (server) via a GigE switch, so the total available
+bandwidth to the file system is about 4 GB/s.  
+
+The file system service is monitored in real time with the {\em
+  lmtd}\footnote{Unfortunately, that daemon is not available for
+  circulation outside LLNL at the moment} daemon, a python-based data
+  collector that feeds remote monitoring.  The {\em lwatch} utility
+  gathers the server-side information and produces an aggregate file
+  system data rate for writes and reads every five seconds.  {\em Mib}
+  benchmark results can be compared against against {\em lwatch}
+  results to get client-side versus server-side performance results (see Section~\ref{section.profiles}).   
+
+\begin{figure}
+  \begin{verbatim}
+    srun -N8 -p ltest mib -t /p/ga2/lustre-test/mib/newfiles
+    |    |      |     |       |
+    |    |      |     |       ---target directory
+    |    |      |     -----------MPI application
+    |    |      -----------------partition (group of target nodes)
+    |    ------------------------number of tasks
+    -----------------------------SLURM MPI launcher
+  \end{verbatim}
+\caption{A typical {\em mib} command line}
+\label{figure.typical}
+\end{figure}
+
+In the LLNL Linux clusters environment the SLURM command {\em srun}
+launches MPI applications.  Figure~\ref{figure.typical} gives a
+typical invocation, which would run 8 MPI tasks on nodes taken from
+the ltest partition.  The {\em mib} executable behaves according to
+the psuedocode depicted in Figure~\ref{figure.pseudo}.
+
+\begin{figure}
+\begin{tabbing}
+parse command line \\
+initialize data structures, MPI, timers \\
+write \= test \\
+  \> barrier \\
+  \> $t_{(i, \mbox{open})}$ \\
+  \> open file$_i$\\
+  \> barrier \\
+  \> $t_{(i, 0)}$ \\
+  \> while \= not done \\
+  \>  \>  $w_{(i, j)} = $ write \\
+  \>  \>  $t_{(i, j)}$ \\
+  \>  \>  $j++$ \\
+  \> fsync \\
+  \> barrier \\
+  \> $t_{(i, \mbox{fsync})}$ \\
+  \> gather $W = \sum_{(i, j)} w_{(i, j)}$ \\
+  \> gather $T_W = \max_i t_{(i, \mbox{fsync})} - \min_i t_{(i, 0)}$ \\ 
+  \> close \\
+  \> $t_{(i, \mbox{close})}$ \\
+read test \\
+  \> barrier \\
+  \> $t_{(i, \mbox{open})}$ \\
+  \> open file$_i$\\
+  \> barrier \\
+  \> $t_{(i, 0)}$ \\
+  \> while \= not done \\
+  \>  \>  $r_{(i, j)} = $ read \\
+  \>  \>  $t_{(i, j)}$ \\
+  \>  \>  $j++$ \\
+  \> last $= j$ \\
+  \> barrier \\
+  \> gather $R = \sum_{(i, j)} r_{(i, j)}$ \\
+  \> gather $T_R = \max_i t_{(i, \mbox{last})} - \min_i t_{(i, 0)}$ \\ 
+  \> close \\
+  \> $t_{(i, \mbox{close})}$ \\
+report (from $task_0$ only) \\
+  \> ``Write rate is $W/T_W$'' \\
+  \> ``Read rate is $R/T_R$'' \\
+\end{tabbing}
+\caption{Pseudo-code for {\em mib}: $task_i (i \in \{1 \ldots N\})$}
+\label{figure.pseudo}
+\end{figure}
+
+
+The I/O continues for the default amount of time or the default number
+of transfers (whichever limit is reached first), and would involve
+system calls using the default amount of data.  Optional activities
+detailed in Section~\ref{section.usage} add a little to the above, but
+the code is simple enough that its semantics is clear and it can be
+easily extended, for instance if metadata activity is of interest.
+
+The most common use of {\em mib} would include a limit on the number
+of system calls, a limit on time, and a system call size to override
+the default values.  For instance, to perform, per task, no more than
+4500 system calls of $4MB$ bytes each and to cease issuing system
+calls after 300 seconds, the command and its result would look like
+this:
+{\small
+  \begin{verbatim}
+    srun -N8 -p ltest mib -t /p/ga2/lustre-test/mib/newfiles \
+    -l 4500 -L 300 -s 4m
+    Fri Mar 17 22:50:59 2006      8    4M  4500   300	897.07     566.20
+  \end{verbatim}
+}
+\pagebreak
+The ``-H'' option provides an informative header:
+{\small
+  \begin{verbatim}
+    srun -N8 -p ltest mib -t /p/ga2/lustre-test/mib/newfiles \
+    -l 4500 -L 300 -s 4m -H
+    
+    date            tasks  xfer  call  time      write       read
+    limit limit       MB/s       MB/s
+    ------------------------ ------ ----- ----- ----- ---------- ----------
+    Wed Apr 12 15:17:43 2006      8    4M  4500   300    1096.89     665.96
+  \end{verbatim}
+}
+
+The MPI interface provides a unique {\em rank} to each task, which is
+a number from $0$ to $7$ in this case.  The eight tasks in
+the example each opens its own file with the rank giving the files
+unique names:
+{\small
+  \begin{verbatim}
+    ls -l /p/ga2/lustre-test/mib/newfiles
+    total 147600256
+    -rw-r--r--  1 auselton auselton 18874368000 Apr 12 15:14 mibData.00000000
+    -rw-r--r--  1 auselton auselton 18874368000 Apr 12 15:13 mibData.00000001
+    -rw-r--r--  1 auselton auselton 18874368000 Apr 12 15:14 mibData.00000002
+    -rw-r--r--  1 auselton auselton 18874368000 Apr 12 15:14 mibData.00000003
+    -rw-r--r--  1 auselton auselton 18874368000 Apr 12 15:14 mibData.00000004
+    -rw-r--r--  1 auselton auselton 18874368000 Apr 12 15:13 mibData.00000005
+    -rw-r--r--  1 auselton auselton 18874368000 Apr 12 15:13 mibData.00000006
+    -rw-r--r--  1 auselton auselton 18874368000 Apr 12 15:13 mibData.00000007
+  \end{verbatim}
+} 
+Note that the results in these two runs differ.  The Lustre
+enviornment was changed between the two.  In the first test, the
+target directory was configured to stripe each file over a single
+server.  In that case 8 servers will be active, each with a single
+file corresponding to a single task.  The maximum bandwidth for the
+eight servers together is $1GB/s$.  The measured write rate is $897
+MB/s$, or about $88\%$ of ``wire speed.''  The read rate is a little
+lower at $566 MB/s$.
+
+The read target for node $i \in \{0..\mbox{$size$}\}$ is calculated as
+$(i + \mbox{$size$}/2) \% \mbox{$size$}$.  As long as there is more
+than one node in the MPI job\footnote{If there are multiple tasks per
+  node and ranks are assigned ``round-robin'' the write and read
+  targets might still be on the same node.  This has not been observed
+in practice but should be kept in mind for other MPI environments.
+The choice of read target is easily modified in the code if such a
+change is needed.} the file that a task reads will have
+been produced by a different node, thus defeating any buffer cache
+effects at the compute nodes.  
+
+In the second test the files used the default of 2 stripes per file,
+so 16 servers would be involved\footnote{If other files were being
+created at the same time the allocations might not be smoothly
+distributed over the servers, in which case there would be fewer
+servers participating.  This would both reduce the available bandwidth
+and unevenly burden one or a few servers making the results skewed
+toward the unlucky tasks.}.  Note that the data rates were a bit
+higher in the second test (with the header), though not double.
+
+The files iall ended up the same size: $17.6GB = 4500 * 4MB$.  That
+indicates that every task was able to complete all 4500 transfers in
+the 300 seconds alloted.  If some tasks finish well before others then
+the measurement of the data rate for the whole job can be skewed by
+the poor performance of the slowest nodes or servers.  An alternate
+measurement would be to make the number of transfers larger than what
+even the fastest task can accomplish in the given period.  Then the
+measured data rate represents the full bandwidth available to the job.
+This is called ``stonewalling''.  
+{\small
+  \begin{verbatim}
+    srun -N8 -p ltest mib -t /p/ga2/lustre-test/mib/newfiles \
+    -l 4500 -L 60 -s 4m -H
+               date            tasks  xfer  call  time      write       read
+                                            limit limit       MB/s       MB/s
+    ------------------------ ------ ----- ----- ----- ---------- ----------
+    Wed Apr 12 15:31:40 2006      8    4M  4500    60    1137.30     842.72
+  \end{verbatim}
+}
+After such a stonewalling test the file sizes are all different
+from each other. 
+{\small
+  \begin{verbatim}
+ls -l /p/ga2/lustre-test/mib/newfiles
+total 70069200
+-rw-rw-r--  1 auselton auselton 8409579520 Apr 12 15:30 mibData.00000000
+-rw-rw-r--  1 auselton auselton 9089056768 Apr 12 15:30 mibData.00000001
+-rw-rw-r--  1 auselton auselton 9072279552 Apr 12 15:30 mibData.00000002
+-rw-rw-r--  1 auselton auselton 8711569408 Apr 12 15:30 mibData.00000003
+-rw-rw-r--  1 auselton auselton 9244246016 Apr 12 15:30 mibData.00000004
+-rw-rw-r--  1 auselton auselton 9281994752 Apr 12 15:30 mibData.00000005
+-rw-rw-r--  1 auselton auselton 8782872576 Apr 12 15:30 mibData.00000006
+-rw-rw-r--  1 auselton auselton 9089056768 Apr 12 15:30 mibData.00000007
+  \end{verbatim}
+}
+If files (or file segments) are unevenly distributed across servers
+some tasks can experience more contention than others leading to I/O
+rates two or more times slower in some tasks than in others.  Clearly, that
+did not happen in this case.
+
+For parallel benchmarking the foregoing is enough to get results from
+{\em mib}.  The next section details all the options available.  
+
+\section{Usage}\label{section.usage} 
+
+\begin{figure}
+{\small
+  \begin{verbatim}
+usage: mib [b::EFIhHl:L:Mnp:PrRs:St:VW]
+See the man page for "long_opts" equivalents.
     -b [<gran>]     :  Random seeks (optional granularity) before each read
-                    :  seek(fd, gran*file_size*rand()/RAND_MAX, SEEK_SET
-    -d <log_dir>    :  parameters file "<log_dir>/options"
-                    :    and profiles files here, if any 
-                    :    (default is cwd).
     -E              :  Show environment of test in output.
+    -F              :  Mib does not normally allow I/O to any FS.
+                    :  but Lustre.  This overrides the "safety".
     -I              :  Show intermediate values in output.
-    -h              :  This message
+    -h              :  Print this message and exit.
     -H              :  Show headers in output.
     -l <call_limit> :  Issue no more than this many system calls.
     -L <time_limit> :  Do not issue new system calls after this many
@@ -76,97 +337,356 @@ usage: mib [ab::d:EIhHl:L:MnpPrRs:St:W]
     -n              :  Create new files if files were already present
                     :    (will always create new files if none were
                     :    present).
-    -p              :  Output system call timing profiles to <log_dir>
-                    :    (default is current working directory).
+    -p <profiles>   :  Output system call timing profiles to 
+                    :    <profiles>.write and <profiles>.read.
     -P              :  Show progress bars during testing.
     -r              :  Remove files when done.
     -R              :  Only perform the read test.
     -s <call_size>  :  Use system calls of this size (default 512k).
                     :    Numbers may use abbreviations k, K, m, or M.
     -S              :  Show signon message, including date, program
-                    :    name, and version number.
-    -t <test_dir>   :  I/O transactions to and from this directory
-                    :    (default is current working directory).
+                    :    name, and version.
+    -t <test_dir>   :  Required. I/O transactions to and from this
+                    :    directory.
+    -V              :  Print the version and exit.
     -W              :  Only perform the write test
                     :    (if -R and -W are both present both tests 
-                    :     will run, but that's the default anyway)
-\end{verbatim}
+                    :     will run, but that's the default anyway).
+  \end{verbatim}
+}
+\caption{The {\em usage} of {\em mib}}
+\label{figure.usage}
+\end{figure}
 
-In the LLNL Linux clusters environment the
-SLURM\footnote{http://www.llnl.gov/linux/slurm/} command {\em srun}
-launches MPI applications.  A typical invocation might be:
+The simplest {\em mib} command line, {\em mib -h}, is useful on a node
+where MPI is not even installed.  It gives the ``usage'' as depicted
+in Figure~\ref{figure.usage}.  Similarly, {\em mib -V} gives the
+version including the architecture on which it was compiled.  In the
+case of the tests presented in this document the version is {\em
+mib-1.9.2-i386}.  One may run {\em mib} on a stand-alone node with or
+without MPI, but there is no compelling reason to do so.  There are
+other non-parallel I/O benchmarks that do an excellent
+job\footnote{http://www.iozone.org/}, so the rest of this discussion
+will continue to use the ALC cluster introduced in
+Section~\ref{section.normal}.
 
+\pagebreak
+The next example adds a report on the environment of the test and an
+initial ``signon'' message with the date and version number.
+{\small
+  \begin{verbatim}
+srun -N8 -p ltest mib -t /p/ga2/lustre-test/mib/newfiles \
+          -l 4500 -L 60 -s 4m -SHE
+Testing a file system of type "S_MAGIC_LUSTRE" (f_type = 0xbd00bd0)
+Using MPI
+
+
+mib-1.9  Wed Apr 12 15:48:46 2006
+
+cluster                  = alc
+new                      = false
+remove                   = false
+nodes                    = 8
+testdir                  = /p/ga2/lustre-test/mib/newfiles
+call_limit               = 4500
+call_size                = 4194304
+time_limit               = 60
+tasks                    = 8
+write_only               = false
+read_only                = false
+profiles                 = no
+use_node_aves            = false
+show_signon              = true
+show_headers             = true
+show_environment         = true
+show_progress            = false
+show_intermediate_values = false
+          date            tasks  xfer  call  time      write       read
+                                      limit limit       MB/s       MB/s
+------------------------ ------ ----- ----- ----- ---------- ----------
+Wed Apr 12 15:50:46 2006      8    4M  4500    60    1183.29     840.95
+  \end{verbatim}
+}
+The ``-t \verb+<target>+'' is a required parameter.  Leaving it off
+has consequences in an environment where home directories are NFS
+mounted.  A cluster of computers all doing I/O to the current
+working directory could cause a ``denial of service attack'' on the
+NFS server.
 \begin{verbatim}
-srun -N8 -p ltest mib -t /p/ga2/lustre-test/mib/newfiles
- |    |      |     |       |
- |    |      |     |       ---target directory
- |    |      |     -----------MPI application
- |    |      -----------------partition (group of target nodes)
- |    ------------------------number of tasks
- -----------------------------SLURM MPI launcher
+mib
+Mib requires a "-t <test_dir>" argument.
 \end{verbatim}
+Also see below about testing NFS file systems.  
 
-This example would run 8 MPI tasks on nodes taken from the ``ltest''
-group of compute nodes.  The {\em mib} executable would open, write
-to, close, open, read from, and close, a unique file for each task,
-all in the given directory.  The I/O would continue for the default
-amount of time or the default number of transfers (whichever limit
-reached frst), and would involve system calls using the default amount
-of data.  In the following discussion assume the following shell
-variables are defined to create the above command line:
+\pagebreak
+With the ``-I'' and ``-P'' options you get intermediate values as they
+are calculated and a progress meter visually tracking the percent
+complete of the test:
+{\small
+  \begin{verbatim}
+srun -N8 -p ltest mib -t /p/ga2/lustre-test/mib/newfiles \
+          -l 4500 -L 60 -s 4m -HIP
 
+write phase
+should last about this long---------------------->
+************************************************
+Call 2276 was the last write recorded
+
+After 2276 calls and 60.090934 seconds
+71144.000000 MB written in 60.080710 seconds
+Aggregate write rate =    1184.14
+
+read phase
+should last about this long---------------------->
+************************************************
+Call 1602 was the last read recorded
+
+After 1602 calls and 60.038198 seconds
+50476.000000 MB read in 60.034850 seconds
+Aggregate read rate =     840.78
+          date            tasks  xfer  call  time      write       read
+                                      limit limit       MB/s       MB/s
+------------------------ ------ ----- ----- ----- ---------- ----------
+Wed Apr 12 15:55:43 2006      8    4M  4500    60    1184.14     840.78
+  \end{verbatim}
+}
+The progress meter is a rudimentary convenience and not intended to be
+a precision measure.  It can be fooled by caching and by extremely
+slow or uneven system call completion.
+
+One may optionally run just the write test or just the read test:
+{\small
+  \begin{verbatim}
+srun -N8 -p ltest mib -t /p/ga2/lustre-test/mib/newfiles \
+          -l 4500 -L 60 -s 4m -W  
+Wed Apr 12 15:58:25 2006      8    4M  4500    60    1194.42       0.00
+
+srun -N8 -p ltest mib -t /p/ga2/lustre-test/mib/newfiles \
+          -l 4500 -L 60 -s 4m -R
+Wed Apr 12 15:59:51 2006      8    4M  4500    60       0.00     874.30
+  \end{verbatim}
+}
+During a ``-R'' test if there are no files at the target location {\em
+mib} will fail with an explanatory message.  Putting both ``-W'' and
+``-R'' on the command line produces both tests, which is the default
+anyway.
+
+\pagebreak
+There is an optional random seek available in the read test.  The
+``granularity'' can be set with the option's parameter:
+{\small
+  \begin{verbatim}
+srun -N8 -p ltest mib -t /p/ga2/lustre-test/mib/newfiles \
+          -l 4500 -L 60 -s 4m -R -b
+Wed Apr 12 16:02:52 2006      8    4M  4500    60       0.00     404.36
+
+srun -N8 -p ltest mib -t /p/ga2/lustre-test/mib/newfiles \
+          -l 4500 -L 60 -s 4m -R -b4k
+Wed Apr 12 16:04:08 2006      8    4M  4500    60       0.00    4166.64
+  \end{verbatim}
+}
+By default, the seek can be to any byte offset, if the option includes
+a granularity then the seek is to some random multiple of that
+value.  It is also worth noting that the latter test read from cache,
+and was quite fast because of it.
+
+The ``-r'' option removes the files at the end of the test.  {\em Mib}
+will always create files if they are not already present, but by
+default will use files that do already exist.  To force the creation
+of new files use ``-n''.  In the next sequence of tests files are
+removed and recreated:
+{\small
+  \begin{verbatim}
+srun -N8 -p ltest mib -t /p/ga2/lustre-test/mib/newfiles \
+          -l 4500 -L 60 -s 4m -r     
+Wed Apr 12 16:10:06 2006      8    4M  4500    60    1185.60 832.80
+
+ls -l /p/ga2/lustre-test/mib/newfiles
+total 0
+
+ srun -N8 -p ltest mib -t /p/ga2/lustre-test/mib/newfiles \
+          -l 4500 -L 60 -s 4m
+Wed Apr 12 16:14:00 2006      8    4M  4500    60    1177.24     840.95
+
+ls -l /p/ga2/lustre-test/mib/newfiles
+total 72521016
+-rw-rw-r--  1 auselton auselton 9147777024 Apr 12 16:13 mibData.00000000
+-rw-rw-r--  1 auselton auselton 9537847296 Apr 12 16:13 mibData.00000001
+-rw-rw-r--  1 auselton auselton 9051308032 Apr 12 16:13 mibData.00000002
+-rw-rw-r--  1 auselton auselton 9676259328 Apr 12 16:13 mibData.00000003
+-rw-rw-r--  1 auselton auselton 9340715008 Apr 12 16:13 mibData.00000004
+-rw-rw-r--  1 auselton auselton 9156165632 Apr 12 16:13 mibData.00000005
+-rw-rw-r--  1 auselton auselton 9550430208 Apr 12 16:13 mibData.00000006
+-rw-rw-r--  1 auselton auselton 8728346624 Apr 12 16:13 mibData.00000007
+  \end{verbatim}
+}
+The files have been created anew.
+
+\pagebreak
+Continuing the example o the previous page a run with ``-n'' recreates
+the files.  Note the changed timestamps.
+{\small
+  \begin{verbatim}
+ srun -N8 -p ltest mib -t /p/ga2/lustre-test/mib/newfiles \
+          -l 4500 -L 60 -s 4m -n
+Wed Apr 12 16:17:29 2006      8    4M  4500    60    1159.59     842.01
+
+ls -l /p/ga2/lustre-test/mib/newfiles
+total 71450912
+-rw-rw-r--  1 auselton auselton 8757706752 Apr 12 16:16 mibData.00000000
+-rw-rw-r--  1 auselton auselton 8753512448 Apr 12 16:16 mibData.00000001
+-rw-rw-r--  1 auselton auselton 9261023232 Apr 12 16:16 mibData.00000002
+-rw-rw-r--  1 auselton auselton 8854175744 Apr 12 16:16 mibData.00000003
+-rw-rw-r--  1 auselton auselton 9063890944 Apr 12 16:16 mibData.00000004
+-rw-rw-r--  1 auselton auselton 9441378304 Apr 12 16:16 mibData.00000005
+-rw-rw-r--  1 auselton auselton 9722396672 Apr 12 16:16 mibData.00000006
+-rw-rw-r--  1 auselton auselton 9240051712 Apr 12 16:16 mibData.00000007
+  \end{verbatim}
+}
+
+When MPI is not available {\em mib} will try to carry out a test
+anyway.  To test this behavior one may deliberately suppress MPI with
+the ``-M'' option.  This behavior is also available if SLURM is not
+present, not working, or one wants to suppress SLURM for some reason.
+The {\em pdsh}\footnote{http://www.llnl.gov/linux/pdsh/} command is a
+parallel remote shell utility that can be used to launch {\em mib},
+again without MPI.  The next example shows a test running under SLURM
+but without MPI.  Each task reports results, since it cannot
+coordinate with the other tasks:
+{\small
+  \begin{verbatim}
+srun -N8 -p ltest mib -t /p/ga2/lustre-test/mib/newfiles \
+          -l 4500 -L 60 -s 4m -M
+     4 Wed Apr 12 16:28:16 2006      8    4M  4500    60     147.53     106.40
+     5 Wed Apr 12 16:28:16 2006      8    4M  4500    60     150.00     106.73
+     6 Wed Apr 12 16:28:16 2006      8    4M  4500    60     153.47     106.00
+     3 Wed Apr 12 16:28:16 2006      8    4M  4500    60     147.13     106.40
+     7 Wed Apr 12 16:28:16 2006      8    4M  4500    60     144.40     106.20
+     2 Wed Apr 12 16:28:16 2006      8    4M  4500    60     151.53     105.80
+     1 Wed Apr 12 16:28:16 2006      8    4M  4500    60     150.27     106.07
+     0 Wed Apr 12 16:28:16 2006      8    4M  4500    60     141.67      98.00
+  \end{verbatim}
+}
+
+\pagebreak
+Next we run a test without SLURM under {\em pdsh}.  Note that every
+task thinks it is the only one and they all produce reports:
+{\small
+  \begin{verbatim}
+ pdsh -w alc[68-75] mib -t /p/ga2/lustre-test/mib/newfiles \
+          -l 4500 -L 60 -s 4m -M -SHE
+alc68: Testing a file system of type "S_MAGIC_LUSTRE" (f_type = 0xbd00bd0)
+alc68: Command line forbade the use of MPI
+alc68: 
+alc68: 
+alc68: mib-1.9  Wed Apr 12 16:31:37 2006
+alc68: 
+alc68: cluster                  = 
+alc68: new                      = false
+alc68: remove                   = false
+alc68: nodes                    = 1
+alc68: testdir                  = /p/ga2/lustre-test/mib/newfiles
+alc68: call_limit               = 4500
+alc68: call_size                = 4194304
+alc68: time_limit               = 60
+alc68: tasks                    = 1
+alc68: write_only               = false
+alc68: read_only                = false
+alc68: profiles                 = no
+alc68: use_node_aves            = false
+alc68: show_signon              = true
+alc68: show_headers             = true
+alc68: show_environment         = true
+alc68: show_progress            = false
+alc68: show_intermediate_values = false
+[ other nodes report similarly]
+alc68:   task           date            tasks  xfer  call  time      write       read
+alc68:                                              limit limit       MB/s       MB/s
+alc68: ------ ------------------------ ------ ----- ----- ----- ---------- ----------
+alc68:     68 Wed Apr 12 16:33:37 2006      1    4M  4500    60     139.00      99.40
+[ and so on]
+  \end{verbatim}
+}
+
+\pagebreak
+Also note the file names resulting from the {\em pdsh} run.
+{\small
+  \begin{verbatim}
+ls -l /p/ga2/lustre-test/mib/newfiles
+total 145390528
+-rw-rw-r--  1 root root 8912896000 Apr 12 16:27 mibData.00000000
+-rw-rw-r--  1 root root 9453961216 Apr 12 16:27 mibData.00000001
+-rw-rw-r--  1 root root 9533652992 Apr 12 16:27 mibData.00000002
+-rw-rw-r--  1 root root 9256828928 Apr 12 16:27 mibData.00000003
+-rw-rw-r--  1 root root 9281994752 Apr 12 16:27 mibData.00000004
+-rw-rw-r--  1 root root 9441378304 Apr 12 16:27 mibData.00000005
+-rw-rw-r--  1 root root 9722396672 Apr 12 16:27 mibData.00000006
+-rw-rw-r--  1 root root 9240051712 Apr 12 16:27 mibData.00000007
+-rw-r--r--  1 root root 8745123840 Apr 12 16:32 mibData.00000068
+-rw-r--r--  1 root root 9302966272 Apr 12 16:32 mibData.00000069
+-rw-r--r--  1 root root 9076473856 Apr 12 16:32 mibData.00000070
+-rw-r--r--  1 root root 9089056768 Apr 12 16:32 mibData.00000071
+-rw-r--r--  1 root root 9458155520 Apr 12 16:32 mibData.00000072
+-rw-r--r--  1 root root 9466544128 Apr 12 16:32 mibData.00000073
+-rw-r--r--  1 root root 9286189056 Apr 12 16:32 mibData.00000074
+-rw-r--r--  1 root root 9466544128 Apr 12 16:32 mibData.00000075
+  \end{verbatim}
+}
+
+Since MPI can't coordinate the activity, each task reports as though
+it were the only one.  Rather than having each task decide it is
+``task 0'', in this mode a task gets its number from the hostname if
+it can.  The latter test above would figure out it doesn't have MPI
+even without the ``-M'', since SLURM will not have provided the needed
+``capability'' (that being the Elan term for needed infrastructure for
+MPI operation). 
+
+As mentioned above, {\em mib} will not willingly run an I/O test to an NFS
+mounted home directory.  This is a safety feature.  Other file systems
+are similarly protected.  If such a test is really needed the ``-F''
+option will force the test even though it is a bad idea.  An example
+is not provided because it tends to be quite hard on the home
+directories file system.  
+
+Finally, the ``-p \verb+<profile>+'' option will create two new files,
+``\verb+<profile>+.write'' and ``\verb+<profile>+.read'' with the timing of each
+system call in each task.  
 \begin{verbatim}
-SCOM="srun -N8 -p ltest"
-MCOM="mib -t /p/ga2/lustre-test/mib/newfiles"
+srun -N8 -p ltest mib -t /p/ga2/lustre-test/mib/newfiles \
+          -l 4500 -L 60 -s 4m -p /g/g0/auselton/alc/testing/profile
+Wed Apr 12 16:46:13 2006      8    4M  4500    60    1242.37 822.55
+
+ls -l /g/g0/auselton/alc/testing/       
+total 324
+-rw-r--r--  1 root root 130799 Apr 12 16:46 profile.read
+-rw-r--r--  1 root root 189824 Apr 12 16:45 profile.write
 \end{verbatim}
+Each of the two files contains a table of timestamp values.  All the
+time values are relative to a ``zero'' coordinated (via an MPI
+barrier) at the beginning of the test and adjusted for any skew in the
+``MPI\_Wtime()'' global clock readings.  Each column holds timing
+values for a task.  Each row gives the time at which the given task
+completed the given system call (i.e. the MPI\_Wtime() at which it
+returned).  Since some tasks don't make as much progress as others the
+table is zero-filled to have the same number of entries in every
+column.
 
-The most common use would include a limit on the number of system
-calls, a limit on time, and a system call size.  For instance if we
-wanted to perform, per task, no more than 4096 system calls of 512k
-bytes each and to cease issuing system calls after 60 seconds, the
-command would look like this:
+Despite the long list of command line options and their examples
+presented here, the {\em mib} program is a simple and easy to use
+tool.  The results it provides are easy to interpret.  The source code
+is easy to modify to include any special purpose analysis deemed
+necessary.  The next section discusses how to use the profiles and
+what they mean.
 
-\begin{verbatim}
-$SCOM $MCOM -l 1024 -L 60 -s 512k
-\end{verbatim}
+\section{Generating system call profiles}\label{section.profiles}
 
-A typical result for the above command (as observed on the {\em ALC}
-cluster) would look like this:
-
-
-\begin{verbatim}
-Fri Mar 17 22:50:59 2006      8    4M  4500   300	897.07     566.20
-\end{verbatim}
-
-The ``-H'' option provides an informative header:
-
-\begin{verbatim}
-$SCOM $MCOM -l 1024 -L 60 -s 512k -H
-
-           date            tasks  xfer  call  time      write       read
-                                       limit limit       MB/s       MB/s
- ------------------------ ------ ----- ----- ----- ---------- ----------
- Fri Mar 17 22:50:59 2006      8    4M  4500   300     897.07      566.20
-\end{verbatim}
-
-The next most common use for {\em mib} is to generate a system call timing
-profile.  The command:
-
-\begin{verbatim}
-$SCOM $MCOM -l 1024 -L 60 -s 512k -d ~/alc/ -p
-\end{verbatim}
-
-creates two files, ``\~/alc/write.profile'' and ``\~/alc/read.profile''.
-Each of those is a table with one line per system call, and on each
-line, one floating point number per task.  Each number is the
-timestamp of the corresponding system call (i.e. the MPI\_Wtime() at
-which it returned) on the corresponding task.  The timestamps are all
-relative to a ``zero'' at the beginning of the test, which is
-coordinated across all tasks and adjusted for any skew in the
-``MPI\_Wtime()'' global clock reading.
-
-The perl script ``composite.pl'' uses the two profiles to create a
-graph depicting the dynamic behavior of the benchmark.
+The other common use for {\em mib}, beside generating write and read
+data transfer rates, is to generate a system call timing profile.  As
+mentioned at the end of Section~\ref{section.usage}, invoking the
+``-p \verb+<profile>+'' option creates two tables of timing values,
+one for writes and one for reads.  The perl script ``composite.pl''
+(see the {\em mib-tools} RPM) uses the two profiles to create a graph
+depicting the dynamic behavior of the benchmark.
 Figure~\ref{composite.fig} is an example of such a graph taken from
 the {\em ALC} cluster during a run at scale (800 tasks on 400 nodes).
 
@@ -179,13 +699,63 @@ the {\em ALC} cluster during a run at scale (800 tasks on 400 nodes).
 The graph shows 300 seconds of writes at $1743 MB/s$ and another 300
 seconds of reads at about $326 MB/s$.  The composite graph has more
 than just the system call timings, which are the high frequency lines
-in the graph.  The square lines mark the data rate and duration of the
-writes and reads, as reported by mib.  The lower frequency varying
+in the graph.  The ``square'' lines mark the data rate and duration of the
+writes and reads, as reported by {\em mib}.  The lower frequency varying
 lines that closely track the system call timings are independent
 readings taken every five seconds from the servers.  The later
-readings come from a separate ({\em Python}-based) script that samples
-the monitoring daemons on the servers\footnote{Unfortunately those
-daemons are not currently available for circulation outside LLNL - the
-``composite.pl'' script can operate without them, if necessary.}.
+readings come from {\em lwatch}, a separate ({\em Python}-based)
+script that samples 
+the server monitoring daemons mentioned in Section~\ref{section.normal}.
+
+System call profile graphs allow one to visualize the dynamic behavior
+of the file system in a way that benchmark results or tables of
+numbers cannot.  Graphs like the one depicted in
+Figure~\ref{composite.fig} have been instrumental in identifying,
+fixing, or explaining the following effects: 
+\begin{description}
+\item [Stragglers] If one or a few tasks take much longer to complete
+  their I/O it is readily apparent from the graph (don't do
+  stonewalling, of course).
+\item [Discarded Read-ahead]  If the server-side rates are much
+  higher than the client-side rates during reads the difference is
+  probably read-ahead data that has been discarded unused.
+\item [Read Cache Effects] Conversely, if the clients see read rates
+  much higher than the servers that data was probably already in the
+  client cache.
+\item [Write Cache Effect] A spike in client write rates at the
+  beginning of a test (Figure~\ref{composite.fig} shows this) is
+  likely the client buffer cache filling up.  
+\item [Periodic Server Metadata Activity] Long I/O can show periodic
+  dips in performance that reveal underlying server metadata activity.
+\item [Dead Disks] If a disk is going bad and the RAID controller is
+  slow to notice and fail the disk this will show up as a period of
+  reduced I/O that stands out in the graph but would only show up as
+  ``poor'' performance in a benchmark.
+\item [Read, Modify, Write] Small writes instigate reads in the Linux
+  VFS as pages need to be read in before they can be modified.  This
+  also shows up clearly in the graph whereas it would only appear in a
+  benchmark result as ``poor'' performance.
+\end{description}
+
+There is a wealth of information to be gained by examining the dynamic
+behavior of the file system during a test.  All of the above examples
+were noticed first as phenomena in the graphs and later explained or
+fixed in the file system code.  
+
+
+\section{Conclusion}\label{section.conclusion}
+
+{\em Mib} is an excellent precision tool for understanding the dynamic
+performance of a parallel file system.  There is a great deal more
+that could be done to improve the use and understanding of {\em mib}
+results.  It would be helpful to develop a ``bestiary'' of graphs
+depicting various bad or exceptional behaviors along with explanations
+for each.  It would be helpful to have a comprehensive theory of
+parallel I/O against which to compare real world results.  The server
+monitoring tools are a valuable compliment to {\em mib} analysis, and
+it would be nice to be able to distribute them.  Finally, there are
+other dimensions to the parallel I/O problem besides bulk write and
+read data rates.  Metadata performance would be interesting to try to
+measure and visualize in a similar fashion.
 
 \end{document}

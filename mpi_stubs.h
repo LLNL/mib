@@ -24,6 +24,12 @@
  *  59 Temple Place, Suite 330, Boston, MA  02111-1307  USA.
 \*****************************************************************************/
 
+/* 
+ *   In the absense of MPI, and the mpi.h header in particular, some 
+ * constants need to be defined just so the code will compile.  In each
+ * case the acual facilities won't be used because they are guarded by
+ * the "USE_MPI" condition.
+ */
 typedef int MPI_Comm;
 typedef int MPI_Op;
 typedef int MPI_Datatype;

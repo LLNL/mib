@@ -24,33 +24,16 @@
  *  59 Temple Place, Suite 330, Boston, MA  02111-1307  USA.
 \*****************************************************************************/
 /*
- *   Mib is intended to be as simple as possible (but no simpler).  It
- * is intended that the results be easily interpreted on the one hand.
- * On the other, it is intended that the code might be easily extended
- * to particular purposes.  Central to the program is a test that has
- * each task perform I/O, of a fixed size per system call, to a file
- * named in a conventional way.  It is presumed, but not required,
- * that the file is on a parallel file system. It is required that the
- * task writing a given file and the task reading it both see the same
- * file, and those tasks will be distinct.  Detailed timing data for
- * all the system calls is sent to a file (one for writes and one for
- * reads) after the I/O is complete.
- *   Stonewalling tests have all the tasks stop after the same amount
- * of time.  Non-stonewalling tests allow all task to complete a fixed
- * number of system calls before stopping.  Whichever citerion is 
- * satisfied first ends I/O from a task.  It is possible for system 
- * call limits and time limits to be chosen so that some tasks finish
- * due to one and other tasks due to the other.  I don't see how 
- * that could be desirable, but is allowed and no special note is made
- * if it does happen.
- *   One particular special purpose is already implemented here, not
- * particularly well.  It checks that sibling tasks (all performing I/O
- * from the same node) proceed through their system calls uniformly,
- * i.e. in lock step.  If they do not, the fact is noted, but no other
- * action is taken.  That one section of code could be removed without
- * loss of functionality, and others could be put in its place.
+ *   Mib is an MPI I/O test that has each MPI task perform I/O of a
+ * fixed size per system call.  The tasks first write to and then read
+ * from files named in a conventional way.  Mib assumes that the files
+ * are on a parallel file system. The file a task reads from is
+ * distinct from the file written to, if possible.  This defeats
+ * caching at the clients.  Optionally, detailed timing data for
+ * the system calls is sent to a file (one for writes and one for
+ * reads) after the I/O is complete.  For details consult the README
+ * or http://www.llnl.gov/linux/mib.
  */
-
 
 #include <stdio.h>      /* FILE, fopen, etc. */
 #include <sys/types.h>  /* open, etc */
@@ -83,62 +66,68 @@ void profiles(double *array, int count, char *profile_log_name);
 void report(double write, double read);
 void base_report(int verb, char *fmt, ...);
 
+/* See mib.h.  the size of the communicator and the task's rank are in the Mib struct */
 Mib  *mib = NULL;
+
 char *version=MIB_VERSION;
 char *arch=MIB_ARCH;
 
+/* See options.h.  Elements of the command line are here */
 extern Options *opts;
+
+/* 
+ * See slurm.h.  If SLURM is present then some extra info is available
+ * here.  In the absense of MPI this can help with identifying a unique
+ * task for writing to stdout  
+ */
 extern SLURM   *slurm;
+
+/* See mpi_wrap.c */
 extern int use_mpi;
 
 int
 main( int argc, char *argv[] )
 {
   /*
+   *  The overall flow of the program is: 1) initialize everything, 2)
+   *  run write test, 3) run read test, 4) print results.
    */
   int size = 0;
   int rank;
   double read = 0;
   double write = 0;
-  int bail;
 
   /* initialize the slurm struct */
-  get_SLURM_env();
+  slurm = get_SLURM_env();
+
   /* initialize the opts struct */
-  command_line(&argc, &argv);
-  /* initialize MPI */
+  opts = command_line(&argc, &argv);
+
   mpi_init( &argc, &argv );
   mpi_comm_size(MPI_COMM_WORLD, &size );
   mpi_comm_rank(MPI_COMM_WORLD, &rank );
-  /* initialize the timer, check for skew, get the signon timestamp */
-  init_timer(rank);
+
+  /* initialize the timer, check for skew */
+  init_timer();
   sign_on();
-  /* initialze the mib struct */
+
   mib = Init_Mib(rank, size);
+
   if(verbosity(SHOW_ENVIRONMENT)) show_details();
-  if( mib->comm == MPI_COMM_NULL )
+
+  DEBUG("Initializations complete.\n");
+  if(! check_flags(READ_ONLY) )
     {
-      mpi_barrier(MPI_COMM_WORLD);
+      write = write_test();
+      base_report(SHOW_INTERMEDIATE_VALUES, "Aggregate write rate = %10.2f\n", write);
     }
-  else
+  if(! check_flags(WRITE_ONLY) )
     {
-      DEBUG("Initializations complete.\n");
-      if(! check_flags(READ_ONLY) )
-	{
-	  write = write_test();
-	  base_report(SHOW_INTERMEDIATE_VALUES, "Aggregate write rate = %10.2f\n", write);
-	}
-      if(! check_flags(WRITE_ONLY) )
-	{
-	  read = read_test();
-	  base_report(SHOW_INTERMEDIATE_VALUES, "Aggregate read rate = %10.2f\n", read);
-	}
-      report(write, read);
-      Free_Opts();
-      if( mib->comm != MPI_COMM_WORLD)
-	mpi_comm_free(&(mib->comm));
-      mpi_barrier(MPI_COMM_WORLD);
+      read = read_test();
+      base_report(SHOW_INTERMEDIATE_VALUES, "Aggregate read rate = %10.2f\n", read);
     }
+  report(write, read);
+  Free_Opts();
   mpi_finalize();
   exit(0);
 }
@@ -146,6 +135,7 @@ main( int argc, char *argv[] )
 void
 sign_on()
 {
+  /* print time, version, and architecture */
   time_t t;
   char signon[MAX_BUF];
   char time_str[MAX_BUF];
@@ -163,27 +153,34 @@ sign_on()
 Mib *
 Init_Mib(int rank, int size)
 {
-  Mib *mib;
+  Mib *m;
 
-  mib = (Mib *)Malloc(sizeof(Mib));
+  m = (Mib *)Malloc(sizeof(Mib));
   /* 
    *   If we don't even have a slurm environment then act like there's 
    * just one of us.  Get your rank off of the hostname and be sure to
    * set size = 1 and base the same as rank.
    */
-  mib->nodes = slurm->use_SLURM ? slurm->NNODES : 1;
-  mib->tasks = slurm->use_SLURM ? slurm->NPROCS : 1;
+  m->nodes = slurm->use_SLURM ? slurm->NNODES : 1;
+  m->tasks = slurm->use_SLURM ? slurm->NPROCS : 1;
 
-  mib->rank =  USE_MPI ? rank : (slurm->use_SLURM ? slurm->PROCID : get_host_index());
-  mib->size =  USE_MPI ? size : (slurm->use_SLURM ? slurm->NPROCS : 1 );
-  mib->base =  USE_MPI ? 0 : (slurm->use_SLURM ? 0 : mib->rank );
-  mib->comm = MPI_COMM_WORLD;
-  return(mib);
+  m->rank =  USE_MPI ? rank : (slurm->use_SLURM ? slurm->PROCID : get_host_index());
+  m->size =  USE_MPI ? size : (slurm->use_SLURM ? slurm->NPROCS : 1 );
+  m->base =  USE_MPI ? 0 : (slurm->use_SLURM ? 0 : m->rank );
+  m->comm = MPI_COMM_WORLD;
+  return(m);
 }
 
 int
 get_host_index()
 {
+  /* 
+   *  If we don't have MPI and we don't have SLURM we might be able to 
+   * get a task number off the host name.  No guarantee, though.  Not
+   * necessarily unique either.  If all else fails then just use 0.
+   * Note that for the following to work the hostname needs to be a
+   * null terminated string with digits only at the end.  
+   */
   int rc;
   char name[MAX_BUF];
   char *p = name;
@@ -202,12 +199,13 @@ double
 write_test()
 {
   /*
-   *   The results array hold the timings of the various stages of the 
-   * test as well as particulars, like how many system calls were actually
-   * made in this task.  The "timings" field is an array of doubles that
-   * will hold the return values from checking the time at the end of each
-   * system call.  Wouldn't it be cool to get all sorts of other diagnostic
-   * info at the end of each system call?
+   *   The results structure (see mib.h) holds the timings of the
+   * various stages of the test as well as particulars, like how many
+   * system calls were actually made in this task.  The "timings"
+   * field is an array of doubles that will hold the return values
+   * from checking the time at the end of each system call.  Wouldn't
+   * it be cool to get all sorts of other diagnostic info at the end
+   * of each system call?
    */
 
   int call = 0;
@@ -233,9 +231,7 @@ write_test()
   /*
    *  This motif is repeated several times.  You get a barrier then an
    * action, or an action then a barrier, or both.  Timestamps are
-   * taken at each step.  Here the file is being opened.  It better
-   * already be there or mib will fail.  Us the "file-layout.sh"
-   * utility.
+   * taken at each step.  Here the file is being opened.  
    */
   mpi_barrier(mib->comm);
   res->before_unlink = get_time();
@@ -253,20 +249,22 @@ write_test()
    */
   res->transferred = 0;
   res->short_transfers = 0;
+  /* The status stuff is what produces the otional progress bar. */
   init_status("write phase");
   res->start = res->timings[call] = get_time();
   time_limit = res->timings[call] + opts->time_limit;
 
   /*
    *   This is the meat of the test.  The loop is terminated by the
-   * first occurance of out-of-time or out-of-space.  It might be
-   * interesting to see what happens if you barrier at ieach
+   * first occurance of no more time or no more syscalls.  It might be
+   * interesting to see what happens if you barrier at each
    * iteration.  Haven't tried that.
    */
   do
     {
       call++;
       xfer = Write(wf, buf, opts->call_size);
+      /* this shouldn't ever happen, but it's good to know when it does :) */
       if (xfer < 0) printf("call %d wrote %d\n",call, xfer);
       res->transferred += xfer;
       if (xfer < opts->call_size) res->short_transfers++; 
@@ -312,9 +310,9 @@ write_test()
    */
 
   /*
-   *  We want all the tasks to have valid data for the entire period
-   *  of the test, even if they didn't record a time.  This fills in
-   *  zeros as necessary.
+   *   We want every tasks to have a value for every system call up to
+   * the maximum seen in any task.  This fills in  a zero for each entry 
+   * after a task's last actual call but before the last global call.
    */
   last_call = call;
   mpi_allreduce(&(last_call), &(last_write_call), 1, MPI_INT, MPI_MAX, mib->comm);
@@ -332,10 +330,16 @@ write_test()
 	      "\nAfter %d calls and %f seconds\n", 
 	      last_write_call, res->end_test - res->start_open);
 
+  /* 
+   * If there is no MPI, but only one task we should still be able to get
+   * profiles, but that will have to be an embellishment for later.
+   * If you want profiles for more than one task and have no MPI then
+   * more care is requred in the file naming.
+   */
   if(USE_MPI)
     {
       /*
-       *   Red will end up with the aggregate amout of data transfered and the
+       *   "Red" will end up with the aggregate amout of data transfered and the
        * earliest and latest values for the various timestamps.  From that it
        * is a simple calculation to get the aggregate data rate.
        */
@@ -354,11 +358,9 @@ write_test()
       if( opts->profiles != NULL )
 	{
 	  /*
-	   *   The job of reporting out details of the system call timings is
-	   *   left to this function.  The info goes to the
-	   *   write.syscalls.aves file in the log directory.  A summary of
-	   *   the unevenness of the system calls, if any, is reported to
-	   *   stdout.
+	   *   The job of reporting out details of the system call
+	   *   timings is left to this function.  The info goes to the
+	   *   file specified in the "-p <profile>.write" option.
 	   */
 	  DEBUG("Write table:\n");
 	  profiles(res->timings, last_write_call + 1, "write");
@@ -380,7 +382,7 @@ Results *
 reduce_results(Results *res)
 {
   /*
-   * The results I'm interested in are:
+   * The results of interest are:
    * Min_{n} start_open
    * Max_{n} end_open
    * Min_{n} start
@@ -389,13 +391,6 @@ reduce_results(Results *res)
    * Max_{n} finish_fsync
    * Min_{n} start_close
    * Max_{n} end_close
-   * All but the arrays can be brought to rank == base.
-   * The arrays will need individual node subcommunicators, and then
-   * a fancy subcommunicator to bring all the node arrays to the 
-   * rank == base node.
-   *  I can stuff all the easy ones into another Results struct.  I'll
-   * have to do something different for the node arrays.  I'll fob that 
-   * off to the profiles() routine.
    */
   Results *red;
 
@@ -435,22 +430,22 @@ char *
 fill_buff()
 {
   /*
+   *   This just fills the buffer with long long sized checks of <task, count> 
+   * pairs.
    */
-  char *buffer;
-  unsigned long long count, hi, lo, lomask;
-  unsigned long long *buf;
+  char *buff;
+  long long count = 0;
+  long long *llarray;
+  int lsize = sizeof(long long);
 
-
-  buffer = (char *)Malloc(opts->call_size);
-  buf  = (unsigned long long *)buffer;
-  lomask = -1ULL >> (sizeof(unsigned long long)*8 - LOWER_BITS);
-  hi = mib->rank;
-  hi = hi << LOWER_BITS;
-  for (count = 0; count < opts->call_size / sizeof(unsigned long long); count++) {
-    lo = (count * sizeof(unsigned long long)) & lomask;
-    buf[count] = hi | lo;
-  }
-  return(buffer);
+  buff = (char *)Malloc(opts->call_size);
+  llarray  = (long long *)buff;
+  while(&(llarray[count]) < (buff + opts->call_size - lsize))
+    {
+      llarray[count] = (mib->rank << (lsize/2)) + count;
+      count++;
+    }
+  return(buff);
 }
 
 #define EXPECTATION 50
@@ -463,7 +458,9 @@ init_status(char *str)
   /*
    *   If the options call for a progress meter then the following
    * expectation metric is sent to stdout.  An array of '*' characters
-   * will provide the progress measure.
+   * will provide the progress measure.  No real effort is made to keep it
+   * reliable or timely.  It's best effort and works fine for a large number
+   * of quick I/O operations.
    */
   int i;
 
@@ -535,8 +532,6 @@ read_test()
 
   /* 
    * N.B. there is no optional unlink at the beginning of the reads 
-   * Note to self: What happens when this is a read_only test and there 
-   * are no target files?
    */
   res->before_unlink = get_time();
   /*
@@ -701,24 +696,17 @@ void
 profiles(double *array,   int count, char *io_direction)
 {
   /*
-   *   Create subcommunicators for every group of 
-   * sibling tasks.  Then each can do a reduction to get averages
-   * for the node.  Release those subcommunicators.
-   *   Create a subcommunicator out of the <base> from each of
-   * the previous subcommunicators.  Send all the data to the 
-   * base of this new subcommunicator (also the base of MPI_WORLD),
-   * so that it can be sent to the NFS target directory.
-   *   Keep in mind that this function requires the "mib->nodes"
-   * configuration parameter to be set correctly.  If it is not 
-   * then the computations are not going to be valid, and there 
-   * may even be stability issues.  In particular, default operation
-   * should insure that profiling is OFF.
+   * Print out a table with one row per system call up to the maximum
+   * of all calls across all tasks, zero filled for tasks that didn't
+   * get that many calls in.  One collumn in the row is for each task.
+   * Each entry is a double corresponding to when that task finished
+   * that system call.  All values are relative to a global zero
+   * coordinated by an initial barrier. 
+   *
+   * A gather gets each task's values into the base task, that way one
+   * task doesn't have to be able to hold more than num_tasks doubles.  
    */
-  int node, task;
-  MPI_Comm node_comm;
-  int node_base = 0;
-  int node_group = 0;
-  int call, gap, max_gap, min_gap, ave_gap;
+  int call;
   double *table;
   char *buffer;
       /*
@@ -729,11 +717,8 @@ profiles(double *array,   int count, char *io_direction)
        */
   int BUF_LIMIT;
   char *ip;
-  double *node_min, *node_max, *node_ave;
-  int node_size, node_rank;
   int ret;
   int i;
-  int tasks_per_node = mib->tasks/mib->nodes;
   FILE *lfd;
   char profile_log_name[MAX_BUF];
 
@@ -745,13 +730,7 @@ profiles(double *array,   int count, char *io_direction)
     }
 
   /*
-   *   The <node, task> pair is unique to each task.  The mpi spli
-   * creates a subcommunicator corresponding to the sibling tasks 
-   * associated with each NODE.  The task = 0 task in each 
-   * subcommunicator is the base to which the others send their data.
    */
-  node = mib->rank;
-  task = mib->rank;
   BUF_LIMIT = 20*mib->tasks;
   buffer = Malloc(BUF_LIMIT);
   DEBUG("Table\n");
@@ -782,6 +761,10 @@ profiles(double *array,   int count, char *io_direction)
 void
 report(double write, double read)
 {
+  /* 
+   * The headers are optional.  Print the results along with a little
+   * info about the test. 
+   */
   time_t t;
   long long range = 1024;
   char range_ch = 'k';

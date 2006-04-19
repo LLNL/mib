@@ -3,16 +3,16 @@ to date.
 
 When I make a change to the functionality of mib I need to have that
 change propogate through the following:
+o whereever in the code the option has an effect
 o opt_string in options.c
 o long_opts struct in options.c
 o command line options parsing loop in options.c
 o usage function in options.c
-o whereever in the code the option has an effect
+o in-code comments
+o commentary in README
 o testing in tools/mib-test.sh
 o man page mib.1
 o writeup in doc/mib.tex
-o commentary in README
-
  
 Insure that the copyright and disclaimer documentation is up to date
 and present as required for review and release.

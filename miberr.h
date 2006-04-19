@@ -29,13 +29,11 @@ typedef enum {FALSE, TRUE} BOOL;
 #define BOOL_DEF
 #endif
 
-#define ERR_BUF_LEN 128
-
-
 /* 
+ *   An ASSERT is an event that will cause immediate termination.  It
+ * is intended only for those places in the code where the condition
+ * reveals a bug.  No user action can trigger this.
  */
-
-/* An ASSERT is an event that will cause immediate termination */
 #define ASSERT(condition) do {                                           \
         if(!(condition)) {                                               \
           fprintf(stderr, "ASSERTION: %s (%d)\n", __FILE__, __LINE__);   \
@@ -45,9 +43,11 @@ typedef enum {FALSE, TRUE} BOOL;
 } while (0)
 
 
-/******************************************************************************/
-/* FAIL uses MPI_Abort to stop processing on all tasks immediately */
-
+/* 
+ *   FAIL uses MPI_Abort to stop processing on all tasks immediately.
+ * In contrast to ASSERT, FAIL is for conditions external to mib's
+ * control that prevent it from continuing.
+ */
 #define FAIL() do {                                           \
         fprintf(stderr, "%s (%d)\n", __FILE__, __LINE__);     \
           fflush(stderr);                                                \

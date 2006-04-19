@@ -55,17 +55,28 @@ typedef enum {FALSE, TRUE} BOOL;
 #define verbosity(mask)    (opts->verbosity & mask)
 
 typedef struct Options_Struct {
-  char *profiles;      /* = /home/auselton/testing/<date> */
-  char *testdir;      /* = /p/gbtest/lustre-test/ior/smooth */
+  /* Path and filename for optional system call profiles tables */
+  /* The one for writes gets ".write" appended and for reads ".read"  */
+  char *profiles;
+  /* This required argument gives the path to where the I/O will be directed */
+  /* The file name in that directory for task <i> is "mibData.<i>" */
+  char *testdir;
+  /* Issue no more than this many system calls (per phase, write and read) */
   int call_limit;     
+  /* System calls use a buffer of this size */
   long long call_size;
+  /* After this much time issue no new system calls (per phase, write and read) */
+  /* Since it may tak a long time to return from a system call and check for */
+  /* this condition, this limit does not stop the test precisely at the time_limit */
   int time_limit;    
+  /* For the optional random reads, seek with this size "stride" */
   long long granularity;
+  /* see the flags and verbosity defines above */
   int flags;
   int verbosity;
 }Options;
 
-void command_line(int *argcp, char **argvp[]);
+Options *command_line(int *argcp, char **argvp[]);
 void Free_Opts();
 void usage( void );
 void show_details();

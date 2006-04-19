@@ -34,15 +34,22 @@
 #include "slurm.h"
 
 /*
- * Revisit these and decide which ones necessarily must FAIL, and wich
- * can defer to a barrier.
- * In several cases it might be better to ASSERT(USE_MPI) rather than 
- * silently return, since using, for instance, MPI_Gather can't really
- * be amulated the way MPI_Reduce(...MAX...) is.  Even MPI_Reduce(...SUM...)
- * could be a problem.
+ * Some of the error handling might be improved if some MPI calls don't
+ * have to FAIL and MPI_Abort but can defer their complaint to the 
+ * next barrier.
+ * The USE_MPI guard might be accompanied by an error in many cases, since
+ * there is no good way of emulating the behavior without. 
  */
 
+/* 
+ *   the code is organized so that it will (at least try to) run even
+ *   without MPI.
+ */
 int use_mpi = NO_MPI;
+/*
+ *   Three libraries must be loaded if MPI is going to be used.  "use_mpi"
+ * is only set "true" if all three are sucessfully loaded.
+ */
 void *mpi_handle;
 void *mpio_handle;
 void *elan_handle;

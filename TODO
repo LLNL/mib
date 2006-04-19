@@ -17,3 +17,8 @@ o  The error reporting needs to be much more refined.
 o  Test against arbitrary subcommunicators of MPI_COMM_WORLD
 
 o  Respond to Signals
+
+o Very small xfer sizes may want very large numbers of xfers.  See
+  what is involved in allowing for that.  Perhaps I should gather and
+  reduce the data before sending it to the profile files.  
+

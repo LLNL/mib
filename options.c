@@ -62,9 +62,10 @@ extern int     use_mpi;
 extern char   *version;
 extern char   *arch;
 
-void
+Options *
 command_line(int *argcp, char **argvp[])
 {
+  Options *o;
   int argc = *argcp;
   char **argv = *argvp; 
   int opt;
@@ -93,67 +94,67 @@ command_line(int *argcp, char **argvp[])
       {0, 0, 0, 0},
     };
 
-  opts = Make_Opts();
+  o = Make_Opts();
   while( (opt = getopt_long(argc, argv, opt_str, long_options, &idx)) != -1)
     {
       switch(opt)
 	{
 	case 'b' : /* random_reads */
-	  set_flags("true", &(opts->flags), RANDOM_READS);
-	  if (optarg) set_longlong(optarg, &(opts->granularity));
+	  set_flags("true", &(o->flags), RANDOM_READS);
+	  if (optarg) set_longlong(optarg, &(o->granularity));
 	  break;
 	case 'E' : /* show_environment */
-	  set_flags("true", &(opts->verbosity), SHOW_ENVIRONMENT);
+	  set_flags("true", &(o->verbosity), SHOW_ENVIRONMENT);
 	  break;
 	case 'F' : /* force */
-	  set_flags("true", &(opts->flags), FORCE);
+	  set_flags("true", &(o->flags), FORCE);
 	  break;
 	case 'I' : /* show_intermediate_values */
-	  set_flags("true", &(opts->verbosity), SHOW_INTERMEDIATE_VALUES);
+	  set_flags("true", &(o->verbosity), SHOW_INTERMEDIATE_VALUES);
 	  break;
 	case 'H' : /* show_headers */
-	  set_flags("true", &(opts->verbosity), SHOW_HEADERS);
+	  set_flags("true", &(o->verbosity), SHOW_HEADERS);
 	  break;
 	case 'l' : /* call_limit */
-	  set_int(optarg, &(opts->call_limit));
+	  set_int(optarg, &(o->call_limit));
 	  break;
 	case 'L' : /* time_limit */
-	  set_int(optarg, &(opts->time_limit));
+	  set_int(optarg, &(o->time_limit));
 	  break;
 	case 'M' : /* no MPI */
 	  use_mpi = FORCE_NO_MPI;
 	  break;
 	case 'n' : /* new */
-	  set_flags("true", &(opts->flags), NEW);
+	  set_flags("true", &(o->flags), NEW);
 	  break;
 	case 'p' : /* profiles */
 	  if( (optarg == NULL) && ((slurm->use_SLURM == 0) || (slurm->PROCID == 0)) ) usage();
-	  set_string(optarg, &(opts->profiles));
+	  set_string(optarg, &(o->profiles));
 	  break;
 	case 'P' : /* show_progress */
-	  set_flags("true", &(opts->verbosity), SHOW_PROGRESS);
+	  set_flags("true", &(o->verbosity), SHOW_PROGRESS);
 	  break;
 	case 'r' : /* remove */
-	  set_flags("true", &(opts->flags), REMOVE);
+	  set_flags("true", &(o->flags), REMOVE);
 	  break;
 	case 'R' : /* read_only */
-	  set_flags("true", &(opts->flags), READ_ONLY);
+	  set_flags("true", &(o->flags), READ_ONLY);
 	  break;
 	case 's' : /* call_size */
-	  set_longlong(optarg, &(opts->call_size));
+	  set_longlong(optarg, &(o->call_size));
 	  break;
 	case 'S' : /* show_signon */
-	  set_flags("true", &(opts->verbosity), SHOW_SIGNON);
+	  set_flags("true", &(o->verbosity), SHOW_SIGNON);
 	  break;
 	case 't' : /* test_dir */
 	  if( (optarg == NULL) && ((slurm->use_SLURM == 0) || (slurm->PROCID == 0)) ) usage();
-	  set_string(optarg, &(opts->testdir));
+	  set_string(optarg, &(o->testdir));
 	  break;
 	case 'V' : /* version */
 	  printf("mib-%s-%s\n", version, arch);
 	  exit(0);
 	case 'W' : /* write_only */
-	  set_flags("true", &(opts->flags), WRITE_ONLY);
+	  set_flags("true", &(o->flags), WRITE_ONLY);
 	  break;
 	case 'h' :  /* help */
 	default : 
@@ -163,7 +164,7 @@ command_line(int *argcp, char **argvp[])
   /* Anything we've consumed doesn't need to be passed to the MPI initializer */
   *argcp -= optind;
   *argvp += optind;
-  if( opts->testdir == NULL)
+  if( o->testdir == NULL)
     {
       base_report(SHOW_ALL, "Mib requires a \"-t <test_dir>\" argument.\n");
       exit(1);
@@ -171,9 +172,10 @@ command_line(int *argcp, char **argvp[])
   check_fs();
   if( (check_flags(WRITE_ONLY))  && (check_flags(READ_ONLY)) )
     {
-      opts->flags &= ~WRITE_ONLY;
-      opts->flags &= ~READ_ONLY;
+      o->flags &= ~WRITE_ONLY;
+      o->flags &= ~READ_ONLY;
     }
+  return(o);
 }
 
 void
@@ -217,18 +219,18 @@ usage( void )
 Options *
 Make_Opts()
 {
-  Options *opts;
+  Options *o;
 
-  opts = (Options *)Malloc(sizeof(Options));
-  opts->profiles = NULL;
-  opts->testdir = NULL;
-  opts->call_limit = 4096;
-  opts->call_size = 524288;
-  opts->granularity = 1;
-  opts->time_limit = 60;
-  opts->flags = DEFAULTS;
-  opts->verbosity = QUIET;
-  return(opts);
+  o = (Options *)Malloc(sizeof(Options));
+  o->profiles = NULL;
+  o->testdir = NULL;
+  o->call_limit = 4096;
+  o->call_size = 524288;
+  o->granularity = 1;
+  o->time_limit = 60;
+  o->flags = DEFAULTS;
+  o->verbosity = QUIET;
+  return(o);
 }
 
 void

@@ -37,40 +37,54 @@
 #include "sys_wrap.h"
 #include "slurm.h"
 
+void show_SLURM_env();
 void _get_str_env(char *str, char *key);
 int  _get_int_env(char *key);
 
+/* 
+ *   The slurm structure is intended to do two things:
+ * 1)  Before MPI is initialized give the task(s) a hint as to who is 
+ * the distinguished "base task".  Only that task will send info to
+ * stdout.
+ * 2)  If there is no MPI then the same mechanism can act as a fall back
+ * for detmining task rank and job size.  
+ * There is a lot more info here than actually gets used.  Some of it
+ * may be useful, so keep it around for the future.
+ */
 SLURM   *slurm = NULL;
 
-void
+SLURM *
 get_SLURM_env()
 {
-  slurm = (SLURM*)Malloc(sizeof(SLURM));
-  slurm->use_SLURM = 1;
-  slurm->CPUS_ON_NODE = _get_int_env("SLURM_CPUS_ON_NODE");
-  slurm->CPUS_PER_TASK = _get_int_env("SLURM_CPUS_PER_TASK");
-  _get_str_env(slurm->CPU_BIND_LIST, "SLURM_CPU_BIND_LIST");
-  _get_str_env(slurm->CPU_BIND_TYPE, "SLURM_CPU_BIND_TYPE");
-  _get_str_env(slurm->CPU_BIND_VERBOSE, "SLURM_CPU_BIND_VERBOSE");
-  slurm->JOBID = _get_int_env("SLURM_JOBID");
-  _get_str_env(slurm->LAUNCH_NODE_IPADDR, "SLURM_LAUNCH_NODE_IPADDR");
-  slurm->LOCALID = _get_int_env("SLURM_LOCALID");
-  slurm->NNODES = _get_int_env("SLURM_NNODES");
-  slurm->NODEID = _get_int_env("SLURM_NODEID");
-  _get_str_env(slurm->NODELIST, "SLURM_NODELIST");
-  slurm->NPROCS = _get_int_env("SLURM_NPROCS");
-  slurm->PROCID = _get_int_env("SLURM_PROCID");
-  _get_str_env(slurm->SRUN_COMM_HOST, "SLURM_SRUN_COMM_HOST");
-  slurm->SRUN_COMM_PORT = _get_int_env("SLURM_SRUN_COMM_PORT");
-  slurm->STEPID = _get_int_env("SLURM_STEPID");
-  _get_str_env(slurm->TASKS_PER_NODE, "SLURM_TASKS_PER_NODE");
-  slurm->TASK_PID = _get_int_env("SLURM_TASK_PID");
-  _get_str_env(slurm->UMASK, "SLURM_UMASK");
-  if(slurm->NPROCS == 0)
+  SLURM *s;
+
+  s = (SLURM *)Malloc(sizeof(SLURM));
+  s->use_SLURM = 1;
+  s->CPUS_ON_NODE = _get_int_env("SLURM_CPUS_ON_NODE");
+  s->CPUS_PER_TASK = _get_int_env("SLURM_CPUS_PER_TASK");
+  _get_str_env(s->CPU_BIND_LIST, "SLURM_CPU_BIND_LIST");
+  _get_str_env(s->CPU_BIND_TYPE, "SLURM_CPU_BIND_TYPE");
+  _get_str_env(s->CPU_BIND_VERBOSE, "SLURM_CPU_BIND_VERBOSE");
+  s->JOBID = _get_int_env("SLURM_JOBID");
+  _get_str_env(s->LAUNCH_NODE_IPADDR, "SLURM_LAUNCH_NODE_IPADDR");
+  s->LOCALID = _get_int_env("SLURM_LOCALID");
+  s->NNODES = _get_int_env("SLURM_NNODES");
+  s->NODEID = _get_int_env("SLURM_NODEID");
+  _get_str_env(s->NODELIST, "SLURM_NODELIST");
+  s->NPROCS = _get_int_env("SLURM_NPROCS");
+  s->PROCID = _get_int_env("SLURM_PROCID");
+  _get_str_env(s->SRUN_COMM_HOST, "SLURM_SRUN_COMM_HOST");
+  s->SRUN_COMM_PORT = _get_int_env("SLURM_SRUN_COMM_PORT");
+  s->STEPID = _get_int_env("SLURM_STEPID");
+  _get_str_env(s->TASKS_PER_NODE, "SLURM_TASKS_PER_NODE");
+  s->TASK_PID = _get_int_env("SLURM_TASK_PID");
+  _get_str_env(s->UMASK, "SLURM_UMASK");
+  if(s->NPROCS == 0)
     {
-      slurm->use_SLURM = 0;
+      s->use_SLURM = 0;
     }
   /* show_SLURM_env(slurm); */
+  return(s);
 }
 
 void

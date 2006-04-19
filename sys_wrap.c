@@ -24,12 +24,13 @@
  *  59 Temple Place, Suite 330, Boston, MA  02111-1307  USA.
 \*****************************************************************************/
 /*
- *   The system calls can all fail for a variety of reasosn.  In some
+ *   The system calls can all fail for a variety of reasons.  In some
  * cases it might be sensible to retry the system call.  In other cases
  * one could probably give up but instead of failing outright one
  * could wait for the next MPI_Barrier and communicate the problem back 
  * to the base node to be reported.  I don't see any of these requiring 
- * MPI_Abort as a starting point for the error handling.
+ * MPI_Abort as a starting point for the error handling.  Nevertheless,
+ * that sort of clever error handling will have to wait.
  */
 
 #include <sys/types.h>
@@ -50,6 +51,7 @@
 extern Options *opts;
 extern Mib     *mib;
 extern int use_mpi;
+
 int
 Open(char *name, int flags)
 {
@@ -286,6 +288,10 @@ Exists(const char *path)
 }
 
 /*
+ * Initially I din't have any library calls but malloc, but as 
+ * time went on I began adding more.  I may end up breaking these
+ * out to another module, since they aren't system calls at all.
+ * 
  * These library calls should all be conducted from the base task
  * only, except for the Malloc function.  I'm not sure if
  * I do enough to enforce that.
@@ -295,10 +301,6 @@ Exists(const char *path)
 FILE *
 Fopen(const char *path, const char *mode)
 {
-  /*
-   *   Can't check for rank == base yet, because opts may not
-   * be initialized.
-   */
   FILE *fp;
 
   if ( (fp = fopen(path, mode)) == NULL )
@@ -312,19 +314,7 @@ char *
 Fgets(char *buf, int n, FILE *stream)
 {
   char *s;
-  /*  Verry interesting!  The following array will also cause the
-      code to crash.  I think this may be a stack problem!
-  double array[100];
-  */
-  /*
-   *   I don't understand why yet, but putting an ASSERT in here
-   * causes the code to immediately crash.  If all you do is put a
-   * print statement in it works fine.  If that print statment referrs
-   * to opt->rank, it fails with signal 15.  I'm beggining to wonder
-   * if there's some sort of stack corruption due to a compiler bug,
-   * or even just a stack limit or something.
-  ASSERT(mib->rank == mib->base);
-   */
+
   if ( (s = fgets(buf, n, stream)) == NULL)
     if(!feof(stream))
       {
@@ -336,10 +326,6 @@ Fgets(char *buf, int n, FILE *stream)
 void
 Fprintf(FILE *stream, char *fmt, char *str)
 {
-  /* 
-   *   This calls for varargs, but the cross compiler doesn't 
-   * varargs correctly.  Worth filing a bug report.  
-   */
   int ret;
 
   ASSERT(mib->rank == mib->base);
@@ -352,10 +338,6 @@ Fprintf(FILE *stream, char *fmt, char *str)
 int
 Snprintf(char *buf, size_t size, char *fmt, double val)
 {
-  /* 
-   *   This calls for varargs, but the cross compiler doesn't 
-   * varargs correctly.  Worth filing a bug report.  
-   */
   int ret;
 
   ASSERT(mib->rank == mib->base);

@@ -33,9 +33,9 @@ typedef enum {FALSE, TRUE} BOOL;
 
 int Open(char *name, int flags);
 
-off_t  Lseek(int filedes, off_t offset, int whence);
-
 int  Fstat(int filedes, struct stat *buf);
+
+off_t  Lseek(int filedes, off_t offset, int whence);
 
 void Unlink(char *name);
 
@@ -49,9 +49,13 @@ int Close(int fd);
 
 int Exists(const char *path);
 
-char *Fgets(char *buf, int n, FILE *stream);
-
+/* 
+ *   These wrappers for library calls got tossed in here for want of
+ * better idea.
+ */
 FILE *Fopen(const char *path, const char *mode);
+
+char *Fgets(char *buf, int n, FILE *stream);
 
 void Fprintf(FILE *stream, char *fmt, char *str);
 

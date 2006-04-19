@@ -27,14 +27,45 @@
 			       MIB
 		    MPI (POSIX) I/O BENCHMARK
 			Andrew C. Uselton
-		     Updated March 20, 2006
+		     Updated April 5, 2006
 
 Mib is an outgrowth of Lustre (http://www.lustre.org/) benchmarking
-efforts at LLNL, though its operation in no way requires Lustre.  It
+efforts at LLNL, though its operation does not require Lustre.  It
 resembles the IOR benchmark (ftp://ftp.llnl.gov/pub/siop/ior/) in that
 it carries out I/O to a parallel file system from within a coordinated
-parallel MPI application.  It is otherwise entirely distinct and
-all-new code.
+parallel MPI application.  Mib has been written entirely from scratch
+and is all-new code.
+
+  Mib is an MPI I/O test that has each MPI task perform I/O of a
+fixed size per system call.  The tasks first write to and then read
+from files named in a conventional way.  Mib assumes that the files
+are on a parallel file system. The file a task reads from is
+distinct from the file written to, if possible.  This defeats
+caching at the clients.  Optionally, detailed timing data for
+the system calls is sent to a file (one for writes and one for
+reads) after the I/O is complete.
+ 
+  Mib is intended to be as simple as possible (but no simpler).
+The results are easy to interpret. The code is easy to extend.
+
+  Mib has all the tasks stop after the same amount of time.  This
+is "stonewalling" mode.  It will also stop after all tasks complete
+a fixed number of system calls.  This is non-stonewalling mode.
+Whichever citerion is satisfied first within a task ends I/O from
+that task.  It is possible for system call limits and time limits
+to be chosen so that some tasks finish due to one limit and other
+tasks due to the other limit.  I don't see how that could be
+desirable, but is allowed and no special note is made if it does
+happen.  In order to be sure one is in stonewalling mode or
+non-stornewalling mode one needs to have a good idea about the
+relative progress of the fastest and slowest tasks in a test.  For
+stonewalling one sets the limit on system calls above what even the
+fastest task would achieve given the time limit.  Conversely, for
+non-stonewalling mode set the limit on system calls below what even
+the slowest would achieve in the time limit.  Note that stonewalling
+mode will give the best estimate for maximum sustained throughput,
+while non-stonewalling mode will more closely reflect actual "user"
+experience (users of the file system not users of mib).   
 
 Mib has two advantages over IOR.  First, it is very simple.  Following
 the idea of "do only one thing, and do it well," mib avoids the
@@ -42,10 +73,12 @@ complexity and size associated with IOR.  It loads quickly.  It is
 easily modified to suit specific local needs.  Second, it will
 optionally produce a "profile" of the timing of every system call.
 These timings are synchronized and coordinated accross all tasks.
-Post-processing tools (see the "tools" subdirectory) can manipulate
+Post-processing tools (see the "mib-tools" RPM) can manipulate
 the profiles to give a graphical view of the dynamic behavior of the
 file system under the load provided by mib.  These graphs have proven
-valuable in isolating performance bottlenecks in Lustre.  
+valuable in isolating performance bottlenecks in Lustre.  Mib is not
+intended to replace IOR but rather to compliment it.  IOR operates in
+mnay more modes and with much wider applicability than mib.
 
 Mib is characterized by the following:
 o Both MPI and non-MPI operation
@@ -53,16 +86,17 @@ o POSIX system calls only
 o One file per MPI task
 o The test runs exactly once with the given parameters
 
-usage: mib [ab::d:EIhHl:L:MnpPrRs:St:W]
-    -a              :  Use average profile times accross node.
+$mib -V
+mib-1.9.2-i386
+$mib -h
+usage: mib [b::EFIhHl:L:Mnp:PrRs:St:VW]
+See the man page for "long_opts" equivalents.
     -b [<gran>]     :  Random seeks (optional granularity) before each read
-                    :  seek(fd, gran*file_size*rand()/RAND_MAX, SEEK_SET
-    -d <log_dir>    :  parameters file "<log_dir>/options"
-                    :    and profiles files here, if any 
-                    :    (default is cwd).
     -E              :  Show environment of test in output.
+    -F              :  Mib does not normally allow I/O to any FS.
+                    :  but Lustre.  This overrides the "safety".
     -I              :  Show intermediate values in output.
-    -h              :  This message
+    -h              :  Print this message and exit.
     -H              :  Show headers in output.
     -l <call_limit> :  Issue no more than this many system calls.
     -L <time_limit> :  Do not issue new system calls after this many
@@ -72,20 +106,21 @@ usage: mib [ab::d:EIhHl:L:MnpPrRs:St:W]
     -n              :  Create new files if files were already present
                     :    (will always create new files if none were
                     :    present).
-    -p              :  Output system call timing profiles to <log_dir>
-                    :    (default is current working directory).
+    -p <profiles>   :  Output system call timing profiles to 
+                    :    <profiles>.write and <profiles>.read.
     -P              :  Show progress bars during testing.
     -r              :  Remove files when done.
     -R              :  Only perform the read test.
     -s <call_size>  :  Use system calls of this size (default 512k).
                     :    Numbers may use abreviations k, K, m, or M.
     -S              :  Show signon message, including date, program
-                    :    name, and version number.
-    -t <test_dir>   :  I/O transactions to and from this directory
-                    :    (default is current working directory).
+                    :    name, and version.
+    -t <test_dir>   :  Required. I/O transactions to and from this
+                    :    directory.
+    -V              :  Print the version and exit.
     -W              :  Only perform the write test
                     :    (if -R and -W are both present both tests 
-                    :     will run, but that's the default anyway)
+                    :     will run, but that's the default anyway).
 
 In the LLNL Linux clusters environment the SLURM
 (http://www.llnl.gov/linux/slurm/) command "srun" launches MPI
