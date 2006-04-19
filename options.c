@@ -183,9 +183,9 @@ usage( void )
 {
   printf("usage: mib [%s]\n", opt_str);
   printf("See the man page for \"long_opts\" equivalents.\n");
-  printf("    -b [<gran>]     :  Random seeks (optional granularity) before each read\n");
+  printf("    -b [<gran>]     :  Random seeks (optional granularity) before each read.\n");
   printf("    -E              :  Show environment of test in output.\n");
-  printf("    -F              :  Mib does not normally allow I/O to any FS.\n");
+  printf("    -F              :  Mib does not normally allow I/O to any FS\n");
   printf("                    :  but Lustre.  This overrides the \"safety\".\n");
   printf("    -I              :  Show intermediate values in output.\n");
   printf("    -h              :  Print this message and exit.\n");
