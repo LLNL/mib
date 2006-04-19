@@ -86,15 +86,17 @@ fashion.
 benchmark, and it improves upon {\em IOR} in two ways.  First, its
 simplicity allows for easy modification, a clear understanding of its
 semantics, and a quick load time, compared to {\em IOR}.  Second, the
-optional {\em system call profile} can reveal useful insights into
-the dynamic behavior of a file system's I/O path without perturbing
-that I/O.  On the other hand, {\em mib} is not a replacement for {\em
-IOR}.  The latter has many useful modes of operation, including MPIIO
-file system semantics\footnote{{\em Mib} confines itself to standard POSIX file system calls.}, shared file I/O, data
-correctness checking, and scripted operation allowing many tests
-within a single invocation.  {\em Mib} should be thought of as a
-single purpose, precision tool that compliments the generality
-available in {\em IOR}.
+optional {\em system call profile} can reveal useful insights into the
+dynamic behavior of a file system's I/O path without perturbing that
+I/O.  On the other hand, {\em mib} is not a replacement for {\em IOR}.
+{\em Mib} is limited to a single test of ``file per process'' I/O via
+POSIX system calls, and does not validate the data transferred.  {\em
+IOR} includes POSIX, MPIIO, and several specialized I/O subsystems,
+each with a slightly different semantics.  {\em IOR} has both ``file
+per process'' and ``shared file'' I/O as well as data correctness
+checking.  A single {\em IOR} invocation can run many distinct tests.
+{\em Mib} should be thought of as a single purpose, precision tool
+that compliments the generality available in {\em IOR}.
 
 The initial development of {\em mib} was on the highly specialized
 BlueGene/L supercomputer, and {\em mib} was instrumental in a
@@ -136,7 +138,7 @@ mount point \verb+/p/ga2+.  Access to that file system is provided by
 a set of 16 {\em Portals routers}, alc[4-19], which communicate with
 the compute nodes via the Elan interconnect and with the file system
 servers via 32 GigE links (2 per router).  Each link attaches to a
-Lustre OST (server) via a GigE switch, so the total available
+Lustre OSS (server) via a GigE switch, so the total available
 bandwidth to the file system is about 4 GB/s.  
 
 The file system service is monitored in real time with the {\em
@@ -156,7 +158,7 @@ The file system service is monitored in real time with the {\em
     |    |      |     -----------MPI application
     |    |      -----------------partition (group of target nodes)
     |    ------------------------number of tasks
-    -----------------------------SLURM MPI launcher
+    -----------------------------SLURM MPI job launcher
   \end{verbatim}
 \caption{A typical {\em mib} command line}
 \label{figure.typical}
