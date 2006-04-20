@@ -1,3 +1,14 @@
+2006-04-20 Andrew Uselton <uselton2@llnl.gov>
+
+	* Tag 1.9.3
+
+	* Fix really stupid, pernicious, and fundamental bug regarding use
+	of opt->flags and verbosity references in macros.  They appear in
+	several places, especially base_report, before opts is
+	initialized.  1) split base_report from flags test and introduce
+	new conditional_report.  2) do not refer to opts in macros defined
+	in options.h.  Use opts in macros only locally to mib.c.
+	
 2006-04-3 Andrew Uselton <uselton2@llnl.gov>
 
 	* Tag 1.9.2

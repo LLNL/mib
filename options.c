@@ -47,7 +47,7 @@
 #include "slurm.h"
 
 Options *Make_Opts();
-void check_fs();
+void check_fs(char *path, int showenv, int force);
 BOOL set_string(char *v, char **strp);
 BOOL set_flags(char *v, int *flagp, int mask);
 BOOL set_int(char *v, int *nump);
@@ -166,11 +166,11 @@ command_line(int *argcp, char **argvp[])
   *argvp += optind;
   if( o->testdir == NULL)
     {
-      base_report(SHOW_ALL, "Mib requires a \"-t <test_dir>\" argument.\n");
+      base_report("Mib requires a \"-t <test_dir>\" argument.\n");
       exit(1);
     }
-  check_fs();
-  if( (check_flags(WRITE_ONLY))  && (check_flags(READ_ONLY)) )
+  check_fs(o->testdir, flag_set(o->verbosity, SHOW_ENVIRONMENT), flag_set(o->flags, FORCE));
+  if( (o->flags & WRITE_ONLY)  && (o->flags & READ_ONLY) )
     {
       o->flags &= ~WRITE_ONLY;
       o->flags &= ~READ_ONLY;
@@ -301,7 +301,7 @@ const struct fs_es fs_list[] =
   };
 
 void
-check_fs()
+check_fs(char *path, int showenv, int force)
 {
   int found = 0;
   int index = 0;
@@ -309,10 +309,10 @@ check_fs()
   struct statfs buf;
 
   errno = 0;
-  if ( (ret = statfs(opts->testdir, &buf) < 0) )
+  if ( (ret = statfs(path, &buf) < 0) )
   {
-    base_report(SHOW_ALL, "Could not statfs \"%s\" (%d): %s\n", 
-		opts->testdir, errno, strerror(errno));
+    base_report("Could not statfs \"%s\" (%d): %s\n", 
+		path, errno, strerror(errno));
     exit(1);
   }
   while ( (!found) && (fs_list[index].f_type != 0) )
@@ -322,18 +322,18 @@ check_fs()
     }
   if (found)
     {
-      if( (fs_list[index].warn == 1) && (!check_flags(FORCE)) )
+      if( (fs_list[index].warn == 1) && (!force) )
       {
-	base_report(SHOW_ALL, "Mib will not write to a file system of type \"%s\" (f_type = %#lx) unless you use the \"-F\" (--force) option \n", 
+	base_report("Mib will not write to a file system of type \"%s\" (f_type = %#lx) unless you use the \"-F\" (--force) option \n", 
 		    fs_list[index].name, fs_list[index].f_type);
 	exit(1);
       }
-      base_report(SHOW_ENVIRONMENT, "Testing a file system of type \"%s\" (f_type = %#lx)\n",
+      if(showenv) base_report("Testing a file system of type \"%s\" (f_type = %#lx)\n",
 		  fs_list[index].name, fs_list[index].f_type);
     }
   else
     {
-      base_report(SHOW_ENVIRONMENT, "Testing an unregistered file system with f_type = %#lx\n",
+      if(showenv) base_report("Testing an unregistered file system with f_type = %#lx\n",
 		  buf.f_type);
     }
 }  

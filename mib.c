@@ -64,7 +64,7 @@ double read_test();
 Results *reduce_results(Results *res);
 void profiles(double *array, int count, char *profile_log_name);
 void report(double write, double read);
-void base_report(int verb, char *fmt, ...);
+void _base_report(char *fmt, va_list args);
 
 /* See mib.h.  the size of the communicator and the task's rank are in the Mib struct */
 Mib  *mib = NULL;
@@ -74,6 +74,9 @@ char *arch=MIB_ARCH;
 
 /* See options.h.  Elements of the command line are here */
 extern Options *opts;
+/* Be sure you don't use these macros until after opts is initialized */
+#define check_flags(mask) flag_set(opts->flags, mask)
+#define verbosity(mask) flag_set(opts->verbosity, mask)
 
 /* 
  * See slurm.h.  If SLURM is present then some extra info is available
@@ -119,12 +122,12 @@ main( int argc, char *argv[] )
   if(! check_flags(READ_ONLY) )
     {
       write = write_test();
-      base_report(SHOW_INTERMEDIATE_VALUES, "Aggregate write rate = %10.2f\n", write);
+      conditional_report(SHOW_INTERMEDIATE_VALUES, "Aggregate write rate = %10.2f\n", write);
     }
   if(! check_flags(WRITE_ONLY) )
     {
       read = read_test();
-      base_report(SHOW_INTERMEDIATE_VALUES, "Aggregate read rate = %10.2f\n", read);
+      conditional_report(SHOW_INTERMEDIATE_VALUES, "Aggregate read rate = %10.2f\n", read);
     }
   report(write, read);
   Free_Opts();
@@ -147,7 +150,7 @@ sign_on()
   while( (*p != '\0') && (*p != '\n') && (p - time_str < MAX_BUF) )p++;
   if( *p == '\n' ) *p = '\0';
   sprintf(signon, "\n\nmib-%s-%s  %s\n\n", version, arch, time_str);
-  base_report(SHOW_SIGNON, signon);
+  conditional_report(SHOW_SIGNON, signon);
 }
 
 Mib *
@@ -272,7 +275,7 @@ write_test()
       status(call, res->timings[call] - res->timings[0]);
     }
   while( (call < opts->call_limit) && (res->timings[call] < time_limit) );
-  base_report(SHOW_PROGRESS, "\n");
+  conditional_report(SHOW_PROGRESS, "\n");
 
   /*
    *   Some final data points after the loop.
@@ -316,7 +319,7 @@ write_test()
    */
   last_call = call;
   mpi_allreduce(&(last_call), &(last_write_call), 1, MPI_INT, MPI_MAX, mib->comm);
-  base_report(SHOW_INTERMEDIATE_VALUES, "Call %d was the last write recorded\n", last_write_call);
+  conditional_report(SHOW_INTERMEDIATE_VALUES, "Call %d was the last write recorded\n", last_write_call);
   while(call < last_write_call)
     {
       call++;
@@ -326,7 +329,7 @@ write_test()
    *   Subsequent reports will be in MB rather than bytes.
    */
   res->transferred /= (1024*1024);
-  base_report(SHOW_INTERMEDIATE_VALUES, 
+  conditional_report(SHOW_INTERMEDIATE_VALUES, 
 	      "\nAfter %d calls and %f seconds\n", 
 	      last_write_call, res->end_test - res->start_open);
 
@@ -350,9 +353,9 @@ write_test()
 	  if(time != 0)
 	    rate = red->transferred/time;
 	}
-      base_report(SHOW_INTERMEDIATE_VALUES, "%f MB written in %f seconds\n", red->transferred, time);
+      conditional_report(SHOW_INTERMEDIATE_VALUES, "%f MB written in %f seconds\n", red->transferred, time);
       if ( red->short_transfers != 0 )
-	base_report(SHOW_INTERMEDIATE_VALUES, "%d short writes\n", red->short_transfers);
+	conditional_report(SHOW_INTERMEDIATE_VALUES, "%d short writes\n", red->short_transfers);
       free(red);
       
       if( opts->profiles != NULL )
@@ -440,7 +443,7 @@ fill_buff()
 
   buff = (char *)Malloc(opts->call_size);
   llarray  = (long long *)buff;
-  while(&(llarray[count]) < (buff + opts->call_size - lsize))
+  while((char *)&(llarray[count]) < (buff + opts->call_size - lsize))
     {
       llarray[count] = (mib->rank << (lsize/2)) + count;
       count++;
@@ -468,7 +471,7 @@ init_status(char *str)
   for(i = 0; i < EXPECTATION - 1; i++)
     pbuf[i] = '*';
   pbuf[EXPECTATION - 1] = '\0';
-  base_report(SHOW_PROGRESS, "\n%s\nshould last about this long---------------------->\n", str);
+  conditional_report(SHOW_PROGRESS, "\n%s\nshould last about this long---------------------->\n", str);
 }
 
 
@@ -491,7 +494,7 @@ status(int calls, double time)
     {
       pbuf[current-progress] = '\0';
 
-      base_report(SHOW_PROGRESS, pbuf);
+      conditional_report(SHOW_PROGRESS, pbuf);
       pbuf[current-progress] = '*';
       progress = current;
     }
@@ -596,7 +599,7 @@ read_test()
       status(call, res->timings[call] - res->timings[0]);
     }
   while( (call < opts->call_limit) && (res->timings[call] < time_limit) );
-  base_report(SHOW_PROGRESS, "\n");
+  conditional_report(SHOW_PROGRESS, "\n");
 
   /* 
    *   Note the time when done.
@@ -632,7 +635,7 @@ read_test()
    */
   last_call = call;
   mpi_allreduce(&(last_call), &(last_read_call), 1, MPI_INT, MPI_MAX, mib->comm);
-  base_report(SHOW_INTERMEDIATE_VALUES, "Call %d was the last read recorded\n", last_read_call);
+  conditional_report(SHOW_INTERMEDIATE_VALUES, "Call %d was the last read recorded\n", last_read_call);
   while(call < last_read_call)
     {
       call++;
@@ -642,7 +645,7 @@ read_test()
    *   Subsequent reports will be in MB rather than bytes.
    */
   res->transferred /= (1024*1024);
-  base_report(SHOW_INTERMEDIATE_VALUES, 
+  conditional_report(SHOW_INTERMEDIATE_VALUES, 
 	      "\nAfter %d calls and %f seconds\n", 
 	      last_read_call, res->end_test - res->start_open);
 
@@ -660,10 +663,10 @@ read_test()
 	  if(time != 0)
 	    rate = red->transferred/time;
 	}
-      base_report(SHOW_INTERMEDIATE_VALUES, 
+      conditional_report(SHOW_INTERMEDIATE_VALUES, 
 		  "%f MB read in %f seconds\n", red->transferred, time);
       if ( red->short_transfers != 0 )
-	base_report(SHOW_INTERMEDIATE_VALUES, "%d short reads\n", red->short_transfers);
+	conditional_report(SHOW_INTERMEDIATE_VALUES, "%d short reads\n", red->short_transfers);
       free(red);
       
       if( opts->profiles != NULL )
@@ -734,7 +737,7 @@ profiles(double *array,   int count, char *io_direction)
   BUF_LIMIT = 20*mib->tasks;
   buffer = Malloc(BUF_LIMIT);
   DEBUG("Table\n");
-  base_report(SHOW_INTERMEDIATE_VALUES, 
+  conditional_report(SHOW_INTERMEDIATE_VALUES, 
 	      "Table of %d tasks with up to %d system calls\n", mib->tasks, count);
   table = (double *)Malloc(mib->tasks*sizeof(double));
   for(call = 0; call < count; call++)
@@ -785,48 +788,74 @@ report(double write, double read)
   xfer = opts->call_size/range;
   if ( USE_MPI )
     {
-      
-      base_report(SHOW_HEADERS, 
+      conditional_report(SHOW_HEADERS, 
 		  "%14s           %6s %5s %5s %5s %10s %10s\n", "date", "tasks", "xfer", "call", "time", "write", "read");
-      base_report(SHOW_HEADERS, 
+      conditional_report(SHOW_HEADERS, 
 		  "%24s %6s %5s %5s %5s %10s %10s\n", " ", " ", " ", "limit", "limit", "MB/s", "MB/s");
-      base_report(SHOW_HEADERS, 
+      conditional_report(SHOW_HEADERS, 
 		  "%24s %6s %5s %5s %5s %10s %10s\n", "------------------------", "------", "-----", "-----", "-----", "----------", "----------");
-      base_report(SHOW_ALL, 
+      conditional_report(SHOW_ALL, 
 		  "%s %6d %4d%c %5d %5d %10.2f %10.2f\n", time_str, mib->tasks, xfer, range_ch, opts->call_limit, opts->time_limit, write, read);
     }
   else
     {
-      base_report(SHOW_HEADERS, 
+      /* 
+       *   The only difference between this and the MPI one is that you paste the 
+       * supposed rank number in front of each result line, of which there will be 
+       * as many as there are tasks.
+       */      
+      conditional_report(SHOW_HEADERS, 
 		  "%6s %14s           %6s %5s %5s %5s %10s %10s\n", "task", "date", "tasks", "xfer", "call", "time", "write", "read");
-      base_report(SHOW_HEADERS, 
+      conditional_report(SHOW_HEADERS, 
 		  "%6s %24s %6s %5s %5s %5s %10s %10s\n", " ", " ", " ", " ", "limit", "limit", "MB/s", "MB/s");
-      base_report(SHOW_HEADERS, 
+      conditional_report(SHOW_HEADERS, 
 		  "%6s %24s %6s %5s %5s %5s %10s %10s\n", "------", "------------------------", "------", "-----", "-----", "-----", "----------", "----------");
       printf("%6d %s %6d %4d%c %5d %5d %10.2f %10.2f\n", mib->rank, time_str, mib->tasks, xfer, range_ch, opts->call_limit, opts->time_limit, write, read);
       fflush(stdout);
     }
 }
 
+
 void
-base_report(int verb, char *fmt, ...)
+conditional_report(int verb, char *fmt, ...)
+{
+  va_list args;
+  
+  if( !verbosity(verb) ) return;
+  va_start(args, fmt);
+  _base_report(fmt, args);
+  va_end(args);
+}
+
+void
+base_report(char *fmt, ...)
 {
   va_list args;
   
   /*
    * If this is called before mib and slurm are initialized then just
-   * print.  If slurmis initialized but mid is not, then print from the
+   * print.  If slurm is initialized but mid is not, then print from the
    * PROCID = 0 task.  If mib is initialized then print from its base task.
    * Don't print unless the verbosity level says to.
    */
-  if( (((mib != NULL) && (mib->rank == mib->base)) ||
-       ((mib == NULL) && (slurm != NULL) && (slurm->PROCID == 0)) ||
-       ((mib == NULL) && (slurm == NULL)))
-      && verbosity(verb) )
+  va_start(args, fmt);
+  _base_report(fmt, args);
+  va_end(args);
+}
+
+void
+_base_report(char *fmt, va_list args)
+{
+ if(mib != NULL) 
     {
-      va_start(args, fmt);
-      vprintf(fmt, args);
-      fflush(stdout);
-     va_end(args);
+      /* The usual case */
+      if (mib->rank != mib->base) return;
     }
+  else if(slurm != NULL)
+    {
+      /* No MPI but Slurm is available */
+      if(slurm->PROCID != 0) return;
+    }
+  vprintf(fmt, args);
+  fflush(stdout);
 }

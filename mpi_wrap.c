@@ -29,6 +29,7 @@
 #include <dlfcn.h>      /* dynamic loader interface */
 #include "config.h"
 #include "mpi_wrap.h"
+#include "mib.h"        /* for conditional_report */
 #include "miberr.h"
 #include "options.h"
 #include "slurm.h"
@@ -293,37 +294,37 @@ mpi_init(int *argcp, char ***argvp)
 
   if( use_mpi == FORCE_NO_MPI )
     {
-      base_report(SHOW_ENVIRONMENT, "Command line forbade the use of MPI\n");
+      conditional_report(SHOW_ENVIRONMENT, "Command line forbade the use of MPI\n");
       return;
     }
   if( ! slurm->use_SLURM )
     {
-      base_report(SHOW_ENVIRONMENT, "No SLURM, no MPI\n");
+      conditional_report(SHOW_ENVIRONMENT, "No SLURM, no MPI\n");
       return;
     }
   dlerror(); /* clear any preexisting error */
   if( (elan_handle = dlopen(elan, flag)) == NULL)
     {
       if( (dlerr = dlerror()) != NULL ) 
-	base_report(SHOW_ENVIRONMENT, "No MPI - ELAN lib (%s) not loaded: %s\n", elan, dlerr);
+	conditional_report(SHOW_ENVIRONMENT, "No MPI - ELAN lib (%s) not loaded: %s\n", elan, dlerr);
       else
-	base_report(SHOW_ENVIRONMENT, "No MPI - ELAN lib (%s) not loaded: no dlerror string, though\n", elan);
+	conditional_report(SHOW_ENVIRONMENT, "No MPI - ELAN lib (%s) not loaded: no dlerror string, though\n", elan);
       return;
     }
   if( (mpi_handle = dlopen(mpi, flag)) == NULL)
     {
       if( (dlerr = dlerror()) != NULL ) 
-	base_report(SHOW_ENVIRONMENT, "No MPI - MPI lib (%s) not loaded: %s\n", mpi, dlerr);
+	conditional_report(SHOW_ENVIRONMENT, "No MPI - MPI lib (%s) not loaded: %s\n", mpi, dlerr);
       else
-	base_report(SHOW_ENVIRONMENT, "No MPI - MPI lib (%s) not loaded: no dlerror string, though\n", mpi);
+	conditional_report(SHOW_ENVIRONMENT, "No MPI - MPI lib (%s) not loaded: no dlerror string, though\n", mpi);
       return;
     }
   if( (mpio_handle = dlopen(mpio, flag)) == NULL)
     {
       if( (dlerr = dlerror()) != NULL ) 
-	base_report(SHOW_ENVIRONMENT, "No MPI - MPIO lib (%s) not loaded: %s\n", mpio, dlerr);
+	conditional_report(SHOW_ENVIRONMENT, "No MPI - MPIO lib (%s) not loaded: %s\n", mpio, dlerr);
       else
-	base_report(SHOW_ENVIRONMENT, "No MPI - MPIO lib (%s) not loaded: no dlerror string, though\n", mpio);
+	conditional_report(SHOW_ENVIRONMENT, "No MPI - MPIO lib (%s) not loaded: no dlerror string, though\n", mpio);
       return;
     }
   pMPI_Abort = dlsym(mpi_handle, "MPI_Abort");
@@ -348,12 +349,12 @@ mpi_init(int *argcp, char ***argvp)
   pMPI_Wtime = dlsym(mpi_handle, "MPI_Wtime");
   if((rc = (*pMPI_Init)(argcp, argvp)) == MPI_SUCCESS)
     {
-      base_report(SHOW_ENVIRONMENT, "Using MPI\n");
+      conditional_report(SHOW_ENVIRONMENT, "Using MPI\n");
       use_mpi = YES_MPI;
     }
   else
     {
-      base_report(SHOW_ENVIRONMENT, "No MPI - MPI_Init failed, attempting to proceed without\n");
+      conditional_report(SHOW_ENVIRONMENT, "No MPI - MPI_Init failed, attempting to proceed without\n");
       return;
     }
 }

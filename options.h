@@ -38,21 +38,19 @@ typedef enum {FALSE, TRUE} BOOL;
 #define WRITE_ONLY    (1 << 3)
 #define RANDOM_READS  (1 << 4)
 #define FORCE         (1 << 5)
-#define check_flags(mask)  (opts->flags & mask)
 
 /*
  * Defines for the Options_Struct "verbosity. " field
- *  I made "QUIET" have a non-zero value above the others so that 
- * the verbosity macro will return a TRUE for the SHOW_ALL level.
  */
-#define SHOW_SIGNON               (1 << 0)
-#define SHOW_HEADERS              (1 << 1)
-#define SHOW_ENVIRONMENT          (1 << 2)
-#define SHOW_PROGRESS             (1 << 3)
-#define SHOW_INTERMEDIATE_VALUES  (1 << 4)
-#define QUIET                     (1 << 5)
+#define QUIET                     (1 << 0)        
+#define SHOW_SIGNON               (1 << 1)
+#define SHOW_HEADERS              (1 << 2)
+#define SHOW_ENVIRONMENT          (1 << 3)
+#define SHOW_PROGRESS             (1 << 4)
+#define SHOW_INTERMEDIATE_VALUES  (1 << 5)
 #define SHOW_ALL                  (~0)
-#define verbosity(mask)    (opts->verbosity & mask)
+
+#define flag_set(flag, mask)  (flag & mask)
 
 typedef struct Options_Struct {
   /* Path and filename for optional system call profiles tables */

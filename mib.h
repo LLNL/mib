@@ -26,7 +26,7 @@
 
 #ifdef DEBUG_CODE
 #define DEBUG(str) do {          \
-  base_report(SHOW_ALL, str);    \
+  conditional_report(SHOW_ALL, str);    \
 } while (0)
 #else
 #define DEBUG(str)
@@ -78,3 +78,5 @@ typedef struct Results_Struct {
   double  end_test;
 }Results;
 
+void base_report(char *fmt, ...);
+void conditional_report(int verb, char *fmt, ...);
