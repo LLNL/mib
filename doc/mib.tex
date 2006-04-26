@@ -142,13 +142,14 @@ Lustre OSS (server) via a GigE switch, so the total available
 bandwidth to the file system is about 4 GB/s.  
 
 The file system service is monitored in real time with the {\em
-  lmtd}\footnote{Unfortunately, that daemon is not available for
-  circulation outside LLNL at the moment} daemon, a python-based data
-  collector that feeds remote monitoring.  The {\em lwatch} utility
-  gathers the server-side information and produces an aggregate file
-  system data rate for writes and reads every five seconds.  {\em Mib}
-  benchmark results can be compared against against {\em lwatch}
-  results to get client-side versus server-side performance results (see Section~\ref{section.profiles}).   
+  lmtd}\footnote{http://www.llnl.gov/linux/lustre-admin/lustre-admin.html}
+  daemon, a python-based data collector that feeds remote monitoring.
+  The {\em lwatch.py} utility, in the {\em mib-tools} RPM, gathers the
+  server-side information and produces an aggregate file system data
+  rate for writes and reads every five seconds.  {\em Mib} benchmark
+  results can be compared against against {\em lwatch} results to get
+  client-side versus server-side performance results (see
+  Section~\ref{section.profiles}).
 
 \begin{figure}
   \begin{verbatim}
@@ -724,13 +725,13 @@ the {\em ALC} cluster during a run at scale (800 tasks on 400 nodes).
 The graph shows 300 seconds of writes at $1743 MB/s$ and another 300
 seconds of reads at about $326 MB/s$.  The composite graph has more
 than just the system call timings, which are the high frequency lines
-in the graph.  The ``square'' lines mark the data rate and duration of the
-writes and reads, as reported by {\em mib}.  The lower frequency varying
-lines that closely track the system call timings are independent
-readings taken every five seconds from the servers.  The later
-readings come from {\em lwatch}, a separate ({\em Python}-based)
-script that samples 
-the server monitoring daemons mentioned in Section~\ref{section.normal}.
+in the graph.  The ``square'' lines mark the data rate and duration of
+the writes and reads, as reported by {\em mib}.  The lower frequency
+varying lines that closely track the system call timings are
+independent readings taken every five seconds from the servers.  The
+later readings come from {\em lwatch.py}, a separate ({\em Python}-based)
+script that samples the server monitoring daemons mentioned in
+Section~\ref{section.normal}.
 
 System call profile graphs allow one to visualize the dynamic behavior
 of the file system in a way that benchmark results or tables of

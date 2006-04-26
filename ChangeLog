@@ -1,3 +1,11 @@
+2006-04-26 Andrew Uselton <uselton2@llnl.gov>
+
+	* Tag 1.9.4
+
+	* Add lwatch.py to the project, since lmtd actually is available
+	as open source.  Modify references saying otherwise in the 
+	documentations.
+	
 2006-04-20 Andrew Uselton <uselton2@llnl.gov>
 
 	* Tag 1.9.3

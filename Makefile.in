@@ -91,6 +91,7 @@ install: mib doc
 	$(INSTALL) tools/lfind-dist3.pl		$(DESTDIR)$(scriptdir)/
 	$(INSTALL) tools/lfinding.sh		$(DESTDIR)$(scriptdir)/
 	$(INSTALL) tools/lwatch.pl		$(DESTDIR)$(scriptdir)/
+	$(INSTALL) tools/lwatch.py		$(DESTDIR)$(scriptdir)/
 	$(INSTALL) tools/mib-test.sh		$(DESTDIR)$(scriptdir)/
 	$(INSTALL) tools/mib-test.transcript	$(DESTDIR)$(scriptdir)/
 	$(INSTALL) tools/mib.sh			$(DESTDIR)$(scriptdir)/
