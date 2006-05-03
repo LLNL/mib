@@ -24,3 +24,5 @@ o Very small xfer sizes may want very large numbers of xfers.  See
 
 o Random seeks in writes as well
 
+o Collectively check version number and bail if there is disagreement.
+
