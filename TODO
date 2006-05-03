@@ -26,3 +26,6 @@ o Random seeks in writes as well
 
 o Collectively check version number and bail if there is disagreement.
 
+o Output should report if the test was stonewalling, non-stonewalling,
+  or inbetween.
+
