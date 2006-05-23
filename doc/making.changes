@@ -1,0 +1,19 @@
+When you change soemthing in mib it is a good idea to contemplate its
+effect on the documentation and options processing, so that the
+documentation doesn't become inconsistent.  Here's a list of the items
+affected if, for instance, you add a new option:
+o opt_string
+o long_opts struct
+o options parse loop
+o usage
+o the code itself (of course)
+o test suite
+o man page
+o write up
+o README
+o comments
+
+In the writeup, try to do the following:
+o Use the actual output of "mib -h" to generate the example help
+o Use the actual test suite results to generate the composite graph
+ 
