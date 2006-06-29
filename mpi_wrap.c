@@ -51,9 +51,14 @@ int use_mpi = NO_MPI;
  *   Three libraries must be loaded if MPI is going to be used.  "use_mpi"
  * is only set "true" if all three are sucessfully loaded.
  */
+/*
+ * The old handles
 void *mpi_handle;
 void *mpio_handle;
 void *elan_handle;
+*/
+void **lib_handles;
+char *libraries[] = LIBRARIES;
 
 int (*pMPI_Abort)(MPI_Comm comm, int errorcode);
 int (*pMPI_Allreduce)(void *sendbuf, void *recvbuf, int count, MPI_Datatype datatype, 
@@ -235,20 +240,29 @@ void
 mpi_finalize(void)
 {
   int rc = 0;
+  int lib;
 
   if(USE_MPI)
     {
       if((rc = (*pMPI_Finalize)()) != MPI_SUCCESS)
 	FAIL();
+      /*
+       * The old way
       dlclose(mpi_handle);
       dlclose(mpio_handle);
+      dlclose(elan_handle);
+      */    
       /*
        * There is uglyness in Elan-land.  The elan3-based libraries unload just
        * fine, but the elan4 libraries do not.  If you just let process termination
        * sort things out it works fine, too.  This is the end of the program so
        * it shouldn't make any difference that we don't close libelan ourselves.
-            dlclose(elan_handle);
       */
+      for(lib = 0; lib < NUM_LIBRARIES; lib++)
+	{
+	  if( ! strncmp(libraries[lib], "libelan.so", 10) )
+	     dlclose(lib_handles[lib]);
+	}
     }
 }
 
@@ -285,12 +299,16 @@ mpi_group_range_incl(MPI_Group group, int n, int ranges[][3], MPI_Group *newgrou
 void
 mpi_init(int *argcp, char ***argvp)
 {
+  /*
+   * the old way
   char mpi[] = "libmpi.so";
   char mpio[] = "libmpio.so";
   char elan[] = "libelan.so";
+  */
   int rc = 0;
   int flag = RTLD_LAZY | RTLD_GLOBAL;
   char *dlerr;
+  int lib;
 
   if( use_mpi == FORCE_NO_MPI )
     {
@@ -303,6 +321,8 @@ mpi_init(int *argcp, char ***argvp)
       return;
     }
   dlerror(); /* clear any preexisting error */
+  /*
+   * The old way
   if( (elan_handle = dlopen(elan, flag)) == NULL)
     {
       if( (dlerr = dlerror()) != NULL ) 
@@ -327,26 +347,40 @@ mpi_init(int *argcp, char ***argvp)
 	conditional_report(SHOW_ENVIRONMENT, "No MPI - MPIO lib (%s) not loaded: no dlerror string, though\n", mpio);
       return;
     }
-  pMPI_Abort = dlsym(mpi_handle, "MPI_Abort");
-  pMPI_Allreduce = dlsym(mpi_handle, "MPI_Allreduce");
-  pMPI_Barrier = dlsym(mpi_handle, "MPI_Barrier");
-  pMPI_Bcast = dlsym(mpi_handle, "MPI_Bcast");
-  pMPI_Comm_create = dlsym(mpi_handle, "MPI_Comm_create");
-  pMPI_Comm_free = dlsym(mpi_handle, "MPI_Comm_free");
-  pMPI_Comm_group = dlsym(mpi_handle, "MPI_Comm_group");
-  pMPI_Comm_rank = dlsym(mpi_handle, "MPI_Comm_rank");
-  pMPI_Comm_size = dlsym(mpi_handle, "MPI_Comm_size");
-  pMPI_Comm_split = dlsym(mpi_handle, "MPI_Comm_split");
-  pMPI_Errhandler_set = dlsym(mpi_handle, "MPI_Errhandler_set");
-  pMPI_Finalize = dlsym(mpi_handle, "MPI_Finalize");
-  pMPI_Gather = dlsym(mpi_handle, "MPI_Gather");
-  pMPI_Group_free = dlsym(mpi_handle, "MPI_Group_free");
-  pMPI_Group_range_incl = dlsym(mpi_handle, "MPI_Group_range_incl");
-  pMPI_Init = dlsym(mpi_handle, "MPI_Init");
-  pMPI_Recv = dlsym(mpi_handle, "MPI_Recv");
-  pMPI_Reduce = dlsym(mpi_handle, "MPI_Reduce");
-  pMPI_Send = dlsym(mpi_handle, "MPI_Send");
-  pMPI_Wtime = dlsym(mpi_handle, "MPI_Wtime");
+  */
+  lib_handles = (void **)Malloc(sizeof(void*)*NUM_LIBRARIES);
+  for (lib = 0; lib < NUM_LIBRARIES; lib++)
+    {
+      if( (lib_handles[lib] = dlopen(libraries[lib], flag)) == NULL)
+	{
+	  if( (dlerr = dlerror()) != NULL ) 
+	    conditional_report(SHOW_ENVIRONMENT, "No MPI - library %s not loaded: %s\n", libraries[lib], dlerr);
+	  else
+	    conditional_report(SHOW_ENVIRONMENT, "No MPI - library %s not loaded: no dlerror string, though\n", libraries[lib]);
+	  return;
+	}     
+      lib++;
+    }
+  pMPI_Abort = dlsym(lib_handles[MPI_HANDLE], "MPI_Abort");
+  pMPI_Allreduce = dlsym(lib_handles[MPI_HANDLE], "MPI_Allreduce");
+  pMPI_Barrier = dlsym(lib_handles[MPI_HANDLE], "MPI_Barrier");
+  pMPI_Bcast = dlsym(lib_handles[MPI_HANDLE], "MPI_Bcast");
+  pMPI_Comm_create = dlsym(lib_handles[MPI_HANDLE], "MPI_Comm_create");
+  pMPI_Comm_free = dlsym(lib_handles[MPI_HANDLE], "MPI_Comm_free");
+  pMPI_Comm_group = dlsym(lib_handles[MPI_HANDLE], "MPI_Comm_group");
+  pMPI_Comm_rank = dlsym(lib_handles[MPI_HANDLE], "MPI_Comm_rank");
+  pMPI_Comm_size = dlsym(lib_handles[MPI_HANDLE], "MPI_Comm_size");
+  pMPI_Comm_split = dlsym(lib_handles[MPI_HANDLE], "MPI_Comm_split");
+  pMPI_Errhandler_set = dlsym(lib_handles[MPI_HANDLE], "MPI_Errhandler_set");
+  pMPI_Finalize = dlsym(lib_handles[MPI_HANDLE], "MPI_Finalize");
+  pMPI_Gather = dlsym(lib_handles[MPI_HANDLE], "MPI_Gather");
+  pMPI_Group_free = dlsym(lib_handles[MPI_HANDLE], "MPI_Group_free");
+  pMPI_Group_range_incl = dlsym(lib_handles[MPI_HANDLE], "MPI_Group_range_incl");
+  pMPI_Init = dlsym(lib_handles[MPI_HANDLE], "MPI_Init");
+  pMPI_Recv = dlsym(lib_handles[MPI_HANDLE], "MPI_Recv");
+  pMPI_Reduce = dlsym(lib_handles[MPI_HANDLE], "MPI_Reduce");
+  pMPI_Send = dlsym(lib_handles[MPI_HANDLE], "MPI_Send");
+  pMPI_Wtime = dlsym(lib_handles[MPI_HANDLE], "MPI_Wtime");
   if((rc = (*pMPI_Init)(argcp, argvp)) == MPI_SUCCESS)
     {
       conditional_report(SHOW_ENVIRONMENT, "Using MPI\n");

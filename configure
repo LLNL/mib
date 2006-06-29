@@ -33,6 +33,7 @@ usage ()
 [ X"$1" != X"-h" ] || usage
 CC="gcc"
 LIBS="-ldl"
+INTERCONNECT_LIBRARY_HEADER="elan.h"
 case $ARCH in
 	i386) 
 	  ;;
@@ -44,6 +45,7 @@ case $ARCH in
 	cp bgl_mpi_wrap.c mpi_wrap.c
 	  ;;
 	x86_64) 
+	INTERCONNECT_LIBRARY_HEADER="infiniband.h"
 	  ;;
 	ia64)
 	  ;;
@@ -70,7 +72,12 @@ echo "#define MIB_VERSION \"$VERSION\"" >> $CONFIG_H
 echo "#define MIB_ARCH \"$ARCH\"" >> $CONFIG_H
 MPI_H="/usr/lib/mpi/include/mpi.h"
 MPI_DIR="/usr/lib/mpi"
-[ -f $MPI_H -o -d $MPI_DIR ] || echo "#define MPI_NOT_INSTALLED" >> $CONFIG_H
+if [ -f $MPI_H -o -d $MPI_DIR ]
+then
+    echo "#include \"$INTERCONNECT_LIBRARY_HEADER\"" >> $CONFIG_H
+else
+    echo "#define MPI_NOT_INSTALLED" >> $CONFIG_H
+fi
 echo "#endif /* CONFIG_H */" >> $CONFIG_H
 
 rm -f $MAKEFILE >/dev/null 2>&1

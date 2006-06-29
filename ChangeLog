@@ -1,3 +1,10 @@
+2006-06-29 Andrew Uselton <uselton2@llnl.gov>
+
+	* Tag 1.9.5
+
+	* Modify dlopen() code to be configurable, set up elan and
+	infiniband  variants.
+	
 2006-04-26 Andrew Uselton <uselton2@llnl.gov>
 
 	* Tag 1.9.4
