@@ -4,6 +4,11 @@
 
 	* Modify dlopen() code to be configurable, set up elan and
 	infiniband  variants.
+
+	* Cast the "size_t count" parameter to Write() and Read() to be
+	ssize_t.  This prevents incorrect execution when the
+	system call returns an error condition (-1) and misinterprets it
+	as a very large number.
 	
 2006-04-26 Andrew Uselton <uselton2@llnl.gov>
 

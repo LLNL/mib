@@ -31,5 +31,6 @@
   {                \
     "libelan.so",  \
     "libmpi.so",   \
-    "libmpio.so"  \
+    "libmpio.so",  \
+    ""             \
   }

@@ -97,6 +97,7 @@ Fstat(int filedes, struct stat *buf)
       fflush(stdout);
       if (USE_MPI) {FAIL();} else exit(1);
     }
+  return(ret);
 }
 
 off_t 
@@ -111,6 +112,7 @@ Lseek(int filedes, off_t offset, int whence)
       fflush(stdout);
       if (USE_MPI) {FAIL();} else exit(1);
     }
+  return(ret);
 }
 
 void
@@ -167,7 +169,8 @@ Write(int fd, const void *buf, size_t count)
   char *bp = (char *)buf;
 
   errno = 0;
-  while ( retries-- && ((wrote = write(fd, (void *)(&(bp[written])), count - written)) < (count - written)) )
+  while ( retries-- && (( wrote = write(fd, (void *)(&(bp[written])), count - written) ) < ((ssize_t)(count - written)) ) 
+        )
     {
       if(wrote < 0)
 	{
@@ -205,7 +208,7 @@ Read(int fd, void *buf, size_t count)
   char *bp = (char *)buf;
 
   errno = 0;
-  while ( retries-- && ((got = read(fd, (void *)(&(bp[gotten])), count - gotten)) < (count - gotten)) )
+  while ( retries-- && ((got = read(fd, (void *)(&(bp[gotten])), count - gotten)) < ((ssize_t)(count - gotten))) )
     {
       if(got < 0)
 	{
@@ -215,6 +218,10 @@ Read(int fd, void *buf, size_t count)
 	{
 	  gotten += got;
 	  retries = MAX_RETRIES;
+	}
+      if(got == 0) /* EOF */
+	{
+	  retries = 0;
 	}
     }
   gotten += got;
@@ -252,7 +259,9 @@ Close(int fd)
 
   errno = 0;
   if ( (rc = close(fd)) < 0 )
-    if (USE_MPI) {FAIL();} else exit(1);
+    {
+      if (USE_MPI) {FAIL();} else exit(1);
+    }
   return(rc);
 }
 
@@ -330,7 +339,9 @@ Fprintf(FILE *stream, char *fmt, char *str)
 
   ASSERT(mib->rank == mib->base);
   if ( (ret = fprintf(stream, fmt, str)) < 0)
-    if (USE_MPI) {FAIL();} else exit(1);
+    {
+      if (USE_MPI) {FAIL();} else exit(1);
+    }
   fflush(stream);
 }
 
@@ -341,8 +352,10 @@ Snprintf(char *buf, size_t size, char *fmt, double val)
   int ret;
 
   ASSERT(mib->rank == mib->base);
-  if ( ((ret = snprintf(buf, size, fmt, val)) < 0) || (ret > size) )
-    if (USE_MPI) {FAIL();} else exit(1);
+  if ( ((ret = snprintf(buf, size, fmt, val)) < 0) || ((int)(ret > size)) )
+    {
+      if (USE_MPI) {FAIL();} else exit(1);
+    }
   return(ret);
 }
 
@@ -353,6 +366,8 @@ Malloc(size_t size)
   void *b;
 
   if( (b = malloc(size)) == NULL)
-    if (USE_MPI) {FAIL();} else exit(1);
+    {
+      if (USE_MPI) {FAIL();} else exit(1);
+    }
   return(b);
 }

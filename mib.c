@@ -65,6 +65,7 @@ Results *reduce_results(Results *res);
 void profiles(double *array, int count, char *profile_log_name);
 void report(double write, double read);
 void _base_report(char *fmt, va_list args);
+int get_host_index();
 
 /* See mib.h.  the size of the communicator and the task's rank are in the Mib struct */
 Mib  *mib = NULL;
@@ -222,7 +223,6 @@ write_test()
   ssize_t xfer;
   Results *res;
   Results *red;       /* individual results are reduced into this struct */
-  int ret;
   char write_target[MAX_BUF];
   int last_write_call;
 
@@ -487,7 +487,6 @@ status(int calls, double time)
   int current_time  = (EXPECTATION*time)/opts->time_limit;
   int current_calls = (EXPECTATION*calls)/opts->call_limit;
   int current;
-  int i;
 
   current = (current_time < current_calls) ? current_calls : current_time;
   if( (current > progress) && (current < EXPECTATION - 1) )
@@ -519,7 +518,6 @@ read_test()
   double rate = 0;
   Results *red = NULL;
   Results *res = NULL;
-  int ret;
   char read_target[MAX_BUF];
   int read_rank = ((mib->rank + (mib->tasks/2)) % mib->tasks) + mib->base;
   int last_read_call;
@@ -561,8 +559,8 @@ read_test()
       Fstat(rf, &stats);
       if (stats.st_size < opts->granularity)
 	{
-	  printf("In task %d, the file size (%d) is too small for the granularity (%ld)\n", 
-		      mib->rank, stats.st_size, opts->granularity);
+	  printf("In task %d, the file size (%ld) is too small for the granularity (%lld)\n", 
+		      mib->rank, (long)stats.st_size, opts->granularity);
 	  fflush(stdout);
 	  if (USE_MPI) {FAIL();} else exit(1);
 	}

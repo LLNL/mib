@@ -24,13 +24,19 @@
  *  59 Temple Place, Suite 330, Boston, MA  02111-1307  USA.
 \*****************************************************************************/
 
+#include <sys/types.h>
+#include <sys/stat.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>     /* for strncpy */
+#include <time.h>
+#include <unistd.h>
 #include <dlfcn.h>      /* dynamic loader interface */
 #include "config.h"
 #include "mpi_wrap.h"
 #include "mib.h"        /* for conditional_report */
 #include "miberr.h"
+#include "sys_wrap.h"
 #include "options.h"
 #include "slurm.h"
 
@@ -359,7 +365,6 @@ mpi_init(int *argcp, char ***argvp)
 	    conditional_report(SHOW_ENVIRONMENT, "No MPI - library %s not loaded: no dlerror string, though\n", libraries[lib]);
 	  return;
 	}     
-      lib++;
     }
   pMPI_Abort = dlsym(lib_handles[MPI_HANDLE], "MPI_Abort");
   pMPI_Allreduce = dlsym(lib_handles[MPI_HANDLE], "MPI_Allreduce");

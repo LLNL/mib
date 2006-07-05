@@ -30,6 +30,7 @@
 #include <fcntl.h>
 #include <stdio.h>
 #include <stdlib.h>
+#define __USE_GNU       /* strnlen is a GNU extension */
 #include <string.h>     /* strncpy */
 #include <ctype.h>
 #include <time.h>
@@ -349,18 +350,24 @@ show_details()
       if( slurm->use_SLURM)
 	{
 	  strncpy(cluster, slurm->NODELIST, MAX_BUF);
+	  /* track to the end of the non-digit, non-range end of the string to get the basename */
 	  for(p = cluster; ( (*p != '\0') &&
 			     (*p != '[') &&
 			     ( (*p < '0') || (*p > '9') ) &&
 			     ( p - cluster < MAX_BUF ) ); p++);
+	  /* If it's a management node just drop the 'i' */
 	  if( (p > cluster) && 
 	      (p - cluster < MAX_BUF) &&
 	      (*(p-1) == 'i') 
-	      ) *(p-1) = '\0';
+	      ) 
+	    *(p-1) = '\0';
+
 	  if( (p > cluster) && 
 	      (p - cluster < MAX_BUF)  && 
-	      (*p == '[') ||
-	      ( ((*p >= '0') && (*p <= '9')) )  ) *p = '\0';
+	      ( (*p == '[') ||
+	       ( ((*p >= '0') && (*p <= '9'))) )  
+	      ) 
+	    *p = '\0';
 	}
       else
 	cluster[0] = '\0';
