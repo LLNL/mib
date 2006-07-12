@@ -352,7 +352,7 @@ Snprintf(char *buf, size_t size, char *fmt, double val)
   int ret;
 
   ASSERT(mib->rank == mib->base);
-  if ( ((ret = snprintf(buf, size, fmt, val)) < 0) || ((int)(ret > size)) )
+  if ( ((ret = snprintf(buf, size, fmt, val)) < 0) || ((ret > (int)size)) )
     {
       if (USE_MPI) {FAIL();} else exit(1);
     }
