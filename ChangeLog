@@ -8,7 +8,10 @@
 	* Cast the "size_t count" parameter to Write() and Read() to be
 	ssize_t.  This prevents incorrect execution when the
 	system call returns an error condition (-1) and misinterprets it
-	as a very large number.
+	as a very large number.  The is also one in Snprintf.
+
+	* Include "-Wextra" as a CCFLAGS flag to catch future instances of
+	the above.  
 	
 2006-04-26 Andrew Uselton <uselton2@llnl.gov>
 
