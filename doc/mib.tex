@@ -102,22 +102,25 @@ BlueGene/L supercomputer, and {\em mib} was instrumental in a
 significant improvement in the bulk I/O performance of Lustre in that
 environment.  Subsequent development has been on more conventional
 i386 GNU/Linux Beowulf clusters, and in its current incarnation {\em
-  mib} works on i386, ia64, x86\_64, powerpc, and ppc64 architectures
-running Linux with Quadrics Elan3 and Elan4 interconnect 
+mib} works on i386, ia64, x86\_64, powerpc, and ppc64 architectures
+running Linux with Quadrics Elan3 and Elan4 interconnect
 hardware\footnote{http://www.qsw.com} and associated MPI libraries.
-It is that version that is discussed here.  The BGL variant is under
-continuing development, but is not generally available at this time.
+Mib has been recently extended to work with
+infiniband~\footnote{http://www.infinibandta.org/} and
+mvapich\footnote{http://nowlab.cse.ohio-state.edu/projects/mpi-iba/},
+as well.  The BGL variant is under continuing development, but is not
+generally available at this time.
 
 The rest of this paper is organized as follows.
 Section~\ref{section.normal} details the environment in which {\em
-  mib} operates, gives common examples of its operation, and explains
+mib} operates, gives common examples of its operation, and explains
 what the results mean.  Section~\ref{section.usage} gives a
-point-by-point explanation of each of {\em mib}'s options with examples.
-Section~\ref{section.profiles} shows how to generate system call
-profiles, explains what they mean, and gives examples in
-which profiling revealed telling details about the operation of a
-parallel file system.  Finally, Section~\ref{section.conclusion}
-concludes with a summary of plans for its continued improvement.
+point-by-point explanation of each of {\em mib}'s options with
+examples.  Section~\ref{section.profiles} shows how to generate system
+call profiles, explains what they mean, and gives examples in which
+profiling revealed telling details about the operation of a parallel
+file system.  Finally, Section~\ref{section.conclusion} concludes with
+a summary of plans for the continued improvement of {\em mib}.
 
 \section{Mib Under Normal Operation}\label{section.normal}
 
@@ -141,7 +144,7 @@ Lustre OSS (server) via a GigE switch, so the total available
 bandwidth to the file system is about 4 GB/s.  
 
 The file system service is monitored in real time with the {\em
-  lmtd}\footnote{http://www.llnl.gov/linux/lustre-admin/lustre-admin.html}
+  lmtd}\footnote{http://sourceforge.net/projects/lmt}
   daemon, a python-based data collector that feeds remote monitoring.
   The {\em lwatch.py} utility, in the {\em mib-tools} RPM, gathers the
   server-side information and produces an aggregate file system data

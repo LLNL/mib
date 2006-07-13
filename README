@@ -1,17 +1,18 @@
 ****************************************************************************\
   $Id: README,v 1.9 2005/11/30 20:24:57 auselton Exp $
 ****************************************************************************
-  Copyright (C) 2006 The Regents of the University of California.
+  Copyright (C) 2001-2002 The Regents of the University of California.
   Produced at Lawrence Livermore National Laboratory (cf, DISCLAIMER).
   Written by Andrew Uselton <uselton2@llnl.gov>
-  UCRL-CODE-222725
+  UCRL-CODE-2006-xxx.
   
   This file is part of Mib, an MPI-based parallel I/O benchamrk
   For details, see <http://www.llnl.gov/linux/mib/>.
   
   Mib is free software; you can redistribute it and/or modify it under
-  the terms of the GNU General Public License (as published by the Free
-  Software Foundation) version 2, dated June 1991.
+  the terms of the GNU General Public License as published by the Free
+  Software Foundation; either version 2 of the License, or (at your option)
+  any later version.
   
   Mib is distributed in the hope that it will be useful, but WITHOUT 
   ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or 
@@ -85,7 +86,7 @@ o One file per MPI task
 o The test runs exactly once with the given parameters
 
 $mib -V
-mib-1.9.2-i386
+mib-1.9.6-i386
 $mib -h
 usage: mib [b::EFIhHl:L:Mnp:PrRs:St:VW]
 See the man page for "long_opts" equivalents.
@@ -170,15 +171,15 @@ $SCOM $MCOM -l 1024 -L 60 -s 512k -H
 The next most common use for mib is to generate a system casll timing
 profile.  The command:
 
-$SCOM $MCOM -l 1024 -L 60 -s 512k -d ~/alc/ -p
+$SCOM $MCOM -l 1024 -L 60 -s 512k -p ~/alc/profile
 
-creates two files, "~/alc/write.profile" and "~/alc/read.profile".
+creates two files, "~/alc/profile.write" and "~/alc/profile.read".
 Each of those is a table with one line per system call, and on each
 line, one floating point number per task.  Each number is the
 timestamp of the corresponding system call (i.e. the MPI_Wtime() at
 which it returned) on the corresponding task.  The timestamps are all
 relative to a "zero" at the beginning of the test coordinated accross
-all tasksm and adjusted for any skew in the "MPI_Wtime()" global clock
+all tasks and adjusted for any skew in the "MPI_Wtime()" global clock
 reading.  
 
 
