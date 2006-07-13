@@ -1,7 +1,7 @@
 #*****************************************************************************\
 #*  $Id: Makefile.in,v 1.9 2005/11/30 20:24:57 auselton Exp $
 #*****************************************************************************
-#*  Copyright (C) 2001-2002 The Regents of the University of California.
+#*  Copyright (C) 2006 The Regents of the University of California.
 #*  Produced at Lawrence Livermore National Laboratory (cf, DISCLAIMER).
 #*  Written by Andrew Uselton <uselton2@llnl.gov>
 #*  UCRL-CODE-2006-xxx.
@@ -10,9 +10,8 @@
 #*  For details, see <http://www.llnl.gov/linux/mib/>.
 #*  
 #*  Mib is free software; you can redistribute it and/or modify it under
-#*  the terms of the GNU General Public License as published by the Free
-#*  Software Foundation; either version 2 of the License, or (at your option)
-#*  any later version.
+#*  the terms of the GNU General Public License (as published by the Free
+#*  Software Foundation) version 2, dated June 1991.
 #*  
 #*  Mib is distributed in the hope that it will be useful, but WITHOUT 
 #*  ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or 

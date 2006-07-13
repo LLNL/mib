@@ -3,9 +3,9 @@ o  The error reporting needs to be much more refined.
   -  The __FILE__ and __LINE__ macros already give
      enough info to document which MPI_wrapper failed
   -  System calls should be handled differently from library calls
-     and the errors returned should each be handled sensibly.  this may
+     and the errors returned should each be handled sensibly.  This may
      end up being quite machine dependent
-  -  the idea of some errors being reported out of the base task, as
+  -  The idea of some errors being reported out of the base task, as
      mib errors rather than system errors, is a good one, but needs to
      be handled carefully and with attention to detail
   -  The error reporting needs to be aware of both dychotomies:

@@ -1,15 +1,14 @@
-Copyright (C) <Year> The Regents of the University of California.
+Copyright (C) 2006 The Regents of the University of California.
 Produced at Lawrence Livermore National Laboratory.
 Written by Andrew C. Uselton
-UCRL-CODE-<release number>
+UCRL-CODE-222725
 
 This file is part of MIB, an MPI-based I/O benchmark
 For details, see http://www.llnl.gov/linux/.
 
 MIB is free software; you can redistribute it and/or modify it under
-the terms of the GNU General Public License as published by the Free
-Software Foundation; either version 2 of the License, or (at your option)
-any later version.
+the terms of the GNU General Public License (as published by the Free
+Software Foundation) version 2, dated June 1991.
 
 MIB is distributed in the hope that it will be useful, but WITHOUT 
 ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS

@@ -4,15 +4,14 @@
  *  Copyright (C) 2001-2002 The Regents of the University of California.
  *  Produced at Lawrence Livermore National Laboratory (cf, DISCLAIMER).
  *  Written by Andrew Uselton <uselton2@llnl.gov>
- *  UCRL-CODE-2006-xxx.
+ *  UCRL-CODE-222725
  *  
  *  This file is part of Mib, an MPI-based parallel I/O benchamrk
  *  For details, see <http://www.llnl.gov/linux/mib/>.
  *  
  *  Mib is free software; you can redistribute it and/or modify it under
- *  the terms of the GNU General Public License as published by the Free
- *  Software Foundation; either version 2 of the License, or (at your option)
- *  any later version.
+ *  the terms of the GNU General Public License (as published by the Free
+ *  Software Foundation version 2, dated June 1991.
  *  
  *  Mib is distributed in the hope that it will be useful, but WITHOUT 
  *  ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or 

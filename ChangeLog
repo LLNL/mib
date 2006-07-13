@@ -1,3 +1,9 @@
+2006-07-13 Andrew Uselton <uselton2@llnl.gov>
+
+	* Tag 1.9.6
+
+	* Update all files with UCRL number in preparation for release.
+	
 2006-06-29 Andrew Uselton <uselton2@llnl.gov>
 
 	* Tag 1.9.5
@@ -8,7 +14,7 @@
 	* Cast the "size_t count" parameter to Write() and Read() to be
 	ssize_t.  This prevents incorrect execution when the
 	system call returns an error condition (-1) and misinterprets it
-	as a very large number.  The is also one in Snprintf.
+	as a very large number.  There is also one in Snprintf.
 
 	* Include "-Wextra" as a CCFLAGS flag to catch future instances of
 	the above.  
