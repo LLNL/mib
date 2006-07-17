@@ -29,5 +29,6 @@
 #define LIBRARIES  \
   {                \
     "libibverbs.so",  \
-    "libmvapich.so"   \
+/*    "libmvapich.so" Changed according to the following */  \
+    "libmpich.so"   \
   }
