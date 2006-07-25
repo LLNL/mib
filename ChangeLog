@@ -6,6 +6,11 @@
 
 	* Sanity check documentation.
 	
+	* Caught and fixed a bug in options handling.  Send the correct
+	argc and argv to MPI_Init if you plan on consuming command line
+	parameters and options.  It would segfault trying to get to
+	argv[0] when sent argc = 0, which is wrong in a couple of ways. 
+	
 2006-06-29 Andrew Uselton <uselton2@llnl.gov>
 
 	* Tag 1.9.5

@@ -70,6 +70,7 @@ command_line(int *argcp, char **argvp[])
   char **argv = *argvp; 
   int opt;
   int idx;
+  int i;
   const struct option long_options[] = 
     {
       {"random_reads", optional_argument, NULL, 'b'},
@@ -161,9 +162,12 @@ command_line(int *argcp, char **argvp[])
 	  if ( (slurm->use_SLURM == 0) || (slurm->PROCID == 0) ) usage(); break;
 	}
     }
-  /* Anything we've consumed doesn't need to be passed to the MPI initializer */
-  *argcp -= optind;
-  *argvp += optind;
+  /* 
+   * Anything we've consumed doesn't need to be passed to the MPI initializer
+   */
+  for(i = 1; i < *argcp - (optind - 1); i++)
+      (*argvp)[i] = (*argvp)[i + (optind - 1)];
+  *argcp -= (optind - 1);
   if( o->testdir == NULL)
     {
       base_report("Mib requires a \"-t <test_dir>\" argument.\n");
