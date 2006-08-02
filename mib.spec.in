@@ -47,7 +47,13 @@ Shell, Perl, and Python scripts to assist with analyzing mib results
 	and setting up for mib tests.
 
 %pre tools
-[ -d $INSTALLPREFIX/var/lustredata ] || { echo "no lustredata directory"; exit 1; }
+# /var/lustredata is intended to be a separate large partition dedicated
+# to the results of auto-test operation.  This check was to prevent 
+# setting up a lustredta directory when ther eis no partition.
+# We've decided to just go ahead and install and hope the mib-tools user
+# doesn't do anything stupid with auto-test output, like fill up the
+# root partition.
+#[ -d $INSTALLPREFIX/var/lustredata ] || { echo "no lustredata directory"; exit 1; }
 
 
 %prep
@@ -77,6 +83,8 @@ rm -rf $RPM_BUILD_ROOT
 
 
 %changelog
++ Wed Aug  2 2006 Andrew C. Uselton <auselton@alci> 
+- Allow mib-tools to be installed even if lustredata directory is missing.
 * Fri Mar 31 2006 Andrew C. Uselton <auselton@alci> 
 - Don't install hullo-lustre except as a regular old tool
 * Mon Mar 27 2006 Andrew C. Uselton <auselton@alci> 
