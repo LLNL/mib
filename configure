@@ -100,7 +100,10 @@ if [ -f $MPI_H -o -d $MPI_DIR ]
 then
     echo "#include \"$INTERCONNECT_LIBRARY_HEADER\"" >> $CONFIG_H
 else
-    echo "#define MPI_NOT_INSTALLED" >> $CONFIG_H
+    echo "#define MPI_NOT_INSTALLED"   >> $CONFIG_H
+    echo "#define NUM_LIBRARIES 0"     >> $CONFIG_H
+    echo "#define LIBRARIES  { \"\" }" >> $CONFIG_H
+    echo "#define MPI_HANDLE  0"       >> $CONFIG_H
 fi
 echo "#endif /* CONFIG_H */" >> $CONFIG_H
 
