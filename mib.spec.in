@@ -83,7 +83,7 @@ rm -rf $RPM_BUILD_ROOT
 
 
 %changelog
-+ Wed Aug  2 2006 Andrew C. Uselton <auselton@alci> 
+* Wed Aug  2 2006 Andrew C. Uselton <auselton@alci> 
 - Allow mib-tools to be installed even if lustredata directory is missing.
 * Fri Mar 31 2006 Andrew C. Uselton <auselton@alci> 
 - Don't install hullo-lustre except as a regular old tool
