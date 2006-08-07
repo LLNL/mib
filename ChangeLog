@@ -1,3 +1,19 @@
+2006-08-07 Andrew Uselton <uselton2@llnl.gov>
+
+	* Tag 1.9.7
+
+	* Modify RPM spec file to always create the
+	/var/lustredata/scripts directory.  N.B.  I'd avoided this before
+	because the existance of that directory might induce someone ot
+	run tests and send the results there.  That could fill the root
+	partition quickly if there isn't a separate /var/lustredata
+	storage allocation (NFS mount).  This makes CHAOS not install
+	cleanly on clusters with no Lustre.  So ite bullet and maybe
+	rethink in the future.
+
+	* Fixed (harmless) storage leak used for communicating timing
+	results in an MPI_Gather.
+
 2006-07-13 Andrew Uselton <uselton2@llnl.gov>
 
 	* Tag 1.9.6
