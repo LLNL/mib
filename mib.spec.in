@@ -78,6 +78,7 @@ rm -rf $RPM_BUILD_ROOT
 /usr/man/man1/*
 
 %files tools
+%defattr(-,root,root)
 /var/lustredata/scripts/*
 
 
