@@ -757,6 +757,7 @@ profiles(double *array,   int count, char *io_direction)
   if(mib->rank == mib->base)
     fclose(lfd);
   free(table);
+  free(buffer);
 }
 
 void
