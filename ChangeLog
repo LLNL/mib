@@ -1,3 +1,12 @@
+2006-10-27 Andrew Uselton <uselton2@llnl.gov>
+
+	* Added a discussion of library handling in the README.
+	
+2006-10-04 Andrew Uselton <uselton2@llnl.gov>
+
+	* Put default ownership of (root, root) on the files in the spec
+	file for the tools package.  
+	
 2006-08-07 Andrew Uselton <uselton2@llnl.gov>
 
 	* Tag 1.9.7

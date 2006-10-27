@@ -183,3 +183,25 @@ all tasks and adjusted for any skew in the "MPI_Wtime()" global clock
 reading.  
 
 
+Apendix:
+ A note on configuring, compiling, and running.
+
+One of the (possibly poor) choices I made in designing mib was to
+enable it to detect if SLURM and/or MPI was available and react
+accordingly.  At congigure time the "configure" script make some
+guesses about the environment based on the architecture.  These are
+entirely local to LLNL.  A _real_ configure script, in the auto-conf
+mold, would do things right.  This one does not.  In any case an effort
+is made to identify the MPI and interconnect headers and libraries,
+and a similar check should set the "rpath" option to the compiler,
+since the mpi and interconnect libraries are loaded dynamically.  I
+have not implemented that yet, so if the /etc/ld.so.conf file does not
+explicitly identify the path to the correct library directories you
+will see mib running with "NO MPI" (use the -E command line option
+to get confirmation about what mib thinks its environment is).  You
+can work around the problem by explicitly setting:
+
+export LD_LIBRARY_PATH="$LD_LIBRARY_PATH:<path to lib>"
+
+If you have access you can put the path(s) in "/etc/ld.so.conf", though
+you need to remember to run "ldconfig" afterwards.  
