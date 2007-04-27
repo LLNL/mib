@@ -55,6 +55,7 @@ lustre_man	= /usr/man/man1
 lustre_scripts	= ${lustre}/scripts
 
 all: 
+	./configure
 	$(MAKE) -C src
 
 install:
@@ -86,9 +87,6 @@ clean:
 	rm -f *.rpm
 	$(MAKE) -C src clean
 	rm -f *.o mib *~
-
-distclean: clean
-	$(MAKE) -C src distclean
 
 apply-patches quilt: $(PROJECT)+chaos
 

@@ -1,5 +1,5 @@
-NAME: mib
-VERSION: 1.9.7
-REALEASE: chaos
-TAG: v1_9_7-chaos
+Meta:		1
+Name:		mib
+Version:	1.9.8
+Release:	1chaos
 SOURCE: https://eris.llnl.gov/svn/chaos/private/mib/

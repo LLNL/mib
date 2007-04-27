@@ -23,8 +23,6 @@
 #*  59 Temple Place, Suite 330, Boston, MA  02111-1307  USA.
 #*****************************************************************************/
 
-PROJECT=mib
-VERSION=%VERSION%
 MAKE=    /usr/bin/make
 
 CC = %CC%
@@ -45,7 +43,4 @@ all:
 
 clean: 
 	rm -f *.o *~
-
-distclean: clean
-	rm Makefile
 

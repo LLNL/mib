@@ -54,8 +54,6 @@ usage ()
 	exit 1
 }
 
-# Src directory
-cd src
 [ X"$1" != X"-h" ] || usage
 CC="gcc"
 LIBS="-ldl"
@@ -80,16 +78,16 @@ case $ARCH in
 esac 
 echo "Cluster $CLUSTER (architecture $ARCH) with compiler $CC"
 
-MAKEFILE="Makefile"
-[ -f $MAKEFILE.in ] || usage "There is no file $MAKEFILE.in here"
-CONFIG_H="config.h"
-
 [ -f META ] || usage "There is no file META here"
 
-VERSION=`grep VERSION META | cut -d':' -f2`
+VERSION=`grep Version META | cut -d':' -f2`
 VERSION=${VERSION// /}
 [ X"$VERSION" != X ] ||  usage "The META file did not yield a version"
 
+# Src directory
+cd src
+
+CONFIG_H="config.h"
 rm -f $CONFIG_H >/dev/null 2>&1
 cp doc/COPYRIGHT.block $CONFIG_H
 echo "#ifndef CONFIG_H" >>$CONFIG_H
@@ -108,15 +106,6 @@ else
 fi
 echo "#endif /* CONFIG_H */" >> $CONFIG_H
 
-rm -f $MAKEFILE >/dev/null 2>&1
-cat $MAKEFILE.in  | sed "s/%CC%/$CC/" | sed "s/%LIBS%/$LIBS/" | sed "s/%VERSION%/$VERSION/" > $MAKEFILE
-
-# Tools directory
-cd tools
-rm -f $MAKEFILE >/dev/null 2>&1
-cat $MAKEFILE.in  | sed "s/%CC%/$CC/" | sed "s/%VERSION%/$VERSION/" > $MAKEFILE
-cd ..
-
 # Suppress making the pdf documentation if the pdflatex executable is 
 # not available.  Later I could split this out to just latex without dvi2pdf.
 PDFLATEX=`which pdflatex`
@@ -126,12 +115,6 @@ then
     touch doc/mib.pdf
     touch doc/sample.png
 fi
-
-# Doc directory
-cd doc
-rm -f $MAKEFILE >/dev/null 2>&1
-cat $MAKEFILE.in  | sed "s/%VERSION%/$VERSION/" > $MAKEFILE
-cd ..
 
 # Back to root of project
 cd ..
