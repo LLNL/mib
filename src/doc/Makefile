@@ -1,7 +1,7 @@
 #*****************************************************************************\
 #*  $Id: Makefile.in 1.9 2005/11/30 20:24:57 auselton Exp $
 #*****************************************************************************
-#*  Copyright (C) 2006 The Regents of the University of California.
+#*  Copyright (C) 2001-2002 The Regents of the University of California.
 #*  Produced at Lawrence Livermore National Laboratory (cf, DISCLAIMER).
 #*  Written by Andrew Uselton <uselton2@llnl.gov>
 #*  UCRL-CODE-222725
@@ -11,7 +11,7 @@
 #*  
 #*  Mib is free software; you can redistribute it and/or modify it under
 #*  the terms of the GNU General Public License (as published by the Free
-#*  Software Foundation) version 2, dated June 1991.
+#*  Software Foundation version 2, dated June 1991.
 #*  
 #*  Mib is distributed in the hope that it will be useful, but WITHOUT 
 #*  ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or 
@@ -23,33 +23,24 @@
 #*  59 Temple Place, Suite 330, Boston, MA  02111-1307  USA.
 #*****************************************************************************/
 
-
-PROJECT=mib
-VERSION=%VERSION%
 MAKE=    /usr/bin/make
-SRCS = 
-OBJS = 
-DOC = 
 
-all : mib.pdf
+CC = %CC%
+CCFLAGS = -g -D_LARGEFILE64_SOURCE -D_FILE_OFFSET_BITS=64
 
-%.pdf : %.tex sample.png
-	rm -f $@
-	pdflatex $<
-	pdflatex $<
 
-sample.png : 
-	rm -f sample.png
-	../tools/composite.pl -d sample -p sample
+LDFLAGS =
+LIBDIRS = 
+LIBS = 
+INCDIR = 
 
-%.eps : %.fig
-	fig2dev -L eps $< $@
+all: 
+	@ echo "Nothing to make in the tools directory"
 
-clean:
-	-rm -f *.o *~ *.ps *.dvi *.log *.aux *.png *.eps *.bak *.pdf
 
 .c.o:
-	$(CC) $(CCFLAGS) -c $<
+	$(CC) $(CCFLAGS) $(DEBUG) -c $<  $(INCDIR)
 
-distclean: clean
-	rm Makefile	
+clean: 
+	rm -f *.o *~
+
