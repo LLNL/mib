@@ -34,7 +34,7 @@ SHELL=   /bin/sh
 MAKE=    /usr/bin/make
 CC = %CC%
 INSTALL= /usr/bin/install -c
-mkinstalldirs=	 $(SHELL) $(top_srcdir)/aux/mkinstalldirs
+mkinstalldirs=	 $(SHELL) ./aux/mkinstalldirs
 
 MPI_CCFLAGS = -DUSE_STDARG -DHAVE_STDLIB_H=1 -DHAVE_STRING_H=1 -DHAVE_UNISTD_H=1 -DHAVE_STDARG_H=1 -DUSE_STDARG=1 -DMALLOC_RET_VOID=1 
 CCFLAGS = ${MPI_CCFLAGS}  -Wextra -g -D_LARGEFILE64_SOURCE -D_FILE_OFFSET_BITS=64 -rdynamic
@@ -49,82 +49,46 @@ DEBUG = # Put 'DEBUG="-DDEBUG_CODE=1"' on the command line if you want
 	# and always have the debugging on.  N.B. I don't think it even
 	# works right now.
 
-top_srcdir	=	.
-prefix		=	/usr
-exec_prefix	=	${prefix}
-bindir		=	${exec_prefix}/bin
-sbindir		= 	${exec_prefix}/sbin
-mandir		=	$(prefix)/man
-etcdir		=	/etc
-packagedir	=	${etcdir}/${PROJECT}
-scriptdir       =       /var/lustredata/scripts
-docdir          =       ${prefix}/share/doc/${PROJECT}-${VERSION}
+lustre		= /usr/lustre
+lustre_bin	= ${lustre}/bin
+lustre_man	= /usr/man/man1
+lustre_scripts	= ${lustre}/scripts
 
-HEADERS = miberr.h mpi_wrap.h sys_wrap.h options.h mib_timer.h slurm.h config.h
-SOURCES = mib.c mpi_wrap.c sys_wrap.c miberr.c options.c mib_timer.c slurm.c
-OBJECTS = $(SOURCES:.c=.o)
+all: 
+	$(MAKE) -C src
 
-all: mib 
-
-mib: $(OBJECTS) $(HEADERS)
-	$(CC) $(LDFLAGS) $(LIBDIRS) $(OBJECTS) -o $@ $(LIBS)
-
-# You have to use a dummy target because there really is a "doc" driectory
-doc: doc_dummy
-
-doc_dummy:
-	$(MAKE) -C doc
-
-tools: tools-dummy
-
-tools-dummy:
-	$(MAKE) -C tools
-
-install: mib doc
-	$(mkinstalldirs) 			$(DESTDIR)$(bindir)
-	$(INSTALL) mib				$(DESTDIR)$(bindir)/
-	$(mkinstalldirs)			$(DESTDIR)$(mandir)/man1
-	$(INSTALL) mib.1 -m 644			$(DESTDIR)$(mandir)/man1/
-	$(mkinstalldirs)			$(DESTDIR)$(scriptdir)
-	$(INSTALL) tools/composite.pl		$(DESTDIR)$(scriptdir)/
-	$(INSTALL) tools/diff.pl		$(DESTDIR)$(scriptdir)/
-	$(INSTALL) tools/file-layout.sh		$(DESTDIR)$(scriptdir)/
-	$(INSTALL) tools/hullo-lustre.sh	$(DESTDIR)$(scriptdir)/
-	$(INSTALL) tools/lfind-dist1.pl		$(DESTDIR)$(scriptdir)/
-	$(INSTALL) tools/lfind-dist2.pl		$(DESTDIR)$(scriptdir)/
-	$(INSTALL) tools/lfind-dist3.pl		$(DESTDIR)$(scriptdir)/
-	$(INSTALL) tools/lfinding.sh		$(DESTDIR)$(scriptdir)/
-	$(INSTALL) tools/lwatch.pl		$(DESTDIR)$(scriptdir)/
-	$(INSTALL) tools/lwatch.py		$(DESTDIR)$(scriptdir)/
-	$(INSTALL) tools/mib-test.sh		$(DESTDIR)$(scriptdir)/
-	$(INSTALL) tools/mib-test.transcript	$(DESTDIR)$(scriptdir)/
-	$(INSTALL) tools/mib.sh			$(DESTDIR)$(scriptdir)/
-	$(INSTALL) tools/profile.pl		$(DESTDIR)$(scriptdir)/
-	$(INSTALL) tools/rm-files.sh		$(DESTDIR)$(scriptdir)/
-	$(INSTALL) tools/sum.pl			$(DESTDIR)$(scriptdir)/
-	$(INSTALL) tools/viewcalls.pl		$(DESTDIR)$(scriptdir)/
-	$(mkinstalldirs) 			$(DESTDIR)$(docdir)
-	$(INSTALL) doc/mib.pdf			$(DESTDIR)$(docdir)/
-	$(INSTALL) doc/sample.png		$(DESTDIR)$(docdir)/
-	$(INSTALL) README			$(DESTDIR)$(docdir)/
-	$(INSTALL) ChangeLog			$(DESTDIR)$(docdir)/
-	$(INSTALL) COPYING			$(DESTDIR)$(docdir)/
-	$(INSTALL) DISCLAIMER			$(DESTDIR)$(docdir)/
-
-.c.o:
-	$(CC) $(CCFLAGS)  $(INCDIR) $(DEBUG) -c $<
+install:
+	$(mkinstalldirs) 			$(DESTDIR)$(lustre_bin)
+	$(INSTALL) src/mib			$(DESTDIR)$(lustre_bin)/
+	$(mkinstalldirs)			$(DESTDIR)$(lustre_man)/man1
+	$(INSTALL) src/mib.1 -m 644		$(DESTDIR)$(lustre_man)/man1/
+	$(mkinstalldirs)			$(DESTDIR)$(lustre_scripts)
+	$(INSTALL) src/tools/composite.pl	$(DESTDIR)$(lustre_scripts)/
+	$(INSTALL) src/tools/diff.pl		$(DESTDIR)$(lustre_scripts)/
+	$(INSTALL) src/tools/file-layout.sh	$(DESTDIR)$(lustre_scripts)/
+	$(INSTALL) src/tools/hullo-lustre.sh	$(DESTDIR)$(lustre_scripts)/
+	$(INSTALL) src/tools/lfind-dist1.pl	$(DESTDIR)$(lustre_scripts)/
+	$(INSTALL) src/tools/lfind-dist2.pl	$(DESTDIR)$(lustre_scripts)/
+	$(INSTALL) src/tools/lfind-dist3.pl	$(DESTDIR)$(lustre_scripts)/
+	$(INSTALL) src/tools/lfinding.sh	$(DESTDIR)$(lustre_scripts)/
+	$(INSTALL) src/tools/lwatch.pl		$(DESTDIR)$(lustre_scripts)/
+	$(INSTALL) src/tools/lwatch.py		$(DESTDIR)$(lustre_scripts)/
+	$(INSTALL) src/tools/mib-test.sh	$(DESTDIR)$(lustre_scripts)/
+	$(INSTALL) src/tools/mib-test.transcript $(DESTDIR)$(lustre_scripts)/
+	$(INSTALL) src/tools/mib.sh		$(DESTDIR)$(lustre_scripts)/
+	$(INSTALL) src/tools/profile.pl		$(DESTDIR)$(lustre_scripts)/
+	$(INSTALL) src/tools/rm-files.sh	$(DESTDIR)$(lustre_scripts)/
+	$(INSTALL) src/tools/sum.pl		$(DESTDIR)$(lustre_scripts)/
+	$(INSTALL) src/tools/viewcalls.pl	$(DESTDIR)$(lustre_scripts)/
 
 clean: 
 	rm -rf $(PROJECT)+chaos
 	rm -f *.rpm
-	$(MAKE) -C doc clean
-	$(MAKE) -C tools clean
+	$(MAKE) -C src clean
 	rm -f *.o mib *~
 
 distclean: clean
-	$(MAKE) -C doc distclean
-	$(MAKE) -C tools distclean
-	rm Makefile config.h mib.spec
+	$(MAKE) -C src distclean
 
 apply-patches quilt: $(PROJECT)+chaos
 

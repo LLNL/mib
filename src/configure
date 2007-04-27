@@ -50,10 +50,12 @@ usage ()
 	echo "This script establishes the compiler to use in the makefile based on the"
 	echo "cluster as returned by \"nodeattr -v cluster\", and sets the version,"
 	echo "based on the value of VERSION in the \"META\" file, in the source at"
-	echo "\"mib.c\" and the spec file \"mib.spec\"."
+	echo "\"mib.c\"."
 	exit 1
 }
 
+# Src directory
+cd src
 [ X"$1" != X"-h" ] || usage
 CC="gcc"
 LIBS="-ldl"
@@ -81,8 +83,7 @@ echo "Cluster $CLUSTER (architecture $ARCH) with compiler $CC"
 MAKEFILE="Makefile"
 [ -f $MAKEFILE.in ] || usage "There is no file $MAKEFILE.in here"
 CONFIG_H="config.h"
-MIB_SPEC="mib.spec"
-[ -f $MIB_SPEC.in ] || usage "There is no file $MIB_SPEC.in here"
+
 [ -f META ] || usage "There is no file META here"
 
 VERSION=`grep VERSION META | cut -d':' -f2`
@@ -110,6 +111,7 @@ echo "#endif /* CONFIG_H */" >> $CONFIG_H
 rm -f $MAKEFILE >/dev/null 2>&1
 cat $MAKEFILE.in  | sed "s/%CC%/$CC/" | sed "s/%LIBS%/$LIBS/" | sed "s/%VERSION%/$VERSION/" > $MAKEFILE
 
+# Tools directory
 cd tools
 rm -f $MAKEFILE >/dev/null 2>&1
 cat $MAKEFILE.in  | sed "s/%CC%/$CC/" | sed "s/%VERSION%/$VERSION/" > $MAKEFILE
@@ -124,13 +126,12 @@ then
     touch doc/mib.pdf
     touch doc/sample.png
 fi
+
+# Doc directory
 cd doc
 rm -f $MAKEFILE >/dev/null 2>&1
 cat $MAKEFILE.in  | sed "s/%VERSION%/$VERSION/" > $MAKEFILE
 cd ..
 
-rm -f $MIB_SPEC >/dev/null 2>&1
-cat $MIB_SPEC.in  | sed "s/%VERSION%/$VERSION/" > $MIB_SPEC
-
-
- 
+# Back to root of project
+cd ..
