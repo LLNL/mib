@@ -23,8 +23,13 @@
 #*  59 Temple Place, Suite 330, Boston, MA  02111-1307  USA.
 #*****************************************************************************/
 
-PROJECT=mib
-VERSION=%VERSION%
+PROJECT       := mib
+VERSION       := $(shell awk '/[Vv]ersion:/ {print $$2}' META)
+RELEASE       := $(shell awk '/[Rr]elease:/ {print $$2}' META)
+SVNURL        := https://eris.llnl.gov/svn/lustre-utils/$(PROJECT)
+TRUNKURL      := $(SVNURL)/trunk
+TAGURL        := $(SVNURL)/tags/$(PROJECT)-$(VERSION)-$(RELEASE)
+
 SHELL=   /bin/sh
 MAKE=    /usr/bin/make
 CC = %CC%
@@ -110,6 +115,8 @@ install: mib doc
 	$(CC) $(CCFLAGS)  $(INCDIR) $(DEBUG) -c $<
 
 clean: 
+	rm -rf $(PROJECT)+chaos
+	rm -f *.rpm
 	$(MAKE) -C doc clean
 	$(MAKE) -C tools clean
 	rm -f *.o mib *~
@@ -118,3 +125,27 @@ distclean: clean
 	$(MAKE) -C doc distclean
 	$(MAKE) -C tools distclean
 	rm Makefile config.h mib.spec
+
+apply-patches quilt: $(PROJECT)+chaos
+
+$(PROJECT)+chaos: patches/series
+	make clean
+	@scripts/quilt.sh $(QUILTFLAGS)
+
+check-vars:
+	@echo "Release:  $(PROJECT)-$(VERSION)-$(RELEASE)"
+	@echo "Trunk:    $(TRUNKURL)"
+	@echo "Tag:      $(TAGURL)"
+
+rpms-working:
+	make clean
+	@scripts/build --snapshot .
+
+rpms-trunk: check-vars
+	@scripts/build --snapshot $(TRUNKURL)
+
+rpms-release: check-vars
+	@scripts/build --nosnapshot $(TAGURL)
+
+tagrel:
+	svn copy $(TRUNKURL) $(TAGURL)
