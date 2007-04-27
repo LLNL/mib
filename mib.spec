@@ -29,8 +29,8 @@
 
 Summary: An MPI-based I/O test for beowulf-style clusters
 Name: mib
-Version: %VERSION%
-Release: chaos
+Version: 1.9.8
+Release: 1chaos
 Copyright: GPL
 Group: Applications/System
 Source:  %{name}-%{version}.tar.gz
