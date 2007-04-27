@@ -72,14 +72,14 @@ rm -rf $RPM_BUILD_ROOT
 
 %files
 %defattr(-,root,root)
-%doc /usr/share/doc/%{name}-%{version}
+%doc doc/DISCLAIMER doc/MOU META doc/TODO
 
-/usr/bin/mib
-/usr/man/man1/*
+/usr/lustre/bin
+/usr/man/man1
 
 %files tools
 %defattr(-,root,root)
-/var/lustredata/scripts/*
+/usr/lustre/scripts
 
 
 

@@ -60,8 +60,8 @@ all:
 install:
 	$(mkinstalldirs) 			$(DESTDIR)$(lustre_bin)
 	$(INSTALL) src/mib			$(DESTDIR)$(lustre_bin)/
-	$(mkinstalldirs)			$(DESTDIR)$(lustre_man)/man1
-	$(INSTALL) src/mib.1 -m 644		$(DESTDIR)$(lustre_man)/man1/
+	$(mkinstalldirs)			$(DESTDIR)$(lustre_man)
+	$(INSTALL) src/mib.1 -m 644		$(DESTDIR)$(lustre_man)/
 	$(mkinstalldirs)			$(DESTDIR)$(lustre_scripts)
 	$(INSTALL) src/tools/composite.pl	$(DESTDIR)$(lustre_scripts)/
 	$(INSTALL) src/tools/diff.pl		$(DESTDIR)$(lustre_scripts)/
