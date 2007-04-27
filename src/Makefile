@@ -65,7 +65,7 @@ tools-dummy:
 	$(CC) $(CCFLAGS)  $(INCDIR) $(DEBUG) -c $<
 
 clean: 
-	rm -f *.rpm
+	rm -f *.rpm config.h
 	$(MAKE) -C doc clean
 	$(MAKE) -C tools clean
 	rm -f *.o mib *~

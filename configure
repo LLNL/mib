@@ -84,9 +84,6 @@ VERSION=`grep Version META | cut -d':' -f2`
 VERSION=${VERSION// /}
 [ X"$VERSION" != X ] ||  usage "The META file did not yield a version"
 
-# Src directory
-cd src
-
 CONFIG_H="config.h"
 rm -f $CONFIG_H >/dev/null 2>&1
 cp doc/COPYRIGHT.block $CONFIG_H
@@ -115,6 +112,3 @@ then
     touch doc/mib.pdf
     touch doc/sample.png
 fi
-
-# Back to root of project
-cd ..
