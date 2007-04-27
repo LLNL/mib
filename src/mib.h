@@ -36,6 +36,8 @@ typedef enum {FALSE, TRUE} BOOL;
 #define BOOL_DEF
 #endif
 
+#define MIB_VERSION "1.9.8"
+
 /*
  *   In normal use the rank, base, and size fields are the important ones.
  * Rank and size are the MPI values for the current task.  Base refers to

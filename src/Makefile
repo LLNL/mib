@@ -48,6 +48,7 @@ OBJECTS = $(SOURCES:.c=.o)
 all: mib 
 
 mib: $(OBJECTS) $(HEADERS)
+	./configure
 	$(CC) $(LDFLAGS) $(LIBDIRS) $(OBJECTS) -o $@ $(LIBS)
 
 # You have to use a dummy target because there really is a "doc" driectory

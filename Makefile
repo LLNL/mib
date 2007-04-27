@@ -55,7 +55,6 @@ lustre_man	= /usr/man/man1
 lustre_scripts	= ${lustre}/scripts
 
 all: 
-	./configure
 	$(MAKE) -C src
 
 install:

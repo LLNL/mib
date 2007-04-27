@@ -48,9 +48,7 @@ usage ()
 	echo "Set up for a compile if possible"
 	echo "Print an error message otherwise"
 	echo "This script establishes the compiler to use in the makefile based on the"
-	echo "cluster as returned by \"nodeattr -v cluster\", and sets the version,"
-	echo "based on the value of VERSION in the \"META\" file, in the source at"
-	echo "\"mib.c\"."
+	echo "cluster as returned by \"nodeattr -v cluster\""
 	exit 1
 }
 
@@ -80,15 +78,10 @@ echo "Cluster $CLUSTER (architecture $ARCH) with compiler $CC"
 
 [ -f META ] || usage "There is no file META here"
 
-VERSION=`grep Version META | cut -d':' -f2`
-VERSION=${VERSION// /}
-[ X"$VERSION" != X ] ||  usage "The META file did not yield a version"
-
 CONFIG_H="config.h"
 rm -f $CONFIG_H >/dev/null 2>&1
 cp doc/COPYRIGHT.block $CONFIG_H
 echo "#ifndef CONFIG_H" >>$CONFIG_H
-echo "#define MIB_VERSION \"$VERSION\"" >> $CONFIG_H
 echo "#define MIB_ARCH \"$ARCH\"" >> $CONFIG_H
 MPI_H="/usr/lib/mpi/include/mpi.h"
 MPI_DIR="/usr/lib/mpi"
