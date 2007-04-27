@@ -76,8 +76,6 @@ case $ARCH in
 esac 
 echo "Cluster $CLUSTER (architecture $ARCH) with compiler $CC"
 
-[ -f META ] || usage "There is no file META here"
-
 CONFIG_H="config.h"
 rm -f $CONFIG_H >/dev/null 2>&1
 cp doc/COPYRIGHT.block $CONFIG_H

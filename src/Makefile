@@ -45,7 +45,9 @@ HEADERS = miberr.h mpi_wrap.h sys_wrap.h options.h mib_timer.h slurm.h config.h
 SOURCES = mib.c mpi_wrap.c sys_wrap.c miberr.c options.c mib_timer.c slurm.c
 OBJECTS = $(SOURCES:.c=.o)
 
-all: mib 
+all: 
+	./configure
+	$(MAKE) -C . mib
 
 mib: $(OBJECTS) $(HEADERS)
 	./configure
