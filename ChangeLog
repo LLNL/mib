@@ -1,3 +1,8 @@
+2006-10-30 Andrew Uselton <uselton2@llnl.gov>
+
+	* Removed the sum.pl script which is also in the auto-test
+	package.  
+	
 2006-10-27 Andrew Uselton <uselton2@llnl.gov>
 
 	* Added a discussion of library handling in the README.
