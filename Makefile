@@ -78,7 +78,6 @@ install:
 	$(INSTALL) src/tools/mib.sh		$(DESTDIR)$(lustre_scripts)/
 	$(INSTALL) src/tools/profile.pl		$(DESTDIR)$(lustre_scripts)/
 	$(INSTALL) src/tools/rm-files.sh	$(DESTDIR)$(lustre_scripts)/
-	$(INSTALL) src/tools/sum.pl		$(DESTDIR)$(lustre_scripts)/
 	$(INSTALL) src/tools/viewcalls.pl	$(DESTDIR)$(lustre_scripts)/
 
 clean: 
