@@ -27,17 +27,21 @@
 # See the hints in the script $HOME/src/mib/tools/mibrpm.sh 
 #
 
+Name:
+Version: 
+Release:
+Source:
+License: GPL
 Summary: An MPI-based I/O test for beowulf-style clusters
-Name: mib
-Version: 1.9.8
-Release: 1chaos
-Copyright: GPL
 Group: Applications/System
-Source:  %{name}-%{version}.tar.gz
-BuildRoot: %{_tmppath}/%{name}-%{version}-buildroot
+BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 Prefix: /
 %description
 An MPI-based I/O test for beowulf-style clusters.  
+
+# skip debug package, allow debugging symbols to remain in executables
+%define debug_package %{nil}
+%define __spec_install_post /usr/lib/rpm/brp-compress || :
 
 %package tools
 Summary: Tools to assist with mib 

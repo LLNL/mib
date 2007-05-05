@@ -1,3 +1,16 @@
+2007-05-05 Jim Garlick <garlick@llnl.gov>
+
+	* Makefile : Removed bogus quilt target.  Call mkinstalldirs 
+	with -m 755 to avoid wrong permissions on /usr/lustre.
+
+	* scripts/quilt.sh : Removed, no quilt here.
+
+	* mib.spec : Change deprecated Copyright to License.
+	Drop version information that will be overwritten by build buddah.
+	Add runes to skip debug package and not strip executables.
+
+	* : tag 1.9.8-5chaos
+
 2006-10-30 Andrew Uselton <uselton2@llnl.gov>
 
 	* Removed the sum.pl script which is also in the auto-test

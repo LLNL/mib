@@ -34,7 +34,7 @@ SHELL=   /bin/sh
 MAKE=    /usr/bin/make
 CC = %CC%
 INSTALL= /usr/bin/install -c
-mkinstalldirs=	 $(SHELL) ./aux/mkinstalldirs
+mkinstalldirs=	 $(SHELL) ./aux/mkinstalldirs -m 755
 
 MPI_CCFLAGS = -DUSE_STDARG -DHAVE_STDLIB_H=1 -DHAVE_STRING_H=1 -DHAVE_UNISTD_H=1 -DHAVE_STDARG_H=1 -DUSE_STDARG=1 -DMALLOC_RET_VOID=1 
 CCFLAGS = ${MPI_CCFLAGS}  -Wextra -g -D_LARGEFILE64_SOURCE -D_FILE_OFFSET_BITS=64 -rdynamic
@@ -85,12 +85,6 @@ clean:
 	rm -f *.rpm
 	$(MAKE) -C src clean
 	rm -f *.o mib *~
-
-apply-patches quilt: $(PROJECT)+chaos
-
-$(PROJECT)+chaos: patches/series
-	make clean
-	@scripts/quilt.sh $(QUILTFLAGS)
 
 check-vars:
 	@echo "Release:  $(PROJECT)-$(VERSION)-$(RELEASE)"
