@@ -1,0 +1,165 @@
+From jtang@tchpc.tcd.ie Tue May 15 05:47:43 2007
+Return-Path: <jtang@tchpc.tcd.ie>
+Received: from nspiron-2.llnl.gov (nspiron-2.llnl.gov [128.115.41.82]) by
+	lcmail.llnl.gov (8.13.7+Sun/8.13.6) with ESMTP id l4FClhlT021699 for
+	<auselton@lcmail.llnl.gov>; Tue, 15 May 2007 05:47:43 -0700 (PDT)
+Received: from nsziron-1.llnl.gov (HELO pierce.llnl.gov) ([128.115.249.81])
+	by nspiron-2.llnl.gov with ESMTP; 15 May 2007 05:47:38 -0700
+X-Attachments: mpi_wrap.c.patch
+X-IronPort-AV: i="4.14,537,1170662400";  d="scan'208";
+	a="26641064:sNHT52023204"
+Received: from nsziron-1.llnl.gov (nsziron-1.llnl.gov [128.115.249.81]) by
+	pierce.llnl.gov (8.13.6/8.12.3/LLNL evision: 1.11 $) with ESMTP id
+	l4FCmOOr018547 for <uselton2@llnl.gov>; Tue, 15 May 2007 05:48:24 -0700
+	(PDT)
+Received: from tabaet.tchpc.tcd.ie ([134.226.112.12]) by nsziron-1.llnl.gov
+	with ESMTP; 15 May 2007 05:47:36 -0700
+X-Attachments: mpi_wrap.c.patch
+X-BrightmailFiltered: true
+X-Brightmail-Tracker: AAAAAA==
+X-IronPort-AV: i="4.14,537,1170662400";  d="scan'208";
+	a="19611868:sNHT31977544"
+Received: from localhost (localhost [127.0.0.1]) by tabaet.tchpc.tcd.ie
+	(Postfix) with ESMTP id 6F7992B976 for <uselton2@llnl.gov>; Tue, 15 May
+	2007 13:47:33 +0100 (IST)
+Received: from tabaet.tchpc.tcd.ie ([127.0.0.1]) by localhost
+	(tabaet.tchpc.tcd.ie [127.0.0.1]) (amavisd-new, port 10024) with ESMTP id
+	21737-02 for <uselton2@llnl.gov>; Tue, 15 May 2007 13:47:32 +0100 (IST)
+Received: from vual.tchpc.tcd.ie (vual.ipv6.tchpc.tcd.ie
+	[IPv6:2001:770:10:500:2b0:d0ff:fefe:d7d2]) by tabaet.tchpc.tcd.ie (Postfix)
+	with ESMTP id 5E14D2B94C for <uselton2@llnl.gov>; Tue, 15 May 2007 13:47:32
+	+0100 (IST)
+Received: from localhost (unknown [127.0.0.1]) by vual.tchpc.tcd.ie
+	(Postfix) with ESMTP id 4E8B719120 for <uselton2@llnl.gov>; Tue, 15 May
+	2007 13:47:32 +0100 (IST)
+Received: from vual.tchpc.tcd.ie ([127.0.0.1]) by localhost
+	(vual.tchpc.tcd.ie [127.0.0.1]) (amavisd-new, port 10024) with ESMTP id
+	14812-07 for <uselton2@llnl.gov>; Tue, 15 May 2007 13:47:32 +0100 (IST)
+Received: by vual.tchpc.tcd.ie (Postfix, from userid 8176) id 3865C19126;
+	Tue, 15 May 2007 13:47:32 +0100 (IST)
+Date: Tue, 15 May 2007 13:47:32 +0100
+From: Jimmy Tang <jtang@tchpc.tcd.ie>
+To: uselton2@llnl.gov
+Subject: MIB compile errors with openmpi (gcc and pgcc)
+Message-ID: <20070515124732.GD23995@vual.tchpc.tcd.ie>
+Mime-Version: 1.0
+Content-Type: multipart/mixed; boundary="RnlQjJ0d97Da+TV1"
+Content-Disposition: inline
+User-Agent: Mutt/1.4.1i
+X-Useless-Header: I am the Master Blaster!, the faster blaster master
+	blaster faster blaster
+X-Operating-System: Linux vual.tchpc.tcd.ie 2.4.26
+X-Wii-Number: 6053 9064 7271 7948
+X-Wii-Nick: zaku
+X-Virus-Scanned: by amavisd-new at tchpc.tcd.ie
+X-Evolution-Source: imap://auselton@lcmail.llnl.gov/
+
+
+--RnlQjJ0d97Da+TV1
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+Content-Transfer-Encoding: 8bit
+
+Hi Andrew,
+
+I was playing around with the MIB package got from
+http://www.llnl.gov/linux/mib/ in the last few days. While i got it
+working with mvapich (after messing around with the makefiles etc...) I
+decided to try with openmpi, which gave the following error message when
+compiling,
+
+$ make -f Makefile-ompi  
+pgcc -DUSE_STDARG -DHAVE_STDLIB_H=1 -DHAVE_STRING_H=1 -DHAVE_UNISTD_H=1
+-DHAVE_STDARG_H=1 -DUSE_STDARG=1 -DMALLOC_RET_VOID=1  -g
+-D_LARGEFILE64_SOURCE -D_FILE_OFFSET_BITS=64
+-I/usr/support/arch/x86_64/OPENMPI/openmpi-1.2.1-pgi-6.2-2/include  -c
+mpi_wrap.c
+PGC-S-0067-Switch expression must be of integer type (mpi_wrap.c: 124)
+PGC-S-0091-Integer constant expression required (mpi_wrap.c: 127)
+PGC-S-0093-Type cast required for this conversion of constant
+(mpi_wrap.c: 127)
+PGC-W-0093-Type cast required for this conversion of constant
+(mpi_wrap.c: 127)
+PGC-S-0091-Integer constant expression required (mpi_wrap.c: 130)
+PGC-S-0093-Type cast required for this conversion of constant
+(mpi_wrap.c: 130)
+PGC-W-0093-Type cast required for this conversion of constant
+(mpi_wrap.c: 130)
+PGC-S-0083-Switch case constants must be unique (mpi_wrap.c: 130)
+PGC-S-0091-Integer constant expression required (mpi_wrap.c: 133)
+
+
+applying the attached patch seems to fix it and let it compile with
+gcc/pgcc with openmpi.
+
+
+Thanks,
+Jimmy.
+
+
+-- 
+Jimmy Tang
+Trinity Centre for High Performance Computing,
+Lloyd Building, Trinity College Dublin, Dublin 2, Ireland.
+http://www.tchpc.tcd.ie/ | http://www.tchpc.tcd.ie/~jtang
+
+--RnlQjJ0d97Da+TV1
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: attachment; filename="mpi_wrap.c.patch"
+Content-Transfer-Encoding: 8bit
+
+--- mpi_wrap.c.orig	2007-05-15 12:31:53.320357577 +0100
++++ mpi_wrap.c	2007-05-15 13:38:33.735820013 +0100
+@@ -121,6 +121,7 @@
+     }
+   else
+     {
++      /*
+       switch (datatype)
+ 	{
+ 	case MPI_INT :
+@@ -134,6 +135,16 @@
+ 	  size = 1;
+ 	  break;
+ 	}
++        */
++
++        if (datatype == MPI_INT) {
++          size = 4;
++        } else if (datatype == MPI_DOUBLE ) {
++          size = 8;
++        } else {
++          size = 1;
++        }
++
+       size *= count;
+       memcpy(recvbuf, sendbuf, size);
+     }
+@@ -421,6 +432,8 @@
+     }
+   else
+     {
++
++      /*
+       switch (datatype)
+ 	{
+ 	case MPI_INT :
+@@ -434,6 +447,16 @@
+ 	  size = 1;
+ 	  break;
+ 	}
++        */
++
++        if (datatype == MPI_INT) {
++          size = 4;
++        } else if (datatype == MPI_DOUBLE ) {
++          size = 8;
++        } else {
++          size = 1;
++        }
++
+       size *= count;
+       memcpy(recvbuf, sendbuf, size);
+     }
+
+--RnlQjJ0d97Da+TV1--

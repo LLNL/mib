@@ -1,0 +1,53 @@
+--- mpi_wrap.c.orig	2007-05-15 12:31:53.320357577 +0100
++++ mpi_wrap.c	2007-05-15 13:38:33.735820013 +0100
+@@ -121,6 +121,7 @@
+     }
+   else
+     {
++      /*
+       switch (datatype)
+ 	{
+ 	case MPI_INT :
+@@ -134,6 +135,16 @@
+ 	  size = 1;
+ 	  break;
+ 	}
++        */
++
++        if (datatype == MPI_INT) {
++          size = 4;
++        } else if (datatype == MPI_DOUBLE ) {
++          size = 8;
++        } else {
++          size = 1;
++        }
++
+       size *= count;
+       memcpy(recvbuf, sendbuf, size);
+     }
+@@ -421,6 +432,8 @@
+     }
+   else
+     {
++
++      /*
+       switch (datatype)
+ 	{
+ 	case MPI_INT :
+@@ -434,6 +447,16 @@
+ 	  size = 1;
+ 	  break;
+ 	}
++        */
++
++        if (datatype == MPI_INT) {
++          size = 4;
++        } else if (datatype == MPI_DOUBLE ) {
++          size = 8;
++        } else {
++          size = 1;
++        }
++
+       size *= count;
+       memcpy(recvbuf, sendbuf, size);
+     }

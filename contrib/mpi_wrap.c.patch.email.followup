@@ -1,0 +1,113 @@
+From jtang@tchpc.tcd.ie Tue May 15 12:15:08 2007
+Return-Path: <jtang@tchpc.tcd.ie>
+Received: from nspiron-1.llnl.gov (nspiron-1.llnl.gov [128.115.41.81]) by
+	lcmail.llnl.gov (8.13.7+Sun/8.13.6) with ESMTP id l4FJEw7Z014408 for
+	<auselton@lcmail.llnl.gov>; Tue, 15 May 2007 12:15:08 -0700 (PDT)
+Received: from nsziron-2.llnl.gov ([128.115.249.82]) by nspiron-1.llnl.gov
+	with ESMTP; 15 May 2007 12:15:07 -0700
+X-Attachments: 
+X-IronPort-AV: i="4.14,538,1170662400";  d="scan'208";
+	a="25813141:sNHT34614420"
+Received: from tabaet.tchpc.tcd.ie ([134.226.112.12]) by nsziron-2.llnl.gov
+	with ESMTP; 15 May 2007 12:14:30 -0700
+X-Attachments: 
+X-BrightmailFiltered: true
+X-Brightmail-Tracker: AAAAAA==
+X-IronPort-AV: i="4.14,538,1170662400";  d="scan'208";
+	a="19676184:sNHT29983888"
+Received: from localhost (localhost [127.0.0.1]) by tabaet.tchpc.tcd.ie
+	(Postfix) with ESMTP id 761F52B9FB for <acu@llnl.gov>; Tue, 15 May 2007
+	20:14:28 +0100 (IST)
+Received: from tabaet.tchpc.tcd.ie ([127.0.0.1]) by localhost
+	(tabaet.tchpc.tcd.ie [127.0.0.1]) (amavisd-new, port 10024) with ESMTP id
+	10097-10 for <acu@llnl.gov>; Tue, 15 May 2007 20:14:27 +0100 (IST)
+Received: from vual.tchpc.tcd.ie (vual.ipv6.tchpc.tcd.ie
+	[IPv6:2001:770:10:500:2b0:d0ff:fefe:d7d2]) by tabaet.tchpc.tcd.ie (Postfix)
+	with ESMTP id A89A52B9F9 for <acu@llnl.gov>; Tue, 15 May 2007 20:14:27
+	+0100 (IST)
+Received: from localhost (unknown [127.0.0.1]) by vual.tchpc.tcd.ie
+	(Postfix) with ESMTP id 9A79819120 for <acu@llnl.gov>; Tue, 15 May 2007
+	20:14:27 +0100 (IST)
+Received: from vual.tchpc.tcd.ie ([127.0.0.1]) by localhost
+	(vual.tchpc.tcd.ie [127.0.0.1]) (amavisd-new, port 10024) with ESMTP id
+	21584-04 for <acu@llnl.gov>; Tue, 15 May 2007 20:14:27 +0100 (IST)
+Received: by vual.tchpc.tcd.ie (Postfix, from userid 8176) id 86A2819126;
+	Tue, 15 May 2007 20:14:27 +0100 (IST)
+Date: Tue, 15 May 2007 20:14:27 +0100
+From: Jimmy Tang <jtang@tchpc.tcd.ie>
+To: acu@llnl.gov
+Subject: Re: MIB compile errors with openmpi (gcc and pgcc)
+Message-ID: <20070515191427.GA20866@vual.tchpc.tcd.ie>
+References: <20070515124732.GD23995@vual.tchpc.tcd.ie>
+	 <sfid-H20070515-180913-+034.63-1@vual.tchpc.tcd.ie>
+	 <1179252348.4569.3.camel@localhost.localdomain>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <1179252348.4569.3.camel@localhost.localdomain>
+User-Agent: Mutt/1.4.1i
+X-Useless-Header: I am the Master Blaster!, the faster blaster master
+	blaster faster blaster
+X-Operating-System: Linux vual.tchpc.tcd.ie 2.4.26
+X-Wii-Number: 6053 9064 7271 7948
+X-Wii-Nick: zaku
+X-Virus-Scanned: by amavisd-new at tchpc.tcd.ie
+X-Evolution-Source: imap://auselton@lcmail.llnl.gov/
+Content-Transfer-Encoding: 8bit
+
+Hi Andrew,
+
+On Tue, May 15, 2007 at 11:05:48AM -0700, Andrew Uselton wrote:
+> Way cool.  I'll see if I can push it back into the repository.  
+
+cool.
+
+> 
+> I'm curious.  What do you think of the whole DLL business?  Initially, I
+> liked the idea of having the same code compile for MPI and non-MPI
+> environments.  Now I'm beginning to regret it.  The kind of problem you
+> encountered is exactly what the "mpicc" wrapper is supposed to prevent.
+> If I do get into a mib-2.0 I'm seriously considering simplifying this
+> part of the code and configuration.
+
+emm, the idea of dll's sound good, but i find it causes no end to pain
+and misery for most people. Its probably bad practice but i prefer to
+get the users on our compute systems to statically compile things as
+much as possible and stow it away (especially with computational
+libraries etc...) the less fiddling the user has to do the less they can
+mess up :)
+
+since its a test on/for distributed/parallel filesystems i'd be quite
+happy if the non-mpi version was dropped and if the mpi version kept. a
+user can always do "mpirun -np 1 mib -t ...." i'd expect most people who
+want use mib will have mpi installed. i prefer to have simple tools :P
+
+regarding mib, it seems okay as it is right now, it does what you would
+want and expect. I certainly found it an interesting and useful tool to
+see how our gpfs and ddn setup behaves (i need to spend some more time
+to really look at it). 
+
+also after poking at the configure script and makefile, i had half
+considered in writing a cmake file for it to make life easier for
+myself. I can see myself using this program a few more times as we
+upgrade our kit. so you may see a cmake file from me in a few
+weeks/months.
+
+> Also note that mib is out on sourceforge at (I think) project "mib-
+> test".  
+
+I saw that, i wasn't too sure if i should have filed a bug report there or
+not, im not a huge fan of sourceforge so i just decided to email the
+author of the program.
+
+
+
+Thanks,
+Jimmy.
+
+
+-- 
+Jimmy Tang
+Trinity Centre for High Performance Computing,
+Lloyd Building, Trinity College Dublin, Dublin 2, Ireland.
+http://www.tchpc.tcd.ie/ | http://www.tchpc.tcd.ie/~jtang
