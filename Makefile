@@ -34,8 +34,8 @@ install:
 	$(INSTALL) src/tools/lfind-dist2.pl	$(DESTDIR)$(lustre_scripts)/
 	$(INSTALL) src/tools/lfind-dist3.pl	$(DESTDIR)$(lustre_scripts)/
 	$(INSTALL) src/tools/lfinding.sh	$(DESTDIR)$(lustre_scripts)/
-	$(INSTALL) src/tools/lwatch.pl		$(DESTDIR)$(lustre_scripts)/
-	$(INSTALL) src/tools/lwatch.py		$(DESTDIR)$(lustre_scripts)/
+#	$(INSTALL) src/tools/lwatch.pl		$(DESTDIR)$(lustre_scripts)/
+#	$(INSTALL) src/tools/lwatch.py		$(DESTDIR)$(lustre_scripts)/
 	$(INSTALL) src/tools/mib-test.sh	$(DESTDIR)$(lustre_scripts)/
 	$(INSTALL) src/tools/mib-test.transcript $(DESTDIR)$(lustre_scripts)/
 	$(INSTALL) src/tools/mib.sh		$(DESTDIR)$(lustre_scripts)/
