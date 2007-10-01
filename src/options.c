@@ -38,7 +38,6 @@
 #include <errno.h>
 #define _GNU_SOURCE
 #include <getopt.h>
-#include "config.h"
 #include "mpi_wrap.h"
 #include "mib.h"
 #include "miberr.h"

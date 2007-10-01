@@ -32,7 +32,6 @@
 #include <time.h>
 #include <unistd.h>
 #include <stdarg.h>
-#include "config.h"
 #include "sys_wrap.h"
 #include "slurm.h"
 
@@ -59,6 +58,7 @@ get_SLURM_env()
 
   s = (SLURM *)Malloc(sizeof(SLURM));
   s->use_SLURM = 1;
+#if 0
   s->CPUS_ON_NODE = _get_int_env("SLURM_CPUS_ON_NODE");
   s->CPUS_PER_TASK = _get_int_env("SLURM_CPUS_PER_TASK");
   _get_str_env(s->CPU_BIND_LIST, "SLURM_CPU_BIND_LIST");
@@ -67,17 +67,18 @@ get_SLURM_env()
   s->JOBID = _get_int_env("SLURM_JOBID");
   _get_str_env(s->LAUNCH_NODE_IPADDR, "SLURM_LAUNCH_NODE_IPADDR");
   s->LOCALID = _get_int_env("SLURM_LOCALID");
-  s->NNODES = _get_int_env("SLURM_NNODES");
   s->NODEID = _get_int_env("SLURM_NODEID");
-  _get_str_env(s->NODELIST, "SLURM_NODELIST");
-  s->NPROCS = _get_int_env("SLURM_NPROCS");
-  s->PROCID = _get_int_env("SLURM_PROCID");
   _get_str_env(s->SRUN_COMM_HOST, "SLURM_SRUN_COMM_HOST");
   s->SRUN_COMM_PORT = _get_int_env("SLURM_SRUN_COMM_PORT");
   s->STEPID = _get_int_env("SLURM_STEPID");
   _get_str_env(s->TASKS_PER_NODE, "SLURM_TASKS_PER_NODE");
   s->TASK_PID = _get_int_env("SLURM_TASK_PID");
   _get_str_env(s->UMASK, "SLURM_UMASK");
+#endif
+  _get_str_env(s->NODELIST, "SLURM_NODELIST");
+  s->PROCID = _get_int_env("SLURM_PROCID");
+  s->NPROCS = _get_int_env("SLURM_NPROCS");
+  s->NNODES = _get_int_env("SLURM_NNODES");
   if(s->NPROCS == 0)
     {
       s->use_SLURM = 0;
@@ -92,6 +93,7 @@ show_SLURM_env()
   printf("use SLURM? %s\n", (slurm->use_SLURM ? "Yes" : "No"));
   if(slurm->use_SLURM)
     {
+#if 0
       printf("SLURM_CPUS_ON_NODE = %d\n", slurm->CPUS_ON_NODE);
       printf("SLURM_CPUS_PER_TASK = %d\n", slurm->CPUS_PER_TASK);
       printf("SLURM_CPU_BIND_LIST = %s\n", slurm->CPU_BIND_LIST);
@@ -100,17 +102,18 @@ show_SLURM_env()
       printf("SLURM_JOBID = %d\n", slurm->JOBID);
       printf("SLURM_LAUNCH_NODE_IPADDR = %s\n", slurm->LAUNCH_NODE_IPADDR);
       printf("SLURM_LOCALID = %d\n", slurm->LOCALID);
-      printf("SLURM_NNODES = %d\n", slurm->NNODES);
       printf("SLURM_NODEID = %d\n", slurm->NODEID);
-      printf("SLURM_NODELIST = %s\n", slurm->NODELIST);
-      printf("SLURM_NPROCS = %d\n", slurm->NPROCS);
-      printf("SLURM_PROCID = %d\n", slurm->PROCID);
       printf("SLURM_SRUN_COMM_HOST = %s\n", slurm->SRUN_COMM_HOST);
       printf("SLURM_SRUN_COMM_PORT = %d\n", slurm->SRUN_COMM_PORT);
       printf("SLURM_STEPID = %d\n", slurm->STEPID);
       printf("SLURM_TASKS_PER_NODE = %s\n", slurm->TASKS_PER_NODE);
       printf("SLURM_TASK_PID = %d\n", slurm->TASK_PID);
       printf("SLURM_UMASK = %s\n", slurm->UMASK);
+#endif
+      printf("SLURM_NODELIST = %s\n", slurm->NODELIST);
+      printf("SLURM_PROCID = %d\n", slurm->PROCID);
+      printf("SLURM_NNODES = %d\n", slurm->NNODES);
+      printf("SLURM_NPROCS = %d\n", slurm->NPROCS);
     }
   fflush(stdout);
 }

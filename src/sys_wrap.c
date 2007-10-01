@@ -40,7 +40,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdarg.h>
-#include "config.h"
 #include "mpi_wrap.h"
 #include "mib.h"
 #include "miberr.h"
@@ -241,7 +240,9 @@ Fsync(int fd)
 
   errno = 0;
   if ( (rc = fsync(fd)) < 0 )
+    {
     /*       if (USE_MPI) {FAIL();} else exit(1); */;
+    }
   return(rc);
 }
 

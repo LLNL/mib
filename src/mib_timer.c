@@ -25,7 +25,6 @@
 #include <stdio.h>
 #include <time.h>
 #include <string.h>     /* strncpy */
-#include "config.h"
 #include "mpi_wrap.h"
 #include "miberr.h"
 #include "options.h"

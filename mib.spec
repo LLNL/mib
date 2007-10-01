@@ -50,16 +50,6 @@ Group: Applications/System
 Shell, Perl, and Python scripts to assist with analyzing mib results
 	and setting up for mib tests.
 
-%pre tools
-# /var/lustredata is intended to be a separate large partition dedicated
-# to the results of auto-test operation.  This check was to prevent 
-# setting up a lustredta directory when ther eis no partition.
-# We've decided to just go ahead and install and hope the mib-tools user
-# doesn't do anything stupid with auto-test output, like fill up the
-# root partition.
-#[ -d $INSTALLPREFIX/var/lustredata ] || { echo "no lustredata directory"; exit 1; }
-
-
 %prep
 %setup -q
 
@@ -69,7 +59,7 @@ make doc
 
 %install
 rm -rf $RPM_BUILD_ROOT
-DESTDIR=$RPM_BUILD_ROOT make -e install
+make -e install DESTDIR=$RPM_BUILD_ROOT 
 
 %clean
 rm -rf $RPM_BUILD_ROOT
@@ -79,13 +69,11 @@ rm -rf $RPM_BUILD_ROOT
 %doc doc/DISCLAIMER doc/MOU META doc/TODO
 
 /usr/lustre/bin
-/usr/man/man1
+/usr/share/man/man1
 
 %files tools
 %defattr(-,root,root)
 /usr/lustre/scripts
-
-
 
 %changelog
 * Wed Aug  2 2006 Andrew C. Uselton <auselton@alci> 

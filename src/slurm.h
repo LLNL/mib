@@ -54,6 +54,7 @@
 
 typedef struct SLURM_Struct {
   int use_SLURM;
+#if 0
   int CPUS_ON_NODE;
   int CPUS_PER_TASK;
   char CPU_BIND_LIST[MAX_SLURM_BUF];
@@ -62,17 +63,18 @@ typedef struct SLURM_Struct {
   int  JOBID;
   char LAUNCH_NODE_IPADDR[MAX_SLURM_BUF];
   int  LOCALID;
-  int  NNODES;
   int  NODEID;
-  char NODELIST[MAX_SLURM_BUF];
-  int  NPROCS;
-  int  PROCID;
   char SRUN_COMM_HOST[MAX_SLURM_BUF];
   int  SRUN_COMM_PORT;
   int  STEPID;
   char TASKS_PER_NODE[MAX_SLURM_BUF];
   int  TASK_PID;
   char UMASK[MAX_SLURM_BUF];
+#endif
+  char NODELIST[MAX_SLURM_BUF];
+  int  NNODES;
+  int  NPROCS;
+  int  PROCID;
 }SLURM;
 
 SLURM *get_SLURM_env();

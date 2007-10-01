@@ -1,3 +1,18 @@
+2007-09-30 Jim Garlick <garlick@llnl.gov>
+
+	* src/slurm.[ch] : Comment out all unused slurm info from struct
+	to make it clear what is being used from slurm.
+
+	* src/config.h : Remove.
+
+	* src/mpi_wrap.c : Explicitly call MPI functions, not via dlopen.
+
+	* src/Makefile : Compile with mib mpicc.
+
+	* src/Makefile : Compile with mib-serial gcc and no MPI.
+
+	* : tag 1.9.8-7chaos
+
 2007-05-05 Jim Garlick <garlick@llnl.gov>
 
 	* Makefile : Removed bogus quilt target.  Call mkinstalldirs 

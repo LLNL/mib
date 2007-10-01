@@ -44,7 +44,7 @@
 #include <errno.h>
 #include <time.h>
 #include <stdarg.h>    /* varargs */
-#include "config.h"
+#include <sys/utsname.h>
 #include "mpi_wrap.h"
 #include "mib.h"
 #include "miberr.h"
@@ -53,7 +53,8 @@
 #include "mib_timer.h"
 #include "sys_wrap.h"
 
-void sign_on();
+void get_arch(void);
+void sign_on(void);
 Mib *Init_Mib(int rank, int size);
 double write_test();
 char *fill_buff();
@@ -64,13 +65,13 @@ Results *reduce_results(Results *res);
 void profiles(double *array, int count, char *profile_log_name);
 void report(double write, double read);
 void _base_report(char *fmt, va_list args);
-int get_host_index();
+int get_host_index(void);
 
 /* See mib.h.  the size of the communicator and the task's rank are in the Mib struct */
 Mib  *mib = NULL;
 
 char *version=MIB_VERSION;
-char *arch=MIB_ARCH;
+char *arch = "unknown";
 
 /* See options.h.  Elements of the command line are here */
 extern Options *opts;
@@ -99,6 +100,9 @@ main( int argc, char *argv[] )
   int rank;
   double read = 0;
   double write = 0;
+
+  /* ask kernel what arch we are */
+  get_arch();
 
   /* initialize the slurm struct */
   slurm = get_SLURM_env();
@@ -136,7 +140,7 @@ main( int argc, char *argv[] )
 }
 
 void
-sign_on()
+sign_on(void)
 {
   /* print time, version, and architecture */
   time_t t;
@@ -151,6 +155,22 @@ sign_on()
   if( *p == '\n' ) *p = '\0';
   sprintf(signon, "\n\nmib-%s-%s  %s\n\n", version, arch, time_str);
   conditional_report(SHOW_SIGNON, signon);
+}
+
+void
+get_arch(void)
+{
+  struct utsname uts;
+
+  if (uname(&uts) < 0) {
+    perror("uname");
+    exit(1);
+  }
+  arch = strdup(uts.machine);
+  if (!arch) {
+    fprintf(stderr, "Out of memory\n");
+    exit(1);
+  }
 }
 
 Mib *
@@ -175,7 +195,7 @@ Init_Mib(int rank, int size)
 }
 
 int
-get_host_index()
+get_host_index(void)
 {
   /* 
    *  If we don't have MPI and we don't have SLURM we might be able to 
