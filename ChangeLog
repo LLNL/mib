@@ -1,4 +1,12 @@
+2008-01-31 Jim Garlick <garlick@llnl.gov>
+
+	* : tag 1.9.8-8
+
+	* mib.spec : Add mvapich-shmem to BuildRequires.
+
 2007-09-30 Jim Garlick <garlick@llnl.gov>
+
+	* : tag 1.9.8-7chaos
 
 	* src/slurm.[ch] : Comment out all unused slurm info from struct
 	to make it clear what is being used from slurm.
@@ -9,11 +17,11 @@
 
 	* src/Makefile : Compile with mib mpicc.
 
-	* src/Makefile : Compile with mib-serial gcc and no MPI.
-
-	* : tag 1.9.8-7chaos
+	* src/Makefile : Compile mib-serial with gcc and no MPI.
 
 2007-05-05 Jim Garlick <garlick@llnl.gov>
+
+	* : tag 1.9.8-5chaos
 
 	* Makefile : Removed bogus quilt target.  Call mkinstalldirs 
 	with -m 755 to avoid wrong permissions on /usr/lustre.
@@ -23,8 +31,6 @@
 	* mib.spec : Change deprecated Copyright to License.
 	Drop version information that will be overwritten by build buddah.
 	Add runes to skip debug package and not strip executables.
-
-	* : tag 1.9.8-5chaos
 
 2006-10-30 Andrew Uselton <uselton2@llnl.gov>
 

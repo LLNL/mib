@@ -36,6 +36,7 @@ Summary: An MPI-based I/O test for beowulf-style clusters
 Group: Applications/System
 BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 Prefix: /
+BuildRequires: mvapich-shmem
 %description
 An MPI-based I/O test for beowulf-style clusters.  
 
