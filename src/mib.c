@@ -45,11 +45,11 @@
 #include <time.h>
 #include <stdarg.h>    /* varargs */
 #include <sys/utsname.h>
+#include <assert.h>
 #include "mpi_wrap.h"
 #include "mib.h"
 #include "miberr.h"
 #include "options.h"
-#include "slurm.h"
 #include "mib_timer.h"
 #include "sys_wrap.h"
 
@@ -65,7 +65,6 @@ Results *reduce_results(Results *res);
 void profiles(double *array, int count, char *profile_log_name);
 void report(double write, double read);
 void _base_report(char *fmt, va_list args);
-int get_host_index(void);
 
 /* See mib.h.  the size of the communicator and the task's rank are in the Mib struct */
 Mib  *mib = NULL;
@@ -78,16 +77,6 @@ extern Options *opts;
 /* Be sure you don't use these macros until after opts is initialized */
 #define check_flags(mask) flag_set(opts->flags, mask)
 #define verbosity(mask) flag_set(opts->verbosity, mask)
-
-/* 
- * See slurm.h.  If SLURM is present then some extra info is available
- * here.  In the absense of MPI this can help with identifying a unique
- * task for writing to stdout  
- */
-extern SLURM   *slurm;
-
-/* See mpi_wrap.c */
-extern int use_mpi;
 
 int
 main( int argc, char *argv[] )
@@ -103,9 +92,6 @@ main( int argc, char *argv[] )
 
   /* ask kernel what arch we are */
   get_arch();
-
-  /* initialize the slurm struct */
-  slurm = get_SLURM_env();
 
   /* initialize the opts struct */
   opts = command_line(&argc, &argv);
@@ -179,43 +165,11 @@ Init_Mib(int rank, int size)
   Mib *m;
 
   m = (Mib *)Malloc(sizeof(Mib));
-  /* 
-   *   If we don't even have a slurm environment then act like there's 
-   * just one of us.  Get your rank off of the hostname and be sure to
-   * set size = 1 and base the same as rank.
-   */
-  m->nodes = slurm->use_SLURM ? slurm->NNODES : 1;
-  m->tasks = slurm->use_SLURM ? slurm->NPROCS : 1;
-
-  m->rank =  USE_MPI ? rank : (slurm->use_SLURM ? slurm->PROCID : get_host_index());
-  m->size =  USE_MPI ? size : (slurm->use_SLURM ? slurm->NPROCS : 1 );
-  m->base =  USE_MPI ? 0 : (slurm->use_SLURM ? 0 : m->rank );
+  m->rank =  rank;
+  m->size =  size;
+  m->base =  0;
   m->comm = MPI_COMM_WORLD;
   return(m);
-}
-
-int
-get_host_index(void)
-{
-  /* 
-   *  If we don't have MPI and we don't have SLURM we might be able to 
-   * get a task number off the host name.  No guarantee, though.  Not
-   * necessarily unique either.  If all else fails then just use 0.
-   * Note that for the following to work the hostname needs to be a
-   * null terminated string with digits only at the end.  
-   */
-  int rc;
-  char name[MAX_BUF];
-  char *p = name;
-
-  if((rc = gethostname(name, MAX_BUF)) == -1)
-    {
-      return(0);
-    }
-
-  while ( *p && ((*p < '0') || (*p > '9')) ) p++;
-  if(*p) return(atoi(p));
-  return(0);
 }
 
 double
@@ -287,7 +241,7 @@ write_test()
       call++;
       xfer = Write(wf, buf, opts->call_size);
       /* this shouldn't ever happen, but it's good to know when it does :) */
-      if (xfer < 0) printf("call %d wrote %d\n",call, xfer);
+      assert(xfer >= 0);
       res->transferred += xfer;
       if (xfer < opts->call_size) res->short_transfers++; 
       res->timings[call] = get_time();
@@ -355,10 +309,8 @@ write_test()
   /* 
    * If there is no MPI, but only one task we should still be able to get
    * profiles, but that will have to be an embellishment for later.
-   * If you want profiles for more than one task and have no MPI then
-   * more care is requred in the file naming.
    */
-  if(USE_MPI)
+  if(mib->size > 1)
     {
       /*
        *   "Red" will end up with the aggregate amout of data transfered and the
@@ -538,7 +490,7 @@ read_test()
   Results *red = NULL;
   Results *res = NULL;
   char read_target[MAX_BUF];
-  int read_rank = ((mib->rank + (mib->tasks/2)) % mib->tasks) + mib->base;
+  int read_rank = ((mib->rank + (mib->size/2)) % mib->size) + mib->base;
   int last_read_call;
   off_t offset;
   double gran;
@@ -581,7 +533,7 @@ read_test()
 	  printf("In task %d, the file size (%ld) is too small for the granularity (%lld)\n", 
 		      mib->rank, (long)stats.st_size, opts->granularity);
 	  fflush(stdout);
-	  if (USE_MPI) {FAIL();} else exit(1);
+	  FAIL();
 	}
       gran = stats.st_size/(opts->granularity*RAND_MAX);
     }
@@ -666,7 +618,7 @@ read_test()
 	      "\nAfter %d calls and %f seconds\n", 
 	      last_read_call, res->end_test - res->start_open);
 
-  if(USE_MPI)
+  if(mib->size > 1)
     {
       /*
        *   Red will end up with the aggregate amout of data transfered and the
@@ -751,19 +703,19 @@ profiles(double *array,   int count, char *io_direction)
 
   /*
    */
-  BUF_LIMIT = 20*mib->tasks;
+  BUF_LIMIT = 20*mib->size;
   buffer = Malloc(BUF_LIMIT);
   DEBUG("Table\n");
   conditional_report(SHOW_INTERMEDIATE_VALUES, 
-	      "Table of %d tasks with up to %d system calls\n", mib->tasks, count);
-  table = (double *)Malloc(mib->tasks*sizeof(double));
+	      "Table of %d tasks with up to %d system calls\n", mib->size, count);
+  table = (double *)Malloc(mib->size*sizeof(double));
   for(call = 0; call < count; call++)
     {
       mpi_gather(&(array[call]), 1, MPI_DOUBLE, table, 1, MPI_DOUBLE, mib->base, mib->comm);
       if( mib->rank == mib->base )
 	{
 	  ip = buffer;
-	  for(i = 0; i < mib->tasks; i++)
+	  for(i = 0; i < mib->size; i++)
 	    {
 	      /* N.B.  the following can only have one double,
 		 since varargs doesn't work.  */
@@ -805,33 +757,14 @@ report(double write, double read)
       range_ch = 'M';
     }
   xfer = opts->call_size/range;
-  if ( USE_MPI )
-    {
-      conditional_report(SHOW_HEADERS, 
+  conditional_report(SHOW_HEADERS, 
 		  "%14s           %6s %5s %5s %5s %10s %10s\n", "date", "tasks", "xfer", "call", "time", "write", "read");
-      conditional_report(SHOW_HEADERS, 
+  conditional_report(SHOW_HEADERS, 
 		  "%24s %6s %5s %5s %5s %10s %10s\n", " ", " ", " ", "limit", "limit", "MB/s", "MB/s");
-      conditional_report(SHOW_HEADERS, 
+  conditional_report(SHOW_HEADERS, 
 		  "%24s %6s %5s %5s %5s %10s %10s\n", "------------------------", "------", "-----", "-----", "-----", "----------", "----------");
-      conditional_report(SHOW_ALL, 
-		  "%s %6d %4d%c %5d %5d %10.2f %10.2f\n", time_str, mib->tasks, xfer, range_ch, opts->call_limit, opts->time_limit, write, read);
-    }
-  else
-    {
-      /* 
-       *   The only difference between this and the MPI one is that you paste the 
-       * supposed rank number in front of each result line, of which there will be 
-       * as many as there are tasks.
-       */      
-      conditional_report(SHOW_HEADERS, 
-		  "%6s %14s           %6s %5s %5s %5s %10s %10s\n", "task", "date", "tasks", "xfer", "call", "time", "write", "read");
-      conditional_report(SHOW_HEADERS, 
-		  "%6s %24s %6s %5s %5s %5s %10s %10s\n", " ", " ", " ", " ", "limit", "limit", "MB/s", "MB/s");
-      conditional_report(SHOW_HEADERS, 
-		  "%6s %24s %6s %5s %5s %5s %10s %10s\n", "------", "------------------------", "------", "-----", "-----", "-----", "----------", "----------");
-      printf("%6d %s %6d %4d%c %5d %5d %10.2f %10.2f\n", mib->rank, time_str, mib->tasks, xfer, range_ch, opts->call_limit, opts->time_limit, write, read);
-      fflush(stdout);
-    }
+  conditional_report(SHOW_ALL, 
+		  "%s %6d %4d%c %5d %5d %10.2f %10.2f\n", time_str, mib->size, xfer, range_ch, opts->call_limit, opts->time_limit, write, read);
 }
 
 
@@ -852,9 +785,8 @@ base_report(char *fmt, ...)
   va_list args;
   
   /*
-   * If this is called before mib and slurm are initialized then just
-   * print.  If slurm is initialized but mid is not, then print from the
-   * PROCID = 0 task.  If mib is initialized then print from its base task.
+   * If this is called before mib is initialized then just
+   * print.  If mib is initialized then print from its base task.
    * Don't print unless the verbosity level says to.
    */
   va_start(args, fmt);
@@ -865,16 +797,7 @@ base_report(char *fmt, ...)
 void
 _base_report(char *fmt, va_list args)
 {
- if(mib != NULL) 
-    {
-      /* The usual case */
-      if (mib->rank != mib->base) return;
-    }
-  else if(slurm != NULL)
-    {
-      /* No MPI but Slurm is available */
-      if(slurm->PROCID != 0) return;
-    }
+  if(mib != NULL && mib->rank != mib->base) return;
   vprintf(fmt, args);
   fflush(stdout);
 }

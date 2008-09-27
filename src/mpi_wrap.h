@@ -34,12 +34,6 @@ typedef enum {FALSE, TRUE} BOOL;
 #define BOOL_DEF
 #endif
 
-#define FORCE_NO_MPI (-1)
-#define NO_MPI 0
-#define YES_MPI 1
-#define USE_MPI (use_mpi > NO_MPI)
-#define DO_NOT_USE_MPI (use_mpi < YES_MPI)
-
 /*
  *   All of these "wrapper" functions correspond directly to their MPI
  * equivalents, with one exceptions.  If the NO_MPI condition is set

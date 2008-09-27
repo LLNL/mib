@@ -43,7 +43,6 @@
 #include "miberr.h"
 #include "sys_wrap.h"
 #include "options.h"
-#include "slurm.h"
 
 Options *Make_Opts();
 void check_fs(char *path, int showenv, int force);
@@ -53,11 +52,9 @@ BOOL set_int(char *v, int *nump);
 BOOL set_longlong(char *v, long long *llnump);
 
 Options *opts;
-char *opt_str = "b::EFIhHl:L:Mnp:PrRs:St:VW";
+char *opt_str = "b::EFIhHl:L:np:PrRs:St:VW";
 
 extern Mib    *mib;
-extern SLURM  *slurm;
-extern int     use_mpi;
 extern char   *version;
 extern char   *arch;
 
@@ -79,7 +76,6 @@ command_line(int *argcp, char **argvp[])
       {"show_headers", no_argument, NULL, 'H'},
       {"call_limit", required_argument, NULL, 'l'},
       {"time_limit", required_argument, NULL, 'L'},
-      {"no_mpi", 0 , NULL, 'M'},
       {"new", 0 , NULL, 'n'},
       {"profiles", required_argument, NULL, 'p'},
       {"show_progress", no_argument, NULL, 'P'},
@@ -121,14 +117,11 @@ command_line(int *argcp, char **argvp[])
 	case 'L' : /* time_limit */
 	  set_int(optarg, &(o->time_limit));
 	  break;
-	case 'M' : /* no MPI */
-	  use_mpi = FORCE_NO_MPI;
-	  break;
 	case 'n' : /* new */
 	  set_flags("true", &(o->flags), NEW);
 	  break;
 	case 'p' : /* profiles */
-	  if( (optarg == NULL) && ((slurm->use_SLURM == 0) || (slurm->PROCID == 0)) ) usage();
+	  if(optarg == NULL) usage();
 	  set_string(optarg, &(o->profiles));
 	  break;
 	case 'P' : /* show_progress */
@@ -147,7 +140,7 @@ command_line(int *argcp, char **argvp[])
 	  set_flags("true", &(o->verbosity), SHOW_SIGNON);
 	  break;
 	case 't' : /* test_dir */
-	  if( (optarg == NULL) && ((slurm->use_SLURM == 0) || (slurm->PROCID == 0)) ) usage();
+	  if(optarg == NULL) usage();
 	  set_string(optarg, &(o->testdir));
 	  break;
 	case 'V' : /* version */
@@ -158,7 +151,8 @@ command_line(int *argcp, char **argvp[])
 	  break;
 	case 'h' :  /* help */
 	default : 
-	  if ( (slurm->use_SLURM == 0) || (slurm->PROCID == 0) ) usage(); break;
+	  usage(); 
+          break;
 	}
     }
   /* 
@@ -197,7 +191,6 @@ usage( void )
   printf("    -L <time_limit> :  Do not issue new system calls after this many\n");
   printf("                    :    seconds (limits are per phase for write and\n");
   printf("                    :    read phases).\n");
-  printf("    -M              :  Do not use MPI even if it is available.\n");
   printf("    -n              :  Create new files if files were already present\n");
   printf("                    :    (will always create new files if none were\n");
   printf("                    :    present).\n");
@@ -344,44 +337,15 @@ check_fs(char *path, int showenv, int force)
 void
 show_details()
 {
-  char cluster[MAX_BUF];
-  char *p;
-
   if ( mib->rank == mib->base )
     {
-      if( slurm->use_SLURM)
-	{
-	  strncpy(cluster, slurm->NODELIST, MAX_BUF);
-	  /* track to the end of the non-digit, non-range end of the string to get the basename */
-	  for(p = cluster; ( (*p != '\0') &&
-			     (*p != '[') &&
-			     ( (*p < '0') || (*p > '9') ) &&
-			     ( p - cluster < MAX_BUF ) ); p++);
-	  /* If it's a management node just drop the 'i' */
-	  if( (p > cluster) && 
-	      (p - cluster < MAX_BUF) &&
-	      (*(p-1) == 'i') 
-	      ) 
-	    *(p-1) = '\0';
-
-	  if( (p > cluster) && 
-	      (p - cluster < MAX_BUF)  && 
-	      ( (*p == '[') ||
-	       ( ((*p >= '0') && (*p <= '9'))) )  
-	      ) 
-	    *p = '\0';
-	}
-      else
-	cluster[0] = '\0';
-      printf("cluster                  = %s\n", cluster);      
       printf("new                      = %s\n", ((opts->flags & NEW) ? "true" : "false"));
       printf("remove                   = %s\n", ((opts->flags & REMOVE) ? "true" : "false"));
-      printf("nodes                    = %d\n", mib->nodes);
       printf("testdir                  = %s\n", opts->testdir);
       printf("call_limit               = %d\n", opts->call_limit);
       printf("call_size                = %lld\n", opts->call_size);
       printf("time_limit               = %d\n", opts->time_limit);
-      printf("tasks                    = %d\n", mib->tasks);
+      printf("tasks                    = %d\n", mib->size);
       printf("write_only               = %s\n", ((opts->flags & WRITE_ONLY) ? "true" : "false"));
       printf("read_only                = %s\n", ((opts->flags & READ_ONLY) ? "true" : "false"));
       printf("profiles                 = %s\n", ((opts->profiles == NULL) ? "no" : opts->profiles));

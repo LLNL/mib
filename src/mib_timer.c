@@ -46,7 +46,6 @@ static double _skew;
 static int _initialized = 0;
 
 extern char *version;
-extern int use_mpi;
 
 void
 init_timer()

@@ -49,8 +49,6 @@ typedef enum {FALSE, TRUE} BOOL;
  * though it is not implemented int he current version.
  */
 typedef struct Mib_Struct {
-  int nodes;
-  int tasks;
   int rank;
   int size;
   int base;
