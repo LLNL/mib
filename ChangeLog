@@ -1,5 +1,7 @@
 2008-09-27 Jim Garlick <garlick@llnl.gov>
 
+	* : tag 1.9.9
+
 	* slurm.[ch] : Removed.
 
 	* src/mpi_wrap.c, src/mib.c : Drop suport for -M (no mpi) option.
