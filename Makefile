@@ -23,24 +23,24 @@ install:
 	$(mkinstalldirs) 			$(DESTDIR)$(lustre_bin)
 	$(INSTALL) src/mib			$(DESTDIR)$(lustre_bin)/
 	$(mkinstalldirs)			$(DESTDIR)$(mandir)
-	$(INSTALL) src/mib.1 -m 644		$(DESTDIR)$(mandir)/
+	$(INSTALL) doc/mib.1 -m 644		$(DESTDIR)$(mandir)/
 	$(mkinstalldirs)			$(DESTDIR)$(lustre_scripts)
-	$(INSTALL) src/tools/composite.pl	$(DESTDIR)$(lustre_scripts)/
-	$(INSTALL) src/tools/diff.pl		$(DESTDIR)$(lustre_scripts)/
-	$(INSTALL) src/tools/file-layout.sh	$(DESTDIR)$(lustre_scripts)/
-	$(INSTALL) src/tools/hullo-lustre.sh	$(DESTDIR)$(lustre_scripts)/
-	$(INSTALL) src/tools/lfind-dist1.pl	$(DESTDIR)$(lustre_scripts)/
-	$(INSTALL) src/tools/lfind-dist2.pl	$(DESTDIR)$(lustre_scripts)/
-	$(INSTALL) src/tools/lfind-dist3.pl	$(DESTDIR)$(lustre_scripts)/
-	$(INSTALL) src/tools/lfinding.sh	$(DESTDIR)$(lustre_scripts)/
-#	$(INSTALL) src/tools/lwatch.pl		$(DESTDIR)$(lustre_scripts)/
-#	$(INSTALL) src/tools/lwatch.py		$(DESTDIR)$(lustre_scripts)/
-	$(INSTALL) src/tools/mib-test.sh	$(DESTDIR)$(lustre_scripts)/
-	$(INSTALL) src/tools/mib-test.transcript $(DESTDIR)$(lustre_scripts)/
-	$(INSTALL) src/tools/mib.sh		$(DESTDIR)$(lustre_scripts)/
-	$(INSTALL) src/tools/profile.pl		$(DESTDIR)$(lustre_scripts)/
-	$(INSTALL) src/tools/rm-files.sh	$(DESTDIR)$(lustre_scripts)/
-	$(INSTALL) src/tools/viewcalls.pl	$(DESTDIR)$(lustre_scripts)/
+	$(INSTALL) scripts/composite.pl	$(DESTDIR)$(lustre_scripts)/
+	$(INSTALL) scripts/diff.pl		$(DESTDIR)$(lustre_scripts)/
+	$(INSTALL) scripts/file-layout.sh	$(DESTDIR)$(lustre_scripts)/
+	$(INSTALL) scripts/hullo-lustre.sh	$(DESTDIR)$(lustre_scripts)/
+	$(INSTALL) scripts/lfind-dist1.pl	$(DESTDIR)$(lustre_scripts)/
+	$(INSTALL) scripts/lfind-dist2.pl	$(DESTDIR)$(lustre_scripts)/
+	$(INSTALL) scripts/lfind-dist3.pl	$(DESTDIR)$(lustre_scripts)/
+	$(INSTALL) scripts/lfinding.sh	$(DESTDIR)$(lustre_scripts)/
+#	$(INSTALL) scripts/lwatch.pl		$(DESTDIR)$(lustre_scripts)/
+#	$(INSTALL) scripts/lwatch.py		$(DESTDIR)$(lustre_scripts)/
+	$(INSTALL) scripts/mib-test.sh	$(DESTDIR)$(lustre_scripts)/
+	$(INSTALL) scripts/mib-test.transcript $(DESTDIR)$(lustre_scripts)/
+	$(INSTALL) scripts/mib.sh		$(DESTDIR)$(lustre_scripts)/
+	$(INSTALL) scripts/profile.pl		$(DESTDIR)$(lustre_scripts)/
+	$(INSTALL) scripts/rm-files.sh	$(DESTDIR)$(lustre_scripts)/
+	$(INSTALL) scripts/viewcalls.pl	$(DESTDIR)$(lustre_scripts)/
 
 clean: 
 	rm -f *.rpm
