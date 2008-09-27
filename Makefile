@@ -22,7 +22,6 @@ all:
 install:
 	$(mkinstalldirs) 			$(DESTDIR)$(lustre_bin)
 	$(INSTALL) src/mib			$(DESTDIR)$(lustre_bin)/
-	$(INSTALL) src/mib-serial		$(DESTDIR)$(lustre_bin)/
 	$(mkinstalldirs)			$(DESTDIR)$(mandir)
 	$(INSTALL) src/mib.1 -m 644		$(DESTDIR)$(mandir)/
 	$(mkinstalldirs)			$(DESTDIR)$(lustre_scripts)
