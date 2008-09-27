@@ -42,23 +42,23 @@
 
 2006-10-30 Andrew Uselton <uselton2@llnl.gov>
 
-	* Removed the sum.pl script which is also in the auto-test
+	* : Removed the sum.pl script which is also in the auto-test
 	package.  
 	
 2006-10-27 Andrew Uselton <uselton2@llnl.gov>
 
-	* Added a discussion of library handling in the README.
+	* : Added a discussion of library handling in the README.
 	
 2006-10-04 Andrew Uselton <uselton2@llnl.gov>
 
-	* Put default ownership of (root, root) on the files in the spec
+	* : Put default ownership of (root, root) on the files in the spec
 	file for the tools package.  
 	
 2006-08-07 Andrew Uselton <uselton2@llnl.gov>
 
-	* Tag 1.9.7
+	* : Tag 1.9.7
 
-	* Modify RPM spec file to always create the
+	* : Modify RPM spec file to always create the
 	/var/lustredata/scripts directory.  N.B.  I'd avoided this before
 	because the existance of that directory might induce someone ot
 	run tests and send the results there.  That could fill the root
@@ -67,50 +67,50 @@
 	cleanly on clusters with no Lustre.  So ite bullet and maybe
 	rethink in the future.
 
-	* Fixed (harmless) storage leak used for communicating timing
+	* : Fixed (harmless) storage leak used for communicating timing
 	results in an MPI_Gather.
 
 2006-07-13 Andrew Uselton <uselton2@llnl.gov>
 
-	* Tag 1.9.6
+	* : Tag 1.9.6
 
-	* Update all files with UCRL number in preparation for release.
+	* : Update all files with UCRL number in preparation for release.
 
-	* Sanity check documentation.
+	* : Sanity check documentation.
 	
-	* Caught and fixed a bug in options handling.  Send the correct
+	* : Caught and fixed a bug in options handling.  Send the correct
 	argc and argv to MPI_Init if you plan on consuming command line
 	parameters and options.  It would segfault trying to get to
 	argv[0] when sent argc = 0, which is wrong in a couple of ways. 
 	
 2006-06-29 Andrew Uselton <uselton2@llnl.gov>
 
-	* Tag 1.9.5
+	* : Tag 1.9.5
 
-	* Modify dlopen() code to be configurable, set up elan and
+	* : Modify dlopen() code to be configurable, set up elan and
 	infiniband  variants.
 
-	* Cast the "size_t count" parameter to Write() and Read() to be
+	* : Cast the "size_t count" parameter to Write() and Read() to be
 	ssize_t.  This prevents incorrect execution when the
 	system call returns an error condition (-1) and misinterprets it
 	as a very large number.  There is also one in Snprintf.
 
-	* Include "-Wextra" as a CCFLAGS flag to catch future instances of
+	* : Include "-Wextra" as a CCFLAGS flag to catch future instances of
 	the above.  
 	
 2006-04-26 Andrew Uselton <uselton2@llnl.gov>
 
-	* Tag 1.9.4
+	* : Tag 1.9.4
 
-	* Add lwatch.py to the project, since lmtd actually is available
+	* : Add lwatch.py to the project, since lmtd actually is available
 	as open source.  Modify references saying otherwise in the 
 	documentations.
 	
 2006-04-20 Andrew Uselton <uselton2@llnl.gov>
 
-	* Tag 1.9.3
+	* : Tag 1.9.3
 
-	* Fix really stupid, pernicious, and fundamental bug regarding use
+	* : Fix really stupid, pernicious, and fundamental bug regarding use
 	of opt->flags and verbosity references in macros.  They appear in
 	several places, especially base_report, before opts is
 	initialized.  1) split base_report from flags test and introduce
@@ -119,172 +119,172 @@
 	
 2006-04-3 Andrew Uselton <uselton2@llnl.gov>
 
-	* Tag 1.9.2
+	* : Tag 1.9.2
 
-	* Take out the node averaging.  The BGL code has entirely forked
+	* : Take out the node averaging.  The BGL code has entirely forked
 	and node averaging is only an issue there.  It is also less reasonable
 	on non-BGL clusters because the tasks do not stay coordinated across 
 	a node like they do on BGL.
 
-	* The -V option should include the architecture, not just the signon 
+	* : The -V option should include the architecture, not just the signon 
 	message.
 
-	* regularize all the documentation so it all agrees.
+	* : regularize all the documentation so it all agrees.
 	
 2006-03-24 Andrew Uselton <uselton2@llnl.gov>
 
-	* Tag 1.9.1
+	* : Tag 1.9.1
 
-	* Add the architecture to the version string
+	* : Add the architecture to the version string
 
 2006-03-17 Andrew Uselton <uselton2@llnl.gov>
 
-	* Tag 1.9
+	* : Tag 1.9
 
-	* Allow for operation without MPI
+	* : Allow for operation without MPI
 
-	* Introduce random read option
+	* : Introduce random read option
 
-	* Improve the mib.sh wrapper script
+	* : Improve the mib.sh wrapper script
 
-	* Make the target a required argument to avoid accidentally
+	* : Make the target a required argument to avoid accidentally
 	writing to NFS and causing disruption
 
-	* Check for the file system type of the target and refuse to use
+	* : Check for the file system type of the target and refuse to use
 	NFS unless a "-F" (--force) flag is set.
 
-	* Add a version option that prints the version string and exits.
+	* : Add a version option that prints the version string and exits.
 
-	* Remove the "options" file code, use command line arguments only
+	* : Remove the "options" file code, use command line arguments only
 
-	* Add a unit test "mib-test.sh" to the tools directory
+	* : Add a unit test "mib-test.sh" to the tools directory
 
-	* Fix Mib_Init, it didn't return(mib) its result
+	* : Fix Mib_Init, it didn't return(mib) its result
 
-	* When there is no SLURM or MPI we set the rank and base to the 
+	* : When there is no SLURM or MPI we set the rank and base to the 
 	host's index.  That means the read test's file name needs the 
 	base added to its modulo arithmatic.  When we have arbitrary 
 	subcommunicators, if ever, that would also come up.
 
-	* "Open" for writes should have O_CREAT, and "Open" for reads
+	* : "Open" for writes should have O_CREAT, and "Open" for reads
 	should not.  Doing this makes the "Open" implementation straight
 	forward.  
 
-	* If the statfs call fails, which it will if you gave it a bogus
+	* : If the statfs call fails, which it will if you gave it a bogus
 	target directory, then you need to bail with an error message.
 	I'd left out the "exit(1)".
 
-	* Convert to using config.h, which is created by configure, to
+	* : Convert to using config.h, which is created by configure, to
 	detect if MPI is present on the build host, and skip using it if
 	so.
 
-	* Set the correct include directory: /usr/lib/mpi/include in the
+	* : Set the correct include directory: /usr/lib/mpi/include in the
 	Makefile.in
 	
 2006-03-01 Andrew Uselton <uselton2@llnl.gov>
 	
-	* Tag 1.8
+	* : Tag 1.8
 
-	* Dump the iterateions and pause options
+	* : Dump the iterateions and pause options
 
-	* Code factoring in the options settings
+	* : Code factoring in the options settings
 
-	* Consolidate boolean flags into fields in a single flag
+	* : Consolidate boolean flags into fields in a single flag
 
-	* Fixed ENOENT / ENONET bug :(
+	* : Fixed ENOENT / ENONET bug :(
 
-	* Get command line options (including long-opts) working and tested
+	* : Get command line options (including long-opts) working and tested
 
-	* Allow there to be a log_dir with no "options" file
+	* : Allow there to be a log_dir with no "options" file
 
-	* Make a man page
+	* : Make a man page
 
-	* Fix packaging
+	* : Fix packaging
 
 	
 2006-02-15 Andrew Uselton <uselton2@llnl.gov>
 	
-	* Tag 1.7
+	* : Tag 1.7
 	
-	* Introduce "new" and "remove" options to allow for managing files.
+	* : Introduce "new" and "remove" options to allow for managing files.
 
-	* Introduce "use_ion_aves" option to suppress (by default) calculating
+	* : Introduce "use_ion_aves" option to suppress (by default) calculating
 	averages accross IONs the way BGL does.
 
-	* Fixed the "no averages" code path so it rightly preserves
+	* : Fixed the "no averages" code path so it rightly preserves
 	the whole profile from a run.  
 
-	* Promoted the res->transferred field to a double because as a
+	* : Promoted the res->transferred field to a double because as a
 	32 bit quantity it could overflow for really fast or long 
 	accumulations of transfers.
 	
 2006-01-15 Andrew Uselton <uselton2@llnl.gov>
 	
-	* Tag 1.6
+	* : Tag 1.6
 	
-	* Introduce "profiles" option, and don't do profiles unless it is
+	* : Introduce "profiles" option, and don't do profiles unless it is
 	set
 
-	* Adjust defaults for operation without parameters file
+	* : Adjust defaults for operation without parameters file
 
-	* Reduce verbosity for default operation, summary line only
+	* : Reduce verbosity for default operation, summary line only
 
-	* Clean up "lint" detected by icc compiler, missing "returns"
+	* : Clean up "lint" detected by icc compiler, missing "returns"
 	pointer arithmetic, missing "include" files <stdlib> and <string>
 
-	* init_timer() now uses MPI_COMM_WORLD and occurs outside the 
+	* : init_timer() now uses MPI_COMM_WORLD and occurs outside the 
 	iteration loop.  It also announces the program name and start 
 	time.
 
-	* the fsync() seems to return errors that (probably) occurred
+	* : the fsync() seems to return errors that (probably) occurred
 	earlier and were corrected.  Work around, investigate, fix.
 	
 2005-12-07 Andrew Uselton <uselton2@llnl.gov>
 
-	* Tag 1.5
+	* : Tag 1.5
 	
-	* Discovered where the rogue ASSERT was, though not why.
+	* : Discovered where the rogue ASSERT was, though not why.
 
-	* Retrenched to only using FAIL and ASSERT and removed 
+	* : Retrenched to only using FAIL and ASSERT and removed 
 	problematic error handling code
 
-	* Documented, but did not implement, details of system
+	* : Documented, but did not implement, details of system
 	call return codes
 
-	* Timer intialization check
+	* : Timer intialization check
 
 2005-12-01 Andrew Uselton <uselton2@llnl.gov>
 
-	* Tag 1.4
+	* : Tag 1.4
 	
-	* Bool enumeration
+	* : Bool enumeration
 
-	* Optional read_only and write_only
+	* : Optional read_only and write_only
 
-	* Optional looping
+	* : Optional looping
 
 2005-11-22 Andrew Uselton <uselton2@llnl.gov>
 
-	* Tag 1.3
+	* : Tag 1.3
 
-	* Code refactoring
+	* : Code refactoring
 	
 2005-11-15 Andrew Uselton <uselton2@llnl.gov>
 	
-	* Tag 1.2
+	* : Tag 1.2
 
-	* Progress meter
+	* : Progress meter
 
 2005-11-01 Andrew Uselton <uselton2@llnl.gov>
 	
-	* tag 1.1
+	* : tag 1.1
 	
-	* Reorganize for single directory of output
+	* : Reorganize for single directory of output
 
 2005-10-01 Andrew Uselton <uselton2@llnl.gov>
 	
-	* tag 1.0
+	* : tag 1.0
 	
-	* Working code
+	* : Working code
 
 	
