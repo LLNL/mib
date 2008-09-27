@@ -29,14 +29,15 @@
 #include <fcntl.h>
 #include <stdio.h>
 #include <stdlib.h>
-#define __USE_GNU       /* strnlen is a GNU extension */
 #include <string.h>     /* strncpy */
 #include <ctype.h>
 #include <time.h>
 #include <unistd.h>
 #include <stdarg.h>
 #include <errno.h>
+#ifndef _GNU_SOURCE
 #define _GNU_SOURCE
+#endif
 #include <getopt.h>
 #include "mpi_wrap.h"
 #include "mib.h"
@@ -360,6 +361,16 @@ show_details()
     }
 }
 
+static int 
+mystrnlen(char *str, int max)
+{
+  int n;
+  for (n = 0; n < max; n++)
+     if (str[n] == '\0')
+        break;
+  return n;
+}
+
 BOOL
 set_string(char *v, char **strp)
 {
@@ -367,7 +378,7 @@ set_string(char *v, char **strp)
 
   if( *strp != NULL) 
       free(*strp);
-  *strp = Malloc(strnlen(v, MAX_BUF) + 1);
+  *strp = Malloc(mystrnlen(v, MAX_BUF) + 1);
   if ( (ret = snprintf(*strp, MAX_BUF, "%s", v)) < 0)
     FAIL();
   return(TRUE);
