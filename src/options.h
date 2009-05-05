@@ -37,6 +37,7 @@ typedef enum {FALSE, TRUE} BOOL;
 #define WRITE_ONLY    (1 << 3)
 #define RANDOM_READS  (1 << 4)
 #define FORCE         (1 << 5)
+#define DIRECTIO      (1 << 6)
 
 /*
  * Defines for the Options_Struct "verbosity. " field

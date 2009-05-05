@@ -40,6 +40,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdarg.h>
+#include <string.h>
 #include "mpi_wrap.h"
 #include "mib.h"
 #include "miberr.h"
@@ -75,8 +76,7 @@ Open(char *name, int flags)
   errno = 0;
   if( (fd = open(name, flags, mode)) < 0 )
     {
-      printf("failed to open %s: %d\n", name, errno);
-      fflush(stdout);
+      perror(name);
       FAIL();
     }
   return (fd);
@@ -90,8 +90,7 @@ Fstat(int filedes, struct stat *buf)
   errno = 0;
   if( (ret = fstat(filedes, buf)) < 0 )
     {
-      printf("failed to fstat: %d\n", errno);
-      fflush(stdout);
+      perror("fstat");
       FAIL();
     }
   return(ret);
@@ -105,8 +104,7 @@ Lseek(int filedes, off_t offset, int whence)
   errno = 0;
   if( (ret = lseek(filedes, offset, whence)) < 0 )
     {
-      printf("failed to lseek: %d\n", errno);
-      fflush(stdout);
+      perror("lseek");
       FAIL();
     }
   return(ret);
@@ -141,8 +139,7 @@ Unlink(char *name)
   errno = 0;
   if( ((ret = unlink(name)) < 0) && (errno != ENOENT) )
     {
-        printf("failed to unlink %s: %d\n", name, errno);
-	fflush(stdout);
+        fprintf(stderr, "failed to unlink %s: %s\n", name, strerror(errno));
         FAIL();
     }
 }
@@ -171,6 +168,7 @@ Write(int fd, const void *buf, size_t count)
     {
       if(wrote < 0)
 	{
+          perror("write");
 	  FAIL();
 	}
       if(wrote > 0)
@@ -209,6 +207,7 @@ Read(int fd, void *buf, size_t count)
     {
       if(got < 0)
 	{
+          perror("read");
 	  FAIL();
 	}
       if(got > 0)
@@ -240,7 +239,8 @@ Fsync(int fd)
   errno = 0;
   if ( (rc = fsync(fd)) < 0 )
     {
-    /*       FAIL();  */;
+      perror("fsync");
+      FAIL();
     }
   return(rc);
 }
@@ -259,6 +259,7 @@ Close(int fd)
   errno = 0;
   if ( (rc = close(fd)) < 0 )
     {
+      perror("close");
       FAIL();
     }
   return(rc);
@@ -288,8 +289,11 @@ Exists(const char *path)
   if ( (rc = stat(path, &stat_st)) < 0 )
     if ( errno == ENOENT )
       rc = 0;
-    else
-      FAIL();
+    else 
+      {
+        perror(path);
+        FAIL();
+      }
   else
     rc = 1;
   return(rc);
@@ -313,6 +317,7 @@ Fopen(const char *path, const char *mode)
 
   if ( (fp = fopen(path, mode)) == NULL )
     {
+      perror(path);
       FAIL();
     }
   return(fp);
@@ -326,6 +331,7 @@ Fgets(char *buf, int n, FILE *stream)
   if ( (s = fgets(buf, n, stream)) == NULL)
     if(!feof(stream))
       {
+        perror("fgets");
 	FAIL();
       }
   return(s);
@@ -339,6 +345,7 @@ Fprintf(FILE *stream, char *fmt, char *str)
   ASSERT(mib->rank == mib->base);
   if ( (ret = fprintf(stream, fmt, str)) < 0)
     {
+      perror("fprintf");
       FAIL();
     }
   fflush(stream);
@@ -353,6 +360,7 @@ Snprintf(char *buf, size_t size, char *fmt, double val)
   ASSERT(mib->rank == mib->base);
   if ( ((ret = snprintf(buf, size, fmt, val)) < 0) || ((ret > (int)size)) )
     {
+      perror("snprintf"); /* FIXME snprintf return value */
       FAIL();
     }
   return(ret);
@@ -366,6 +374,24 @@ Malloc(size_t size)
 
   if( (b = malloc(size)) == NULL)
     {
+      fprintf(stderr, "out of memory");
+      FAIL();
+    }
+  return(b);
+}
+
+/* Allocate I/O buffers with alignment appropriate for O_DIRECT.
+ * Pick a large value that should be greater than any device sector size.
+ */
+void *
+IOMalloc(size_t size)
+{
+  void *b;
+  int alignment = getpagesize();
+
+  if(posix_memalign(&b, alignment, size) < 0)
+    {
+      fprintf(stderr, "out of memory");
       FAIL();
     }
   return(b);

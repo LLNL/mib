@@ -1,3 +1,22 @@
+2009-05-05 Jim Garlick <garlick@llnl.gov>
+
+	* : tag 1.9.10
+
+	* src/sys_wrap.c : Call perror before calling FAIL on syscall error.
+
+	* src/miberr.h : Change ASSERT/FAIL messages to use file::line fmt.
+	Have ASSERT print the condition that failed.
+
+	* src/mib.c : Use stderr for error messages, not stdout.
+
+	* src/sys_wrap.c : Add IOMalloc() function to return page-aligned
+	buffers suitable for O_DIRECT I/O.
+
+	* src/mib.c : Allocate I/O buffers using IOMalloc(), and open with
+	O_DIRECT if -d (--directio) option was used.
+
+	* src/options.[ch], doc/mib.1 : Add -d (--directio) option.
+
 2008-09-27 Jim Garlick <garlick@llnl.gov>
 
 	* : tag 1.9.9

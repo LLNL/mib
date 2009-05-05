@@ -37,6 +37,7 @@
 #include <stdio.h>      /* FILE, fopen, etc. */
 #include <sys/types.h>  /* open, etc */
 #include <sys/stat.h>   /* open, etc */
+#define __USE_GNU       /* for O_DIRECT */
 #include <fcntl.h>      /* open, etc */
 #include <unistd.h>     /* unlink, ssize_t */
 #include <stdlib.h>     /* free */
@@ -189,7 +190,7 @@ write_test()
   int last_call;
   char *buf;          /* what gets sent in the system call */
   int wf;             /* the file handle for the writes */
-  int flag = O_WRONLY | O_CREAT;/* the flag value for the open */
+  int flag = O_WRONLY | O_CREAT; /* the flag value for the open */
   double time_limit;
   double time;
   double rate = 0;
@@ -200,6 +201,10 @@ write_test()
   int last_write_call;
 
   DEBUG("Starting write test.\n");
+  if ((opts->flags & DIRECTIO))
+    {
+      flag |= O_DIRECT;
+    }
   res = (Results *)Malloc(sizeof(Results));
   res->timings = (double *)Malloc(opts->call_limit*opts->time_limit*sizeof(double));
   buf = fill_buff();
@@ -412,7 +417,7 @@ fill_buff()
   long long *llarray;
   int lsize = sizeof(long long);
 
-  buff = (char *)Malloc(opts->call_size);
+  buff = (char *)IOMalloc(opts->call_size);
   llarray  = (long long *)buff;
   while((char *)&(llarray[count]) < (buff + opts->call_size - lsize))
     {
@@ -487,6 +492,7 @@ read_test()
   double time_limit;
   double time;
   double rate = 0;
+  int flag = O_RDONLY;
   Results *red = NULL;
   Results *res = NULL;
   char read_target[MAX_BUF];
@@ -497,9 +503,13 @@ read_test()
   struct stat stats;
 
   DEBUG("Starting read.\n");
+  if ((opts->flags & DIRECTIO))
+    {
+      flag |= O_DIRECT;
+    }
   res = (Results *)Malloc(sizeof(Results));
   res->timings = (double *)Malloc(opts->call_limit*opts->time_limit*sizeof(double));
-  buf = (char *)Malloc(opts->call_size);
+  buf = (char *)IOMalloc(opts->call_size);
   snprintf(read_target, MAX_BUF, "%s/mibData.%08d", opts->testdir, read_rank);
 
   /* 
@@ -511,13 +521,12 @@ read_test()
    */
   if( ! Exists(read_target) )
     {
-      printf("No file: %s\n", read_target);
-      fflush(stdout);
+      fprintf(stderr, "No file: %s\n", read_target);
       FAIL();
     }
   mpi_barrier(mib->comm);
   res->start_open = get_time();
-  rf = Open(read_target, O_RDONLY);
+  rf = Open(read_target, flag);
   res->end_open = get_time();
   /* 
    * If we're doing random reads then we sneek the fstat call in here 
@@ -530,9 +539,8 @@ read_test()
       Fstat(rf, &stats);
       if (stats.st_size < opts->granularity)
 	{
-	  printf("In task %d, the file size (%ld) is too small for the granularity (%lld)\n", 
+	  fprintf(stderr, "In task %d, the file size (%ld) is too small for the granularity (%lld)\n", 
 		      mib->rank, (long)stats.st_size, opts->granularity);
-	  fflush(stdout);
 	  FAIL();
 	}
       gran = stats.st_size/(opts->granularity*RAND_MAX);

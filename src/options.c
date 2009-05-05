@@ -53,7 +53,7 @@ BOOL set_int(char *v, int *nump);
 BOOL set_longlong(char *v, long long *llnump);
 
 Options *opts;
-char *opt_str = "b::EFIhHl:L:np:PrRs:St:VW";
+char *opt_str = "b::EFIhHl:L:np:PrRs:St:VWd";
 
 extern Mib    *mib;
 extern char   *version;
@@ -88,6 +88,7 @@ command_line(int *argcp, char **argvp[])
       {"version", no_argument, NULL, 'V'},
       {"write_only", no_argument, NULL, 'W'},
       {"help", no_argument, NULL, 'h'},
+      {"directio", no_argument, NULL, 'd'},
       {0, 0, 0, 0},
     };
 
@@ -150,6 +151,9 @@ command_line(int *argcp, char **argvp[])
 	case 'W' : /* write_only */
 	  set_flags("true", &(o->flags), WRITE_ONLY);
 	  break;
+	case 'd' : /* directio */ 
+          set_flags("true", &(o->flags), DIRECTIO);
+	  break;
 	case 'h' :  /* help */
 	default : 
 	  usage(); 
@@ -210,6 +214,7 @@ usage( void )
   printf("    -W              :  Only perform the write test\n");
   printf("                    :    (if -R and -W are both present both tests \n");
   printf("                    :     will run, but that's the default anyway).\n");
+  printf("    -d              :  Open files with O_DIRECT.\n");
   exit(0);
 }
 

@@ -39,6 +39,9 @@ Perform a seek to a random location in the file before each read.  The optional
 ganularity constrains the targets of the seek to offsets in the file equal to
 multiples of that value (default no seeks).  
 .TP
+.I "-d, --directio"
+Open test files with the \fIO_DIRECT\fR flag to minimize cache effects.
+.TP
 .I "-E, --show_environment"
 Show environment of test in output (default false).
 .TP

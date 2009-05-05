@@ -61,3 +61,5 @@ void Fprintf(FILE *stream, char *fmt, char *str);
 int Snprintf(char *buf, size_t size, char *fmt, double val);
 
 void *Malloc(size_t size);
+
+void *IOMalloc(size_t size);

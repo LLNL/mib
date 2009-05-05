@@ -33,24 +33,21 @@ typedef enum {FALSE, TRUE} BOOL;
  * is intended only for those places in the code where the condition
  * reveals a bug.  No user action can trigger this.
  */
-#define ASSERT(condition) do {                                           \
-        if(!(condition)) {                                               \
-          fprintf(stderr, "ASSERTION: %s (%d)\n", __FILE__, __LINE__);   \
-          fflush(stderr);                                                \
-          mpi_abort(MPI_COMM_WORLD, 1);                                  \
-        }                                                                \
+#define ASSERT(cond) do {                                                    \
+    if(!(cond)) {                                                            \
+        fprintf(stderr, "ASSERTION: %s::%d (%s)\n",__FILE__,__LINE__,#cond); \
+        fflush(stderr);                                                      \
+        mpi_abort(MPI_COMM_WORLD, 1);                                        \
+    }                                                                        \
 } while (0)
-
 
 /* 
  *   FAIL uses MPI_Abort to stop processing on all tasks immediately.
  * In contrast to ASSERT, FAIL is for conditions external to mib's
  * control that prevent it from continuing.
  */
-#define FAIL() do {                                           \
-        fprintf(stderr, "%s (%d)\n", __FILE__, __LINE__);     \
-          fflush(stderr);                                                \
-          mpi_abort(MPI_COMM_WORLD, 1);   \
+#define FAIL() do {                                                          \
+    fprintf(stderr, "FATAL: %s::%d\n", __FILE__, __LINE__);                  \
+    fflush(stderr);                                                          \
+    mpi_abort(MPI_COMM_WORLD, 1);                                            \
 } while (0)
-
-
